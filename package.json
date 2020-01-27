@@ -1,0 +1,80 @@
+{
+	"name": "@natlibfi/melinda-rest-api-http",
+	"description": "RESTful API for Melinda",
+	"author": {
+		"name": "The National Library of Finland"
+	},
+	"keywords": [],
+	"homepage": "https://github.com/natlibfi/melinda-rest-api-http",
+	"bugs": {
+		"url": "https://github.com/natlibfi/melinda-rest-api-http/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git@github.com:natlibfi/melinda-rest-api-http.git"
+	},
+	"license": "AGPL-3.0+",
+	"version": "1.0.0",
+	"main": "./dist/index.js",
+	"engines": {
+		"node": "12"
+	},
+	"scripts": {
+		"start": "node ./dist/index",
+		"start:dev": "babel-node ./src/index",
+		"lint": "eslint src",
+		"lint:dev": "eslint --fix src",
+		"test": "npm run lint",
+		"dev": "NODE_ENV=development cross-env DEBUG=1 nodemon",
+		"build": "babel src --source-maps --copy-files --delete-dir-on-start --out-dir=dist",
+		"prod": "NODE_ENV=production npm run build && npm run start"
+	},
+	"dependencies": {
+		"@babel/runtime": "^7.11.2",
+		"@natlibfi/marc-record-serializers": "^7.0.0",
+		"@natlibfi/melinda-backend-commons": "^1.0.4",
+		"@natlibfi/melinda-commons": "^10.0.0",
+		"@natlibfi/melinda-rest-api-commons": "^1.0.0",
+		"@natlibfi/sru-client": "^4.0.1",
+		"body-parser": "^1.19.0",
+		"express": "^4.17.1",
+		"http-status": "^1.4.2",
+		"moment": "^2.26.0",
+		"nodemon": "^2.0.4",
+		"passport": ">=0.4.1 <1.0.0",
+		"passport-http": ">=0.3.0 <1.0.0",
+		"uuid": "^8.1.0"
+	},
+	"devDependencies": {
+		"@babel/cli": "^7.10.1",
+		"@babel/core": "^7.10.1",
+		"@babel/node": "^7.10.1",
+		"@babel/preset-env": "^7.10.1",
+		"@babel/register": "^7.10.1",
+		"@natlibfi/eslint-config-melinda-backend": "^1.0.1",
+		"babel-eslint": "^10.0.3",
+		"cross-env": "^7.0.0",
+		"eslint": "^7.0.0"
+	},
+	"eslintConfig": {
+		"extends": "@natlibfi/melinda-backend"
+	},
+	"babel": {
+		"presets": [
+			[
+				"@babel/preset-env",
+				{s
+					"targets": "maintained node versions"
+				}
+			]
+		]
+	},
+	"nodemonConfig": {
+		"exec": "npm run lint:dev && npm run start:dev",
+		"watch": [
+			"src/*"
+		],
+		"ext": "js",
+		"delay": 2.5
+	}
+}
