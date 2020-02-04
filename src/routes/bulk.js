@@ -40,6 +40,7 @@ const {createLogger} = Utils;
 const logger = createLogger(); // eslint-disable-line no-unused-vars
 
 const CONTENT_TYPES = ['application/xml', 'application/marc', 'application/json', 'application/alephseq'];
+const OPERATION_TYPES = [OPERATIONS.CREATE, OPERATIONS.UPDATE];
 
 export default async () => {
 	const Service = await createService();
@@ -62,16 +63,17 @@ export default async () => {
 	async function create(req, res, next) {
 		try {
 			logger.log('debug', 'Bulk job');
-
+			console.log(req.query);
 			const params = {
-				correlationId: req.query.id || uuid(),
+				correlationId: uuid(),
 				cataloger: req.user.id,
 				operation: req.params.operation.toUpperCase(),
-				contentType: req.headers['content-type']
+				contentType: req.headers['content-type'],
+				recordLoadParams: req.query || null
 			};
 
 			logger.log('debug', 'Params done');
-			if (params.operation === undefined || !OPERATIONS.includes(params.operation)) {
+			if (params.operation === undefined || !OPERATION_TYPES.includes(params.operation)) {
 				logger.log('debug', 'Invalid operation');
 				throw new ApiError(HttpStatus.BAD_REQUEST, 'Invalid operation');
 			}

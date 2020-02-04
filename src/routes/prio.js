@@ -31,7 +31,7 @@ import passport from 'passport';
 import HttpStatus from 'http-status';
 import {v4 as uuid} from 'uuid';
 import ApiError from '@natlibfi/melinda-commons';
-import {conversionFormats, checkIfOfflineHours} from '@natlibfi/melinda-rest-api-commons';
+import {conversionFormats, checkIfOfflineHours, logError} from '@natlibfi/melinda-rest-api-commons';
 import {SRU_URL_BIB, OFFLINE_BEGIN, OFFLINE_DURATION} from '../config';
 import createService from '../interfaces/prio';
 import {formatRequestBoolean} from '../utils';
@@ -54,6 +54,7 @@ export default async () => {
 		.get('/:id', readResource)
 		.post('/:id', updateResource)
 		.use((err, req, res, next) => {
+			logError(err);
 			if (err instanceof ApiError) {
 				res.status(err.status).send(err.payload);
 			} else {
@@ -116,6 +117,11 @@ export default async () => {
 
 			if (!format) {
 				throw new ApiError(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+			}
+
+			// Id must contain 9 digits nothing less, nothing more.
+			if (!/^\d{9}$/.test(req.params.id)) {
+				throw new ApiError(HttpStatus.BAD_REQUEST, `Given id is invalid: ${req.params.id}`);
 			}
 
 			const noop = formatRequestBoolean(req.query.noop);

@@ -29,7 +29,7 @@
 import HttpStatus from 'http-status';
 import {promisify} from 'util';
 import ApiError, {Utils} from '@natlibfi/melinda-commons';
-import {amqpFactory, conversion} from '@natlibfi/melinda-rest-api-commons';
+import {amqpFactory, conversion, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import {MARCXML} from '@natlibfi/marc-record-serializers';
 import createSruClient from '@natlibfi/sru-client';
 import {SRU_URL_BIB, AMQP_URL, POLL_WAIT_TIME} from '../config';
@@ -60,7 +60,7 @@ export default async function () {
 		try {
 			logger.log('debug', 'Sending a new record to queue');
 			const headers = {
-				operation: 'CREATE',
+				operation: OPERATIONS.CREATE,
 				format,
 				cataloger,
 				noop,
@@ -82,7 +82,7 @@ export default async function () {
 			amqpOperator.removeQueue(correlationId);
 
 			if (responseData.status !== 'CREATED') {
-				throw new ApiError(responseData.status, response.payload || '');
+				throw new ApiError(responseData.status, responseData.payload || '');
 			}
 
 			// Reply to http
@@ -102,7 +102,7 @@ export default async function () {
 		try {
 			logger.log('debug', `Sending updating task for record ${id} to queue`);
 			const headers = {
-				operation: 'UPDATE',
+				operation: OPERATIONS.UPDATE,
 				id,
 				format,
 				cataloger,
