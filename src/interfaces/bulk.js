@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars, no-warning-comments */
-
 /**
 *
 * @licstart  The following is the entire license notice for the JavaScript code in this file.

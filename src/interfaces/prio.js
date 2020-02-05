@@ -153,14 +153,15 @@ export default async function () {
 		return record;
 	}
 
+	// Loop
 	async function check(queue) {
 		// Check queue
-		const result = await amqpOperator.checkQueue(queue, 'raw', false);
+		const message = await amqpOperator.checkQueue(queue, 'raw', false);
 
-		if (result) {
-			// Work with results
-			result.content = JSON.parse(result.content.toString());
-			return result;
+		if (message) {
+			// Work with message
+			message.content = JSON.parse(message.content.toString());
+			return message;
 		}
 
 		// Nothing in queue

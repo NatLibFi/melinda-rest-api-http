@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 /**
 *
 * @licstart  The following is the entire license notice for the JavaScript code in this file.
@@ -27,20 +26,19 @@
 *
 */
 
+import bodyParser from 'body-parser';
 import HttpStatus from 'http-status';
 import express from 'express';
-import bodyParser from 'body-parser';
 import passport from 'passport';
 import {MarcRecord} from '@natlibfi/marc-record';
 import ServiceError, {Authentication, Utils} from '@natlibfi/melinda-commons';
+import {logError} from '@natlibfi/melinda-rest-api-commons';
 import {createPrioRouter, createBulkRouter, createApiDocRouter} from './routes';
-
 import {
 	HTTP_PORT, ENABLE_PROXY,
 	ALEPH_X_SVC_URL, ALEPH_USER_LIBRARY,
 	OWN_AUTHZ_URL, OWN_AUTHZ_API_KEY
 } from './config';
-import {logError} from '@natlibfi/melinda-rest-api-commons';
 
 const {createLogger, createExpressLogger, handleInterrupt} = Utils;
 
