@@ -17,7 +17,7 @@
 	"version": "1.0.0",
 	"main": "./dist/index.js",
 	"engines": {
-		"node": "12"
+		"node": "10"
 	},
 	"scripts": {
 		"start": "node ./dist/index",
@@ -92,7 +92,7 @@
 				"@babel/preset-env",
 				{
 					"targets": {
-						"node": "12"
+						"node": "10"
 					}
 				}
 			]
