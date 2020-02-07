@@ -29,7 +29,7 @@
 import HttpStatus from 'http-status';
 import {promisify} from 'util';
 import ApiError, {Utils} from '@natlibfi/melinda-commons';
-import {amqpFactory, conversion, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
+import {amqpFactory, conversions, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import {MARCXML} from '@natlibfi/marc-record-serializers';
 import createSruClient from '@natlibfi/sru-client';
 import {SRU_URL_BIB, AMQP_URL, POLL_WAIT_TIME} from '../config';
@@ -39,6 +39,7 @@ const {createLogger} = Utils;
 
 export default async function () {
 	const logger = createLogger();
+	const converter = conversions();
 	const amqpOperator = await amqpFactory(AMQP_URL);
 	const sruClient = createSruClient({serverUrl: SRU_URL_BIB, version: '2.0', maximumRecords: '1'});
 
@@ -48,9 +49,9 @@ export default async function () {
 		try {
 			logger.log('debug', `Reading record ${id} from datastore`);
 			const record = await getRecord(id);
-
+			console.log(record);
 			logger.log('debug', `Serializing record ${id}`);
-			return conversion.serialize(record, format);
+			return converter.serialize(record, format);
 		} catch (err) {
 			throw err;
 		}
