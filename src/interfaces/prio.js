@@ -49,7 +49,6 @@ export default async function () {
 		try {
 			logger.log('debug', `Reading record ${id} from datastore`);
 			const record = await getRecord(id);
-			console.log(record);
 			logger.log('debug', `Serializing record ${id}`);
 			return converter.serialize(record, format);
 		} catch (err) {
