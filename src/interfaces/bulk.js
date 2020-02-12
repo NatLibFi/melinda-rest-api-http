@@ -28,25 +28,20 @@
 
 import moment from 'moment';
 import ApiError, {Utils} from '@natlibfi/melinda-commons';
-import {mongoFactory, logError, QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
-import {MONGO_URI} from '../config';
+import {mongoFactory, QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
 
 const {createLogger} = Utils;
 
-export default async function () {
+export default async function (mongoUrl) {
 	const logger = createLogger(); // eslint-disable-line no-unused-vars
-	const mongoOperator = await mongoFactory(MONGO_URI);
+	const mongoOperator = await mongoFactory(mongoUrl);
 
 	return {create, doQuery, readContent, remove, removeContent};
 
 	async function create(req, {correlationId, cataloger, operation, contentType, recordLoadParams}) {
-		try {
-			await mongoOperator.create({correlationId, cataloger, operation, contentType, recordLoadParams, stream: req});
-			logger.log('debug', 'Stream uploaded!');
-			return mongoOperator.setState({correlationId, cataloger, operation, state: QUEUE_ITEM_STATE.PENDING_QUEUING});
-		} catch (error) {
-			logError(error);
-		}
+		await mongoOperator.create({correlationId, cataloger, operation, contentType, recordLoadParams, stream: req});
+		logger.log('debug', 'Stream uploaded!');
+		return mongoOperator.setState({correlationId, cataloger, operation, state: QUEUE_ITEM_STATE.PENDING_QUEUING});
 	}
 
 	async function readContent({cataloger, correlationId}) {

@@ -26,73 +26,46 @@
 *
 */
 
-import bodyParser from 'body-parser';
-import HttpStatus from 'http-status';
-import express from 'express';
-import passport from 'passport';
-import {MarcRecord} from '@natlibfi/marc-record';
-import ServiceError, {Authentication, Utils} from '@natlibfi/melinda-commons';
+import {Utils} from '@natlibfi/melinda-commons';
+import * as config from './config';
+import startApp from './app';
 import {logError} from '@natlibfi/melinda-rest-api-commons';
-import {createPrioRouter, createBulkRouter, createApiDocRouter} from './routes';
-import {
-	HTTP_PORT, ENABLE_PROXY,
-	ALEPH_X_SVC_URL, ALEPH_USER_LIBRARY,
-	OWN_AUTHZ_URL, OWN_AUTHZ_API_KEY
-} from './config';
-
-const {createLogger, createExpressLogger, handleInterrupt} = Utils;
-
-// Aleph creates partial subfields...
-MarcRecord.setValidationOptions({subfieldValues: false});
 
 run();
 
 async function run() {
-	const logger = createLogger(); // eslint-disable-line no-unused-vars
-	const app = express();
+	const {handleInterrupt} = Utils;
+	let server;
 
-	registerSignalHandlers();
+	registerInterruptionHandlers();
 
-	if (ENABLE_PROXY) {
-		app.enable('trust proxy', true);
-	}
+	server = await startApp({...config});
 
-	passport.use(new Authentication.Aleph.AlephStrategy({
-		xServiceURL: ALEPH_X_SVC_URL, userLibrary: ALEPH_USER_LIBRARY,
-		ownAuthzURL: OWN_AUTHZ_URL, ownAuthzApiKey: OWN_AUTHZ_API_KEY
-	}));
-
-	app.use(createExpressLogger());
-	app.use(passport.initialize());
-	app.use('/bulk', await createBulkRouter()); // Must be here to avoid bodyparser
-	app.use(bodyParser.text({limit: '5MB', type: '*/*'}));
-	app.use('/apidoc', createApiDocRouter());
-	app.use('/', await createPrioRouter());
-	app.use(handleError);
-
-	app.listen(HTTP_PORT, () => logger.log('info', 'Started Melinda REST API'));
-
-	function handleError(err, req, res, next) {
-		if (res.headersSent) {
-			return next(err);
-		}
-
-		logError(err);
-		if (err instanceof ServiceError) {
-			logger.log('debug', 'Responding service');
-			res.status(err.status).send(err.payload).end();
-		} else {
-			logger.log('debug', 'Responding internal');
-			res.sendStatus(HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-	}
-
-	function registerSignalHandlers() {
+	function registerInterruptionHandlers() {
 		process
+			.on('SIGTERM', handleSignal)
 			.on('SIGINT', handleInterrupt)
-			.on('uncaughtException', handleInterrupt)
-			.on('unhandledRejection', handleInterrupt);
-		// Nodemon
-		// .on('SIGUSR2', handle);
+			.on('uncaughtException', ({stack}) => {
+				handleTermination({code: 1, message: stack});
+			})
+			.on('unhandledRejection', ({stack}) => {
+				handleTermination({code: 1, message: stack});
+			});
+
+		function handleTermination({code = 0, message}) {
+			if (server) {
+				server.close();
+			}
+
+			if (message) {
+				logError(message);
+			}
+
+			process.exit(code);
+		}
+
+		function handleSignal(signal) {
+			handleTermination({code: 1, message: `Received ${signal}`});
+		}
 	}
 }

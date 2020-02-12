@@ -17,14 +17,13 @@
 	"version": "1.0.0",
 	"main": "./dist/index.js",
 	"engines": {
-		"node": "10"
+		"node": "12"
 	},
 	"scripts": {
 		"start": "node ./dist/index",
 		"start:dev": "npm run lint && npm run build && cross-env DEBUG=1 npm start",
 		"dev": "NODE_ENV=development cross-env DEBUG=1 nodemon",
 		"app:dev": "babel-node ./src/index",
-		"prepublishOnly": "npm run build",
 		"check-deps": "npm-check;exit 0",
 		"lint": "eslint src",
 		"lint:dev": "eslint --fix src",
@@ -39,7 +38,6 @@
 		"@natlibfi/marc-record-validate": "^5.0.1",
 		"@natlibfi/marc-record-validators-melinda": "^8.2.1",
 		"@natlibfi/melinda-commons": "^7.2.0",
-		"@natlibfi/melinda-record-import-commons": "git+https://github.com/NatLibFi/melinda-record-import-commons.git#melkehitys-1054-1117",
 		"@natlibfi/melinda-rest-api-commons": "git+https://github.com/NatLibFi/melinda-rest-api-commons.git#dev",
 		"@natlibfi/sru-client": "^3.1.2",
 		"body-parser": "^1.19.0",
@@ -92,7 +90,7 @@
 				"@babel/preset-env",
 				{
 					"targets": {
-						"node": "10"
+						"node": "12"
 					}
 				}
 			]
