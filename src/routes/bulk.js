@@ -52,24 +52,28 @@ export default async function (mongoUrl) {
 		.delete('/:id', removeContent);
 
 	async function create(req, res, next) { // eslint-disable-line no-unused-vars
-		logger.log('debug', 'Bulk job');
-		const params = {
-			correlationId: uuid(),
-			cataloger: req.user.id,
-			operation: req.params.operation.toUpperCase(),
-			contentType: req.headers['content-type'],
-			recordLoadParams: req.query || null
-		};
+		try {
+			logger.log('debug', 'Bulk job');
+			const params = {
+				correlationId: uuid(),
+				cataloger: req.user.id,
+				operation: req.params.operation.toUpperCase(),
+				contentType: req.headers['content-type'],
+				recordLoadParams: req.query || null
+			};
 
-		logger.log('debug', 'Params done');
-		if (params.operation && OPERATION_TYPES.includes(params.operation)) {
-			const response = await Service.create(req, params);
-			res.json(response);
-			return;
+			logger.log('debug', 'Params done');
+			if (params.operation && OPERATION_TYPES.includes(params.operation)) {
+				const response = await Service.create(req, params);
+				res.json(response);
+				return;
+			}
+
+			logger.log('debug', 'Invalid operation');
+			throw new ApiError(HttpStatus.BAD_REQUEST, 'Invalid operation');
+		} catch (error) {
+			next(error);
 		}
-
-		logger.log('debug', 'Invalid operation');
-		throw new ApiError(HttpStatus.BAD_REQUEST, 'Invalid operation');
 	}
 
 	function checkContentType(req, res, next) {

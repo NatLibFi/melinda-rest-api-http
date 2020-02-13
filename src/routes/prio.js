@@ -57,53 +57,65 @@ export default async ({sruBibUrl, amqpUrl, pollWaitTime, offlineBegin, offlineDu
 		.post('/:id', updateResource);
 
 	async function readResource(req, res, next) { // eslint-disable-line no-unused-vars
-		const type = req.headers['content-type'];
-		const format = CONTENT_TYPES[type];
-		const record = await Service.read({id: req.params.id, format});
-		res.type(type).status(HttpStatus.OK).send(record);
+		try {
+			const type = req.headers['content-type'];
+			const format = CONTENT_TYPES[type];
+			const record = await Service.read({id: req.params.id, format});
+			res.type(type).status(HttpStatus.OK).send(record);
+		} catch (error) {
+			next(error);
+		}
 	}
 
 	async function createResource(req, res, next) { // eslint-disable-line no-unused-vars
-		const type = req.headers['content-type'];
-		const format = CONTENT_TYPES[type];
-		const correlationId = uuid();
+		try {
+			const type = req.headers['content-type'];
+			const format = CONTENT_TYPES[type];
+			const correlationId = uuid();
 
-		const unique = req.query.unique === undefined ? true : parseBoolean(req.query.unique);
-		const noop = parseBoolean(req.query.noop);
-		const messages = await Service.create({
-			format,
-			unique,
-			noop,
-			data: req.body,
-			cataloger: req.user,
-			correlationId
-		});
+			const unique = req.query.unique === undefined ? true : parseBoolean(req.query.unique);
+			const noop = parseBoolean(req.query.noop);
+			const messages = await Service.create({
+				format,
+				unique,
+				noop,
+				data: req.body,
+				cataloger: req.user,
+				correlationId
+			});
 
-		if (noop) {
-			res.status(HttpStatus.CREATED).set('Record-ID', messages.id);
-			return;
+			if (noop) {
+				res.status(HttpStatus.CREATED).set('Record-ID', messages.id);
+				return;
+			}
+
+			res.type('application/json').send(messages);
+		} catch (error) {
+			next(error);
 		}
-
-		res.type('application/json').send(messages);
 	}
 
 	async function updateResource(req, res, next) { // eslint-disable-line no-unused-vars
-		const type = req.headers['content-type'];
-		const format = CONTENT_TYPES[type];
-		const correlationId = uuid();
+		try {
+			const type = req.headers['content-type'];
+			const format = CONTENT_TYPES[type];
+			const correlationId = uuid();
 
-		// Id must contain 9 digits nothing less, nothing more.
-		const noop = parseBoolean(req.query.noop);
-		const messages = await Service.update({
-			id: req.params.id,
-			data: req.body,
-			format,
-			cataloger: req.user,
-			noop,
-			correlationId
-		});
-		res.status(HttpStatus.OK).set('Record-ID', messages.id);
-		res.type('application/json').json(messages);
+			// Id must contain 9 digits nothing less, nothing more.
+			const noop = parseBoolean(req.query.noop);
+			const messages = await Service.update({
+				id: req.params.id,
+				data: req.body,
+				format,
+				cataloger: req.user,
+				noop,
+				correlationId
+			});
+			res.status(HttpStatus.OK).set('Record-ID', messages.id);
+			res.type('application/json').json(messages);
+		} catch (error) {
+			next(error);
+		}
 	}
 
 	function checkContentType(req, res, next) {
