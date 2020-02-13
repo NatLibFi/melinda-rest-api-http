@@ -57,7 +57,7 @@ export default async function (mongoUrl) {
 			correlationId: uuid(),
 			cataloger: req.user.id,
 			operation: req.params.operation.toUpperCase(),
-			contentType: req.headers['Content-Type'],
+			contentType: req.headers['content-type'],
 			recordLoadParams: req.query || null
 		};
 
@@ -74,10 +74,10 @@ export default async function (mongoUrl) {
 
 	function checkContentType(req, res, next) {
 		console.log(req.headers);
-		if (req.headers['Content-Type'] === undefined || !CONTENT_TYPES.includes(req.headers['Content-Type'])) {
+		if (req.headers['content-type'] === undefined || !CONTENT_TYPES.includes(req.headers['content-type'])) {
 			logger.log('debug', 'Invalid content type');
-			logger.log('debug', req.headers['Content-Type']);
-			throw new ApiError(HttpStatus.NOT_ACCEPTABLE, 'Invalid Content-Type');
+			logger.log('debug', req.headers['content-type']);
+			throw new ApiError(HttpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
 		}
 
 		next();
@@ -91,7 +91,7 @@ export default async function (mongoUrl) {
 	/* Functions after this are here only to test purposes */
 	async function readContent(req, res, next) { // eslint-disable-line no-unused-vars
 		const {contentType, readStream} = await Service.readContent({cataloger: req.user.id, correlationId: req.params.id});
-		res.set('Content-Type', contentType);
+		res.set('content-type', contentType);
 		readStream.pipe(res);
 	}
 
