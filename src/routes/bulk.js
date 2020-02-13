@@ -75,6 +75,7 @@ export default async function (mongoUrl) {
 	function checkContentType(req, res, next) {
 		if (req.headers['Content-Type'] === undefined || !CONTENT_TYPES.includes(req.headers['Content-Type'])) {
 			logger.log('debug', 'Invalid content type');
+			logger.log('debug', req.headers['Content-Type']);
 			throw new ApiError(HttpStatus.NOT_ACCEPTABLE, 'Invalid Content-Type');
 		}
 
