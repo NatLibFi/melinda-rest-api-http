@@ -109,7 +109,6 @@ export default async ({sruBibUrl, amqpUrl, pollWaitTime, offlineBegin, offlineDu
 	function checkContentType(req, res, next) {
 		if (req.headers['content-type'] === undefined || !CONTENT_TYPES[req.headers['content-type']]) {
 			logger.log('debug', 'Invalid content type');
-			logger.log('debug', req.headers['content-type']);
 			throw new ApiError(HttpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
 		}
 
