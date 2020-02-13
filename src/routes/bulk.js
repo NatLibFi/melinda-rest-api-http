@@ -64,7 +64,7 @@ export default async function (mongoUrl) {
 		logger.log('debug', 'Params done');
 		if (params.operation && OPERATION_TYPES.includes(params.operation)) {
 			const response = await Service.create(req, params);
-			res.type('application/json').json(response);
+			res.json(response);
 			return;
 		}
 
