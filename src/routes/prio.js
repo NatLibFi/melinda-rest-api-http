@@ -26,17 +26,18 @@
 *
 */
 
+import {Utils} from '@natlibfi/melinda-commons';
 import {Router} from 'express';
 import passport from 'passport';
 import HttpStatus from 'http-status';
 import {v4 as uuid} from 'uuid';
 import ApiError from '@natlibfi/melinda-commons';
-import {conversionFormats, checkIfOfflineHours, logError} from '@natlibfi/melinda-rest-api-commons';
-import {SRU_URL_BIB, OFFLINE_BEGIN, OFFLINE_DURATION} from '../config';
+import {conversionFormats, checkIfOfflineHours} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/prio';
-import {formatRequestBoolean} from '../utils';
 
-export default async () => {
+export default async ({sruBibUrl, amqpUrl, pollWaitTime, offlineBegin, offlineDuration}) => {
+	const {createLogger, parseBoolean} = Utils;
+	const logger = createLogger();
 	const CONTENT_TYPES = {
 		'application/json': conversionFormats.JSON,
 		'application/marc': conversionFormats.ISO2709,
@@ -44,52 +45,36 @@ export default async () => {
 	};
 
 	const Service = await createService({
-		sruURL: SRU_URL_BIB
+		sruBibUrl, amqpUrl, pollWaitTime
 	});
 
 	return new Router()
 		.use(passport.authenticate('melinda', {session: false}))
 		.use(checkOfflineHours)
+		.use(checkContentType)
 		.post('/', createResource)
 		.get('/:id', readResource)
-		.post('/:id', updateResource)
-		.use((err, req, res, next) => {
-			logError(err);
-			if (err instanceof ApiError) {
-				res.status(err.status).send(err.payload);
-			} else {
-				next(err);
-			}
-		});
+		.post('/:id', updateResource);
 
-	async function readResource(req, res, next) {
+	async function readResource(req, res, next) { // eslint-disable-line no-unused-vars
 		try {
-			const type = req.accepts(Object.keys(CONTENT_TYPES));
-
-			if (type) {
-				const format = CONTENT_TYPES[type];
-				const record = await Service.read({id: req.params.id, format});
-				res.type(type).status(HttpStatus.OK).send(record);
-			} else {
-				throw new ApiError(HttpStatus.NOT_ACCEPTABLE);
-			}
-		} catch (err) {
-			next(err);
+			const type = req.headers['content-type'];
+			const format = CONTENT_TYPES[type];
+			const record = await Service.read({id: req.params.id, format});
+			res.type(type).status(HttpStatus.OK).send(record);
+		} catch (error) {
+			next(error);
 		}
 	}
 
-	async function createResource(req, res, next) {
+	async function createResource(req, res, next) { // eslint-disable-line no-unused-vars
 		try {
 			const type = req.headers['content-type'];
 			const format = CONTENT_TYPES[type];
 			const correlationId = uuid();
 
-			if (!format) {
-				throw new ApiError(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
-			}
-
-			const unique = req.query.unique === undefined ? true : formatRequestBoolean(req.query.unique);
-			const noop = formatRequestBoolean(req.query.noop);
+			const unique = req.query.unique === undefined ? true : parseBoolean(req.query.unique);
+			const noop = parseBoolean(req.query.noop);
 			const messages = await Service.create({
 				format,
 				unique,
@@ -99,32 +84,25 @@ export default async () => {
 				correlationId
 			});
 
-			if (!noop) {
+			if (noop) {
 				res.status(HttpStatus.CREATED).set('Record-ID', messages.id);
+				return;
 			}
 
 			res.type('application/json').send(messages);
-		} catch (err) {
-			next(err);
+		} catch (error) {
+			next(error);
 		}
 	}
 
-	async function updateResource(req, res, next) {
+	async function updateResource(req, res, next) { // eslint-disable-line no-unused-vars
 		try {
 			const type = req.headers['content-type'];
 			const format = CONTENT_TYPES[type];
 			const correlationId = uuid();
 
-			if (!format) {
-				throw new ApiError(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
-			}
-
 			// Id must contain 9 digits nothing less, nothing more.
-			if (!/^\d{9}$/.test(req.params.id)) {
-				throw new ApiError(HttpStatus.BAD_REQUEST, `Given id is invalid: ${req.params.id}`);
-			}
-
-			const noop = formatRequestBoolean(req.query.noop);
+			const noop = parseBoolean(req.query.noop);
 			const messages = await Service.update({
 				id: req.params.id,
 				data: req.body,
@@ -135,14 +113,23 @@ export default async () => {
 			});
 			res.status(HttpStatus.OK).set('Record-ID', messages.id);
 			res.type('application/json').json(messages);
-		} catch (err) {
-			next(err);
+		} catch (error) {
+			next(error);
 		}
 	}
 
+	function checkContentType(req, res, next) {
+		if (req.headers['content-type'] === undefined || !CONTENT_TYPES[req.headers['content-type']]) {
+			logger.log('debug', 'Invalid content type');
+			throw new ApiError(HttpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
+		}
+
+		next();
+	}
+
 	function checkOfflineHours(req, res, next) {
-		if (checkIfOfflineHours(OFFLINE_BEGIN, OFFLINE_DURATION)) {
-			throw new ApiError(HttpStatus.SERVICE_UNAVAILABLE, `${HttpStatus['503_MESSAGE']} Offline hours begin at ${OFFLINE_BEGIN} and will last next ${OFFLINE_DURATION} hours.`);
+		if (checkIfOfflineHours(offlineBegin, offlineDuration)) {
+			throw new ApiError(HttpStatus.SERVICE_UNAVAILABLE, `${HttpStatus['503_MESSAGE']} Offline hours begin at ${offlineBegin} and will last next ${offlineDuration} hours.`);
 		}
 
 		next();

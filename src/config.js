@@ -30,24 +30,22 @@ import {Utils} from '@natlibfi/melinda-commons';
 
 const {readEnvironmentVariable} = Utils;
 
-export const HTTP_PORT = readEnvironmentVariable('HTTP_PORT', {defaultValue: '8080'});
-export const ENABLE_PROXY = readEnvironmentVariable('ENABLE_PROXY', '');
+export const httpPort = readEnvironmentVariable('HTTP_PORT', {defaultValue: '8080'});
+export const enableProxy = readEnvironmentVariable('ENABLE_PROXY', '');
 
-export const ALEPH_X_SVC_URL = readEnvironmentVariable('ALEPH_X_SVC_URL');
-export const ALEPH_USER_LIBRARY = readEnvironmentVariable('ALEPH_USER_LIBRARY');
+export const xServiceURL = readEnvironmentVariable('ALEPH_X_SVC_URL');
+export const userLibrary = readEnvironmentVariable('ALEPH_USER_LIBRARY');
 
-export const ALEPH_LIBRARY_BIB = readEnvironmentVariable('ALEPH_LIBRARY_BIB');
+export const ownAuthzURL = readEnvironmentVariable('OWN_AUTHZ_URL');
+export const ownAuthzApiKey = readEnvironmentVariable('OWN_AUTHZ_API_KEY');
 
-export const OWN_AUTHZ_URL = readEnvironmentVariable('OWN_AUTHZ_URL');
-export const OWN_AUTHZ_API_KEY = readEnvironmentVariable('OWN_AUTHZ_API_KEY');
-
-export const SRU_URL_BIB = readEnvironmentVariable('SRU_URL_BIB');
+export const sruBibUrl = readEnvironmentVariable('SRU_URL_BIB');
 
 // Amqp variables to priority
-export const AMQP_URL = readEnvironmentVariable('AMQP_URL', {defaultValue: 'amqp://127.0.0.1:5672/'});
+export const amqpUrl = readEnvironmentVariable('AMQP_URL', {defaultValue: 'amqp://127.0.0.1:5672/'});
 
 // Mongo variables to bulk
-export const MONGO_URI = readEnvironmentVariable('MONGO_URI', {defaultValue: 'mongodb://127.0.0.1:27017/db'});
+export const mongoUrl = readEnvironmentVariable('MONGO_URI', {defaultValue: 'mongodb://127.0.0.1:27017/db'});
 
-export const POLL_WAIT_TIME = readEnvironmentVariable('POLL_WAIT_TIME', {defaultValue: 100});
-export const [OFFLINE_BEGIN, OFFLINE_DURATION] = readEnvironmentVariable('OFFLINE_PERIOD', {defaultValue: '0,0', format: v => v.split(',')});
+export const pollWaitTime = readEnvironmentVariable('POLL_WAIT_TIME', {defaultValue: 100});
+export const [offlineBegin, offlineDuration] = readEnvironmentVariable('OFFLINE_PERIOD', {defaultValue: '0,0', format: v => v.split(',')});

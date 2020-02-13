@@ -26,117 +26,91 @@
 *
 */
 
-import HttpStatus from 'http-status';
 import {promisify} from 'util';
 import ApiError, {Utils} from '@natlibfi/melinda-commons';
 import {amqpFactory, conversions, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import {MARCXML} from '@natlibfi/marc-record-serializers';
 import createSruClient from '@natlibfi/sru-client';
-import {SRU_URL_BIB, AMQP_URL, POLL_WAIT_TIME} from '../config';
 
 const setTimeoutPromise = promisify(setTimeout);
 const {createLogger} = Utils;
 
-export default async function () {
+export default async function ({sruBibUrl, amqpUrl, pollWaitTime}) {
 	const logger = createLogger();
 	const converter = conversions();
-	const amqpOperator = await amqpFactory(AMQP_URL);
-	const sruClient = createSruClient({serverUrl: SRU_URL_BIB, version: '2.0', maximumRecords: '1'});
+	const amqpOperator = await amqpFactory(amqpUrl);
+	const sruClient = createSruClient({serverUrl: sruBibUrl, version: '2.0', maximumRecords: '1'});
 
 	return {read, create, update};
 
 	async function read({id, format}) {
-		try {
-			logger.log('debug', `Reading record ${id} from datastore`);
-			const record = await getRecord(id);
-			logger.log('debug', `Serializing record ${id}`);
-			return converter.serialize(record, format);
-		} catch (err) {
-			throw err;
-		}
+		logger.log('debug', `Reading record ${id} from datastore`);
+		const record = await getRecord(id);
+		logger.log('debug', `Serializing record ${id}`);
+		return converter.serialize(record, format);
 	}
 
 	async function create({data, format, cataloger, noop, unique, correlationId}) {
-		try {
-			logger.log('debug', 'Sending a new record to queue');
-			const headers = {
-				operation: OPERATIONS.CREATE,
-				format,
-				cataloger,
-				noop,
-				unique
-			};
+		logger.log('debug', 'Sending a new record to queue');
+		const headers = {
+			operation: OPERATIONS.CREATE,
+			format,
+			cataloger,
+			noop,
+			unique
+		};
 
-			// {queue, correlationId, headers, data}
-			await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
+		// {queue, correlationId, headers, data}
+		await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
 
-			logger.log('debug', `Waiting response to id: ${correlationId}`);
-			const response = await check(correlationId);
-			const responseData = response.content.data;
+		logger.log('debug', `Waiting response to id: ${correlationId}`);
+		const response = await check(correlationId);
+		const responseData = response.content.data;
 
-			logger.log('debug', `Got response to id: ${correlationId}`);
-			logger.log('debug', `Priority data: ${JSON.stringify(responseData)}`);
+		logger.log('debug', `Got response to id: ${correlationId}`);
+		logger.log('debug', `Priority data: ${JSON.stringify(responseData)}`);
 
-			// Ack message
-			amqpOperator.ackMessages([response]);
-			amqpOperator.removeQueue(correlationId);
+		// Ack message
+		amqpOperator.ackMessages([response]);
+		amqpOperator.removeQueue(correlationId);
 
-			if (responseData.status !== 'CREATED') {
-				throw new ApiError(responseData.status, responseData.payload || '');
-			}
-
+		if (responseData.status === 'CREATED') {
 			// Reply to http
 			return responseData;
-		} catch (err) {
-			if (err.status === 400) {
-				throw new ApiError(HttpStatus.BAD_REQUEST);
-			} else if (err.status === 403) {
-				throw new ApiError(HttpStatus.FORBIDDEN);
-			}
-
-			throw err;
 		}
+
+		throw new ApiError(responseData.status, responseData.payload || '');
 	}
 
 	async function update({id, data, format, cataloger, noop, correlationId}) {
-		try {
-			logger.log('debug', `Sending updating task for record ${id} to queue`);
-			const headers = {
-				operation: OPERATIONS.UPDATE,
-				id,
-				format,
-				cataloger,
-				noop
-			};
+		logger.log('debug', `Sending updating task for record ${id} to queue`);
+		const headers = {
+			operation: OPERATIONS.UPDATE,
+			id,
+			format,
+			cataloger,
+			noop
+		};
 
-			// {queue, correlationId, headers, data}
-			await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
+		// {queue, correlationId, headers, data}
+		await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
 
-			logger.log('debug', `Waiting response to id: ${correlationId}`);
-			const response = await check(correlationId);
-			const responseData = response.content.data;
-			logger.log('debug', `Got response to id: ${correlationId}`);
-			logger.log('debug', `Response data: ${JSON.stringify(responseData)}`);
+		logger.log('debug', `Waiting response to id: ${correlationId}`);
+		const response = await check(correlationId);
+		const responseData = response.content.data;
+		logger.log('debug', `Got response to id: ${correlationId}`);
+		logger.log('debug', `Response data: ${JSON.stringify(responseData)}`);
 
-			// Ack message
-			await amqpOperator.ackMessages([response]);
-			await amqpOperator.removeQueue(correlationId);
+		// Ack message
+		await amqpOperator.ackMessages([response]);
+		await amqpOperator.removeQueue(correlationId);
 
-			if (responseData.status !== 'UPDATED') {
-				throw new ApiError(responseData.status, response.payload || '');
-			}
-
+		if (responseData.status === 'UPDATED') {
 			// Reply to http
 			return responseData;
-		} catch (err) {
-			if (err.status === 400) {
-				throw new ApiError(HttpStatus.BAD_REQUEST);
-			} else if (err.status === 403) {
-				throw new ApiError(HttpStatus.FORBIDDEN);
-			}
-
-			throw err;
 		}
+
+		throw new ApiError(responseData.status, response.payload || '');
 	}
 
 	async function getRecord(id) {
@@ -165,7 +139,7 @@ export default async function () {
 		}
 
 		// Nothing in queue
-		await setTimeoutPromise(POLL_WAIT_TIME);
+		await setTimeoutPromise(pollWaitTime);
 		return check(queue);
 	}
 }
