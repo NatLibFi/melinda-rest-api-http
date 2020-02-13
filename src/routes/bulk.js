@@ -57,7 +57,7 @@ export default async function (mongoUrl) {
 			correlationId: uuid(),
 			cataloger: req.user.id,
 			operation: req.params.operation.toUpperCase(),
-			contentType: req.headers['content-type'],
+			contentType: req.headers['Content-Type'],
 			recordLoadParams: req.query || null
 		};
 
@@ -73,9 +73,9 @@ export default async function (mongoUrl) {
 	}
 
 	function checkContentType(req, res, next) {
-		if (req.headers['content-type'] === undefined || !CONTENT_TYPES.includes(req.headers['content-type'])) {
+		if (req.headers['Content-Type'] === undefined || !CONTENT_TYPES.includes(req.headers['Content-Type'])) {
 			logger.log('debug', 'Invalid content type');
-			throw new ApiError(HttpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
+			throw new ApiError(HttpStatus.NOT_ACCEPTABLE, 'Invalid Content-Type');
 		}
 
 		next();

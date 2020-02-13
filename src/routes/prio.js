@@ -57,14 +57,14 @@ export default async ({sruBibUrl, amqpUrl, pollWaitTime, offlineBegin, offlineDu
 		.post('/:id', updateResource);
 
 	async function readResource(req, res, next) { // eslint-disable-line no-unused-vars
-		const type = req.headers['content-type'];
+		const type = req.headers['Content-Type'];
 		const format = CONTENT_TYPES[type];
 		const record = await Service.read({id: req.params.id, format});
 		res.type(type).status(HttpStatus.OK).send(record);
 	}
 
 	async function createResource(req, res, next) { // eslint-disable-line no-unused-vars
-		const type = req.headers['content-type'];
+		const type = req.headers['Content-Type'];
 		const format = CONTENT_TYPES[type];
 		const correlationId = uuid();
 
@@ -88,7 +88,7 @@ export default async ({sruBibUrl, amqpUrl, pollWaitTime, offlineBegin, offlineDu
 	}
 
 	async function updateResource(req, res, next) { // eslint-disable-line no-unused-vars
-		const type = req.headers['content-type'];
+		const type = req.headers['Content-Type'];
 		const format = CONTENT_TYPES[type];
 		const correlationId = uuid();
 
@@ -107,9 +107,9 @@ export default async ({sruBibUrl, amqpUrl, pollWaitTime, offlineBegin, offlineDu
 	}
 
 	function checkContentType(req, res, next) {
-		if (req.headers['content-type'] === undefined || !CONTENT_TYPES[req.headers['content-type']]) {
+		if (req.headers['Content-Type'] === undefined || !CONTENT_TYPES[req.headers['Content-Type']]) {
 			logger.log('debug', 'Invalid content type');
-			throw new ApiError(HttpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
+			throw new ApiError(HttpStatus.NOT_ACCEPTABLE, 'Invalid Content-Type');
 		}
 
 		next();
