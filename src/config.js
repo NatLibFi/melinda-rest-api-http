@@ -28,10 +28,10 @@
 
 import {Utils} from '@natlibfi/melinda-commons';
 
-const {readEnvironmentVariable} = Utils;
+const {readEnvironmentVariable, parseBoolean} = Utils;
 
 export const httpPort = readEnvironmentVariable('HTTP_PORT', {defaultValue: '8080'});
-export const enableProxy = readEnvironmentVariable('ENABLE_PROXY', '');
+export const enableProxy = readEnvironmentVariable('ENABLE_PROXY', {format: v => parseBoolean(v)});
 
 export const xServiceURL = readEnvironmentVariable('ALEPH_X_SVC_URL');
 export const userLibrary = readEnvironmentVariable('ALEPH_USER_LIBRARY');
