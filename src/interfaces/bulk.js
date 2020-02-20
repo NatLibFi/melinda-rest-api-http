@@ -72,7 +72,7 @@ export default async function (mongoUrl) {
 		// Query filters cataloger, correlationId, operation, creationTime, modificationTime
 		const params = await generateQuery();
 
-		logger.log('debug', `Queue blobs querried: ${params}`);
+		logger.log('debug', `Queue items querried: ${JSON.stringify(params)}`);
 
 		if (params) {
 			return mongoOperator.query(params);

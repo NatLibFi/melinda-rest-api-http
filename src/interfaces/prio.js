@@ -128,7 +128,7 @@ export default async function ({sruBibUrl, amqpUrl, pollWaitTime}) {
 	}
 
 	// Loop
-	async function check(queue) {
+	async function check(queue, tries = 0) {
 		// Check queue
 		const message = await amqpOperator.checkQueue(queue, 'raw', false);
 
@@ -138,8 +138,13 @@ export default async function ({sruBibUrl, amqpUrl, pollWaitTime}) {
 			return message;
 		}
 
+		tries++;
+		if (tries > 1200) {
+			throw new ApiError(408);
+		}
+
 		// Nothing in queue
 		await setTimeoutPromise(pollWaitTime);
-		return check(queue);
+		return check(queue, tries);
 	}
 }
