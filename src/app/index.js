@@ -33,9 +33,7 @@ export default async function ({
 			app.enable('trust proxy', true);
 		}
 
-		app.use(createExpressLogger({
-			msg: '{{req.ip}} HTTP {{req.method}} {{req.url}} - {{res.statusCode}} {{res.responseTime}}ms'
-		}));
+		app.use(createExpressLogger());
 
 		passport.use(new Authentication.Aleph.AlephStrategy({
 			xServiceURL, userLibrary,

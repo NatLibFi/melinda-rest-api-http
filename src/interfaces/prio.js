@@ -68,7 +68,8 @@ export default async function ({sruBibUrl, amqpUrl, pollWaitTime}) {
 		const responseData = response.content.data;
 
 		logger.log('debug', `Got response to id: ${correlationId}`);
-		logger.log('debug', `Priority data: ${JSON.stringify(responseData)}`);
+		logger.log('debug', 'Response data:');
+		logger.log('debug', JSON.stringify(responseData, null, '\t'));
 
 		// Ack message
 		amqpOperator.ackMessages([response]);
@@ -99,7 +100,8 @@ export default async function ({sruBibUrl, amqpUrl, pollWaitTime}) {
 		const response = await check(correlationId);
 		const responseData = response.content.data;
 		logger.log('debug', `Got response to id: ${correlationId}`);
-		logger.log('debug', `Response data: ${JSON.stringify(responseData)}`);
+		logger.log('debug', 'Response data:');
+		logger.log('debug', JSON.stringify(responseData, null, '\t'));
 
 		// Ack message
 		await amqpOperator.ackMessages([response]);
