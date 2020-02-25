@@ -12,7 +12,6 @@
 | AMQP_URL           | No        | amqp://127.0.0.1:5672/       |
 | HTTP_PORT          | No        | 8080                         |
 | MONGO_URI          | No        | mongodb://127.0.0.1:27017/db |
-| OFFLINE_PERIOD     | No        | 0,0                          |
 | POLL_WAIT_TIME     | No        | 100                          |
 | DEBUG              |           |                              |
 

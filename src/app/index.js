@@ -11,7 +11,7 @@ export default async function ({
 	xServiceURL, userLibrary,
 	ownAuthzURL, ownAuthzApiKey,
 	sruBibUrl, amqpUrl, mongoUrl,
-	pollWaitTime, offlineBegin, offlineDuration
+	pollWaitTime
 }) {
 	const {createLogger, createExpressLogger} = Utils;
 	const logger = createLogger();
@@ -44,7 +44,7 @@ export default async function ({
 		app.use('/bulk', await createBulkRouter(mongoUrl)); // Must be here to avoid bodyparser
 		app.use(bodyParser.text({limit: '5MB', type: '*/*'}));
 		app.use('/apidoc', createApiDocRouter());
-		app.use('/', await createPrioRouter({sruBibUrl, amqpUrl, pollWaitTime, offlineBegin, offlineDuration}));
+		app.use('/', await createPrioRouter({sruBibUrl, amqpUrl, pollWaitTime}));
 
 		app.use(handleError);
 

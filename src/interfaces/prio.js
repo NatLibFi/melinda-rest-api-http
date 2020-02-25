@@ -140,13 +140,12 @@ export default async function ({sruBibUrl, amqpUrl, pollWaitTime}) {
 			return message;
 		}
 
-		tries++;
-		if (tries > 1200) {
+		if (tries + 1 > 1200) {
 			throw new ApiError(408);
 		}
 
 		// Nothing in queue
 		await setTimeoutPromise(pollWaitTime);
-		return check(queue, tries);
+		return check(queue, tries + 1);
 	}
 }

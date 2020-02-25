@@ -32,10 +32,10 @@ import passport from 'passport';
 import HttpStatus from 'http-status';
 import {v4 as uuid} from 'uuid';
 import ApiError from '@natlibfi/melinda-commons';
-import {conversionFormats, checkIfOfflineHours} from '@natlibfi/melinda-rest-api-commons';
+import {conversionFormats} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/prio';
 
-export default async ({sruBibUrl, amqpUrl, pollWaitTime, offlineBegin, offlineDuration}) => {
+export default async ({sruBibUrl, amqpUrl, pollWaitTime}) => {
 	const {createLogger, parseBoolean} = Utils;
 	const logger = createLogger();
 	const CONTENT_TYPES = {
@@ -50,7 +50,6 @@ export default async ({sruBibUrl, amqpUrl, pollWaitTime, offlineBegin, offlineDu
 
 	return new Router()
 		.use(passport.authenticate('melinda', {session: false}))
-		.use(checkOfflineHours)
 		.use(checkContentType)
 		.post('/', createResource)
 		.get('/:id', readResource)
@@ -122,14 +121,6 @@ export default async ({sruBibUrl, amqpUrl, pollWaitTime, offlineBegin, offlineDu
 		if (req.headers['content-type'] === undefined || !CONTENT_TYPES[req.headers['content-type']]) {
 			logger.log('debug', 'Invalid content type');
 			throw new ApiError(HttpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
-		}
-
-		next();
-	}
-
-	function checkOfflineHours(req, res, next) {
-		if (checkIfOfflineHours(offlineBegin, offlineDuration)) {
-			throw new ApiError(HttpStatus.SERVICE_UNAVAILABLE, `${HttpStatus['503_MESSAGE']} Offline hours begin at ${offlineBegin} and will last next ${offlineDuration} hours.`);
 		}
 
 		next();
