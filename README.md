@@ -1,5 +1,7 @@
 # Melinda REST API for ILS integration [![Build Status](https://travis-ci.org/NatLibFi/melinda-rest-api-http.svg)](https://travis-ci.org/NatLibFi/melinda-rest-api-http) [![Test Coverage](https://codeclimate.com/github/NatLibFi/melinda-rest-api-http/badges/coverage.svg)](https://codeclimate.com/github/NatLibFi/melinda-rest-api-http/coverage)
 
+Trigged drone...
+
 ### Environment variables
 | Name               | Mandatory | Default                      |
 |--------------------|-----------|------------------------------|
