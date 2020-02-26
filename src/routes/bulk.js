@@ -30,7 +30,7 @@ import {Router} from 'express';
 import HttpStatus from 'http-status';
 import passport from 'passport';
 import {v4 as uuid} from 'uuid';
-import ApiError, {Utils} from '@natlibfi/melinda-commons';
+import {Error, Utils} from '@natlibfi/melinda-commons';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/bulk';
 
@@ -70,7 +70,7 @@ export default async function (mongoUrl) {
 			}
 
 			logger.log('debug', 'Invalid operation');
-			throw new ApiError(HttpStatus.BAD_REQUEST, 'Invalid operation');
+			throw new Error(HttpStatus.BAD_REQUEST, 'Invalid operation');
 		} catch (error) {
 			next(error);
 		}
@@ -79,7 +79,7 @@ export default async function (mongoUrl) {
 	function checkContentType(req, res, next) {
 		if (req.headers['content-type'] === undefined || !CONTENT_TYPES.includes(req.headers['content-type'])) {
 			logger.log('debug', 'Invalid content type');
-			throw new ApiError(HttpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
+			throw new Error(HttpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
 		}
 
 		next();

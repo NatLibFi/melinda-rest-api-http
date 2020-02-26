@@ -2,9 +2,9 @@ import bodyParser from 'body-parser';
 import express from 'express';
 import HttpStatus from 'http-status';
 import passport from 'passport';
-import ApiError, {Authentication, Utils} from '@natlibfi/melinda-commons';
+import {Error, Authentication, Utils} from '@natlibfi/melinda-commons';
 import {logError} from '@natlibfi/melinda-rest-api-commons';
-import {createApiDocRouter, createBulkRouter, createPrioRouter} from '../routes';
+import {createApiDocRouter, createBulkRouter, createPrioRouter} from './routes';
 
 export default async function ({
 	httpPort, enableProxy,
@@ -57,7 +57,7 @@ export default async function ({
 				return;
 			}
 
-			if (err instanceof ApiError) {
+			if (err instanceof Error) {
 				logger.log('debug', 'Responding service');
 				res.status(err.status).send(err.payload).end();
 				return;

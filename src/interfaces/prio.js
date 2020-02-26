@@ -27,7 +27,7 @@
 */
 
 import {promisify} from 'util';
-import ApiError, {Utils} from '@natlibfi/melinda-commons';
+import {Error, Utils} from '@natlibfi/melinda-commons';
 import {amqpFactory, conversions, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import {MARCXML} from '@natlibfi/marc-record-serializers';
 import createSruClient from '@natlibfi/sru-client';
@@ -80,7 +80,7 @@ export default async function ({sruBibUrl, amqpUrl, pollWaitTime}) {
 			return responseData;
 		}
 
-		throw new ApiError(responseData.status, responseData.payload || '');
+		throw new Error(responseData.status, responseData.payload || '');
 	}
 
 	async function update({id, data, format, cataloger, noop, correlationId}) {
@@ -112,7 +112,7 @@ export default async function ({sruBibUrl, amqpUrl, pollWaitTime}) {
 			return responseData;
 		}
 
-		throw new ApiError(responseData.status, response.payload || '');
+		throw new Error(responseData.status, response.payload || '');
 	}
 
 	async function getRecord(id) {
@@ -141,7 +141,7 @@ export default async function ({sruBibUrl, amqpUrl, pollWaitTime}) {
 		}
 
 		if (tries + 1 > 1200) {
-			throw new ApiError(408);
+			throw new Error(408);
 		}
 
 		// Nothing in queue
