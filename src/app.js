@@ -2,7 +2,7 @@ import bodyParser from 'body-parser';
 import express from 'express';
 import HttpStatus from 'http-status';
 import passport from 'passport';
-import {Error, Authentication, Utils} from '@natlibfi/melinda-commons';
+import {Error as ApiError, Authentication, Utils} from '@natlibfi/melinda-commons';
 import {logError} from '@natlibfi/melinda-rest-api-commons';
 import {createApiDocRouter, createBulkRouter, createPrioRouter} from './routes';
 
@@ -29,9 +29,7 @@ export default async function ({
 	async function initExpress() {
 		const app = express();
 
-		if (enableProxy) {
-			app.enable('trust proxy', true);
-		}
+		(enableProxy) ?	app.enable('trust proxy', true) : null;
 
 		app.use(createExpressLogger());
 
@@ -48,18 +46,18 @@ export default async function ({
 
 		app.use(handleError);
 
-		return app.listen(httpPort, () => logger.log('info', 'Started Melinda REST API'));
+		return app.listen(httpPort, () => logger.log('info', `Started Melinda REST API in port ${httpPort}`));
 
 		async function handleError(err, req, res) { // eslint-disable-line no-unused-vars
 			// The correct way would be to throw if the error is unexpected...There is a race condition between the request aborted event handler and running async function.
-			if (req.aborted) {
-				res.sendStatus(HttpStatus.REQUEST_TIMEOUT);
+			if (err instanceof ApiError) {
+				logger.log('debug', 'Responding service');
+				res.status(err.status).send(err.payload).end();
 				return;
 			}
 
-			if (err instanceof Error) {
-				logger.log('debug', 'Responding service');
-				res.status(err.status).send(err.payload).end();
+			if (req.aborted) {
+				res.sendStatus(HttpStatus.REQUEST_TIMEOUT);
 				return;
 			}
 

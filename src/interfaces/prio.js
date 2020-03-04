@@ -27,7 +27,7 @@
 */
 
 import {promisify} from 'util';
-import {Error, Utils} from '@natlibfi/melinda-commons';
+import {Error as HttpError, Utils} from '@natlibfi/melinda-commons';
 import {amqpFactory, conversions, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import {MARCXML} from '@natlibfi/marc-record-serializers';
 import createSruClient from '@natlibfi/sru-client';
@@ -80,7 +80,7 @@ export default async function ({sruBibUrl, amqpUrl, pollWaitTime}) {
 			return responseData;
 		}
 
-		throw new Error(responseData.status, responseData.payload || '');
+		throw new HttpError(responseData.status, responseData.payload || '');
 	}
 
 	async function update({id, data, format, cataloger, noop, correlationId}) {
@@ -112,7 +112,7 @@ export default async function ({sruBibUrl, amqpUrl, pollWaitTime}) {
 			return responseData;
 		}
 
-		throw new Error(responseData.status, response.payload || '');
+		throw new HttpError(responseData.status, response.payload || '');
 	}
 
 	async function getRecord(id) {
@@ -140,8 +140,9 @@ export default async function ({sruBibUrl, amqpUrl, pollWaitTime}) {
 			return message;
 		}
 
+		// To close infinite loops
 		if (tries + 1 > 1200) {
-			throw new Error(408);
+			throw new HttpError(408);
 		}
 
 		// Nothing in queue

@@ -27,7 +27,7 @@
 */
 
 import moment from 'moment';
-import ApiError, {Utils} from '@natlibfi/melinda-commons';
+import {Error as HttpError, Utils} from '@natlibfi/melinda-commons';
 import {mongoFactory, QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
 
 const {createLogger} = Utils;
@@ -49,7 +49,7 @@ export default async function (mongoUrl) {
 			return mongoOperator.readContent({cataloger, correlationId});
 		}
 
-		throw new ApiError(400);
+		throw new HttpError(400);
 	}
 
 	async function remove({cataloger, correlationId}) {
@@ -57,7 +57,7 @@ export default async function (mongoUrl) {
 			return mongoOperator.remove({cataloger, correlationId});
 		}
 
-		throw new ApiError(400);
+		throw new HttpError(400);
 	}
 
 	async function removeContent({cataloger, correlationId}) {
@@ -65,7 +65,7 @@ export default async function (mongoUrl) {
 			return mongoOperator.removeContent({cataloger, correlationId});
 		}
 
-		throw new ApiError(400);
+		throw new HttpError(400);
 	}
 
 	async function doQuery({cataloger, query}) {
@@ -78,46 +78,31 @@ export default async function (mongoUrl) {
 			return mongoOperator.query(params);
 		}
 
-		throw new ApiError(400);
+		throw new HttpError(400);
 
 		async function generateQuery() {
 			const doc = {};
 
-			if (cataloger) {
-				doc.cataloger = cataloger;
-			} else {
+			if (!cataloger) {
 				return false;
 			}
 
-			if (query.id) {
-				doc.correlationId = query.id;
-			}
+			doc.cataloger = cataloger;
 
-			if (query.operation) {
-				doc.operation = query.operation;
-			}
+			doc.correlationId = (query.id) ? query.id : null;
+			doc.operation = (query.operation) ? query.operation : null;
 
-			if (query.creationTime) {
-				if (query.creationTime.length === 1) {
-					doc.creationTime = formatTime(query.creationTime[0]);
-				} else {
-					doc.$and = [
-						{creationTime: {$gte: formatTime(query.creationTime[0])}},
-						{creationTime: {$lte: formatTime(query.creationTime[1])}}
-					];
-				}
-			}
+			doc.creationTime = (query.creationTime) ? (query.creationTime.length === 1) ?
+				formatTime(query.creationTime[0]) : doc.$and = [
+					{creationTime: {$gte: formatTime(query.creationTime[0])}},
+					{creationTime: {$lte: formatTime(query.creationTime[1])}}
+				] : null;
 
-			if (query.modificationTime) {
-				if (query.modificationTime.length === 1) {
-					doc.modificationTime = formatTime(query.modificationTime[0]);
-				} else {
-					doc.$and = [
-						{modificationTime: {$gte: formatTime(query.modificationTime[0])}},
-						{modificationTime: {$lte: formatTime(query.modificationTime[1])}}
-					];
-				}
-			}
+			doc.modificationTime = (query.creationTime) ? (query.modificationTime.length === 1) ?
+				formatTime(query.modificationTime[0]) : doc.$and = [
+					{modificationTime: {$gte: formatTime(query.modificationTime[0])}},
+					{modificationTime: {$lte: formatTime(query.modificationTime[1])}}
+				] : null;
 
 			return doc;
 		}

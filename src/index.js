@@ -53,14 +53,8 @@ async function run() {
 			});
 
 		function handleTermination({code = 0, message}) {
-			if (server) {
-				server.close();
-			}
-
-			if (message) {
-				logError(message);
-			}
-
+			(server) ? await server.close() : null;
+			(message) ? logError(message) : null;
 			process.exit(code);
 		}
 

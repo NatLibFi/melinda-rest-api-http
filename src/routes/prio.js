@@ -31,7 +31,7 @@ import {Router} from 'express';
 import passport from 'passport';
 import HttpStatus from 'http-status';
 import {v4 as uuid} from 'uuid';
-import {Error} from '@natlibfi/melinda-commons';
+import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {conversionFormats} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/prio';
 
@@ -120,7 +120,7 @@ export default async ({sruBibUrl, amqpUrl, pollWaitTime}) => {
 	function checkContentType(req, res, next) {
 		if (req.headers['content-type'] === undefined || !CONTENT_TYPES[req.headers['content-type']]) {
 			logger.log('debug', 'Invalid content type');
-			throw new Error(HttpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
+			throw new HttpError(HttpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
 		}
 
 		next();
