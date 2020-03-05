@@ -29,7 +29,7 @@ export default async function ({
 	async function initExpress() {
 		const app = express();
 
-		(enableProxy) ?	app.enable('trust proxy', true) : null;
+		proxySettings(enableProxy);
 
 		app.use(createExpressLogger());
 
@@ -64,6 +64,12 @@ export default async function ({
 			logger.log('debug', 'Responding internal');
 			res.sendStatus(HttpStatus.INTERNAL_SERVER_ERROR);
 			logError(err);
+		}
+
+		function proxySettings(enableProxy) {
+			if (enableProxy) {
+				return app.enable('trust proxy', true);
+			}
 		}
 	}
 }

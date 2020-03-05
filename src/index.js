@@ -52,14 +52,26 @@ async function run() {
 				handleTermination({code: 1, message: stack});
 			});
 
-		function handleTermination({code = 0, message}) {
-			(server) ? await server.close() : null;
-			(message) ? logError(message) : null;
+		function handleTermination({code = 0, message = false}) {
+			logMessage(message);
+			closeServer();
 			process.exit(code);
 		}
 
 		function handleSignal(signal) {
 			handleTermination({code: 1, message: `Received ${signal}`});
+		}
+
+		function closeServer() {
+			if (server) {
+				return server.close();
+			}
+		}
+
+		function logMessage(message) {
+			if (message) {
+				logError(message);
+			}
 		}
 	}
 }
