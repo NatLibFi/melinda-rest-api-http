@@ -70,7 +70,7 @@ async function run() {
 
 		function logMessage(message) {
 			if (message) {
-				logError(message);
+				return logError(message);
 			}
 		}
 	}
