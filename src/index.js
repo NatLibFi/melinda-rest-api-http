@@ -54,18 +54,17 @@ async function run() {
 
 		function handleTermination({code = 0, message = false}) {
 			logMessage(message);
-			closeServer();
+
+			if (server) {
+				server.close();
+				return process.exit(code);
+			}
+
 			process.exit(code);
 		}
 
 		function handleSignal(signal) {
 			handleTermination({code: 1, message: `Received ${signal}`});
-		}
-
-		function closeServer() {
-			if (server) {
-				return server.close();
-			}
 		}
 
 		function logMessage(message) {
