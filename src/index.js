@@ -34,43 +34,43 @@ import {logError} from '@natlibfi/melinda-rest-api-commons';
 run();
 
 async function run() {
-	const {handleInterrupt} = Utils;
-	let server;
+  const {handleInterrupt} = Utils;
+  let server; // eslint-disable-line functional/no-let
 
-	registerInterruptionHandlers();
+  registerInterruptionHandlers();
 
-	server = await startApp({...config});
+  server = await startApp({...config}); // eslint-disable-line prefer-const
 
-	function registerInterruptionHandlers() {
-		process
-			.on('SIGTERM', handleSignal)
-			.on('SIGINT', handleInterrupt)
-			.on('uncaughtException', ({stack}) => {
-				handleTermination({code: 1, message: stack});
-			})
-			.on('unhandledRejection', ({stack}) => {
-				handleTermination({code: 1, message: stack});
-			});
+  function registerInterruptionHandlers() {
+    process
+      .on('SIGTERM', handleSignal)
+      .on('SIGINT', handleInterrupt)
+      .on('uncaughtException', ({stack}) => {
+        handleTermination({code: 1, message: stack});
+      })
+      .on('unhandledRejection', ({stack}) => {
+        handleTermination({code: 1, message: stack});
+      });
 
-		function handleTermination({code = 0, message = false}) {
-			logMessage(message);
+    function handleTermination({code = 0, message = false}) {
+      logMessage(message);
 
-			if (server) {
-				server.close();
-				return process.exit(code);
-			}
+      if (server) {
+        server.close();
+        return process.exit(code); // eslint-disable-line no-process-exit
+      }
 
-			process.exit(code);
-		}
+      process.exit(code); // eslint-disable-line no-process-exit
+    }
 
-		function handleSignal(signal) {
-			handleTermination({code: 1, message: `Received ${signal}`});
-		}
+    function handleSignal(signal) {
+      handleTermination({code: 1, message: `Received ${signal}`});
+    }
 
-		function logMessage(message) {
-			if (message) {
-				return logError(message);
-			}
-		}
-	}
+    function logMessage(message) {
+      if (message) {
+        return logError(message);
+      }
+    }
+  }
 }

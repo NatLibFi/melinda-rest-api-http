@@ -36,117 +36,115 @@ const setTimeoutPromise = promisify(setTimeout);
 const {createLogger} = Utils;
 
 export default async function ({sruBibUrl, amqpUrl, pollWaitTime}) {
-	const logger = createLogger();
-	const converter = conversions();
-	const amqpOperator = await amqpFactory(amqpUrl);
-	const sruClient = createSruClient({serverUrl: sruBibUrl, version: '2.0', maximumRecords: '1'});
+  const logger = createLogger();
+  const converter = conversions();
+  const amqpOperator = await amqpFactory(amqpUrl);
+  const sruClient = createSruClient({serverUrl: sruBibUrl, version: '2.0', maximumRecords: '1'});
 
-	return {read, create, update};
+  return {read, create, update};
 
-	async function read({id, format}) {
-		logger.log('debug', `Reading record ${id} from datastore`);
-		const record = await getRecord(id);
-		logger.log('debug', `Serializing record ${id}`);
-		return converter.serialize(record, format);
-	}
+  async function read({id, format}) {
+    logger.log('debug', `Reading record ${id} from datastore`);
+    const record = await getRecord(id);
+    logger.log('debug', `Serializing record ${id}`);
+    return converter.serialize(record, format);
+  }
 
-	async function create({data, format, cataloger, noop, unique, correlationId}) {
-		logger.log('debug', 'Sending a new record to queue');
-		const headers = {
-			operation: OPERATIONS.CREATE,
-			format,
-			cataloger,
-			noop,
-			unique
-		};
+  async function create({data, format, cataloger, noop, unique, correlationId}) {
+    logger.log('debug', 'Sending a new record to queue');
+    const headers = {
+      operation: OPERATIONS.CREATE,
+      format,
+      cataloger,
+      noop,
+      unique
+    };
 
-		// {queue, correlationId, headers, data}
-		await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
+    // {queue, correlationId, headers, data}
+    await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
 
-		logger.log('debug', `Waiting response to id: ${correlationId}`);
-		const response = await check(correlationId);
-		const responseData = response.content.data;
+    logger.log('debug', `Waiting response to id: ${correlationId}`);
+    const response = await check(correlationId);
+    const content = JSON.parse(response.content.toString());
+    const responseData = content.data;
 
-		logger.log('debug', `Got response to id: ${correlationId}`);
-		logger.log('debug', 'Response data:');
-		logger.log('debug', JSON.stringify(responseData, null, '\t'));
+    logger.log('debug', `Got response to id: ${correlationId}`);
+    logger.log('debug', 'Response data:');
+    logger.log('debug', JSON.stringify(responseData, null, '\t'));
 
-		// Ack message
-		amqpOperator.ackMessages([response]);
-		amqpOperator.removeQueue(correlationId);
+    // Ack message
+    amqpOperator.ackMessages([response]);
+    amqpOperator.removeQueue(correlationId);
 
-		if (responseData.status === 'CREATED') {
-			// Reply to http
-			return responseData;
-		}
+    if (responseData.status === 'CREATED') {
+      // Reply to http
+      return responseData;
+    }
 
-		throw new HttpError(responseData.status, responseData.payload || '');
-	}
+    throw new HttpError(responseData.status, responseData.payload || '');
+  }
 
-	async function update({id, data, format, cataloger, noop, correlationId}) {
-		logger.log('debug', `Sending updating task for record ${id} to queue`);
-		const headers = {
-			operation: OPERATIONS.UPDATE,
-			id,
-			format,
-			cataloger,
-			noop
-		};
+  async function update({id, data, format, cataloger, noop, correlationId}) {
+    logger.log('debug', `Sending updating task for record ${id} to queue`);
+    const headers = {
+      operation: OPERATIONS.UPDATE,
+      id,
+      format,
+      cataloger,
+      noop
+    };
 
-		// {queue, correlationId, headers, data}
-		await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
+    // {queue, correlationId, headers, data}
+    await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
 
-		logger.log('debug', `Waiting response to id: ${correlationId}`);
-		const response = await check(correlationId);
-		const responseData = response.content.data;
-		logger.log('debug', `Got response to id: ${correlationId}`);
-		logger.log('debug', 'Response data:');
-		logger.log('debug', JSON.stringify(responseData, null, '\t'));
+    logger.log('debug', `Waiting response to id: ${correlationId}`);
+    const response = await check(correlationId);
+    const content = JSON.parse(response.content.toString());
+    const responseData = content.data;
 
-		// Ack message
-		await amqpOperator.ackMessages([response]);
-		await amqpOperator.removeQueue(correlationId);
+    logger.log('debug', `Got response to id: ${correlationId}`);
+    logger.log('debug', 'Response data:');
+    logger.log('debug', JSON.stringify(responseData, null, '\t'));
 
-		if (responseData.status === 'UPDATED') {
-			// Reply to http
-			return responseData;
-		}
+    // Ack message
+    await amqpOperator.ackMessages([response]);
+    await amqpOperator.removeQueue(correlationId);
 
-		throw new HttpError(responseData.status, response.payload || '');
-	}
+    if (responseData.status === 'UPDATED') {
+      // Reply to http
+      return responseData;
+    }
 
-	async function getRecord(id) {
-		let record;
-		await new Promise((resolve, reject) => {
-			sruClient.searchRetrieve(`rec.id=${id}`)
-				.on('record', xmlString => {
-					record = MARCXML.from(xmlString);
-				})
-				.on('end', () => resolve())
-				.on('error', err => reject(err));
-		});
+    throw new HttpError(responseData.status, responseData.payload || '');
+  }
 
-		return record;
-	}
+  function getRecord(id) {
+    return new Promise((resolve, reject) => {
+      sruClient.searchRetrieve(`rec.id=${id}`)
+        .on('record', xmlString => {
+          resolve(MARCXML.from(xmlString));
+        })
+        .on('end', () => resolve())
+        .on('error', err => reject(err));
+    });
+  }
 
-	// Loop
-	async function check(queue, tries = 0) {
-		// Check queue
-		const message = await amqpOperator.checkQueue(queue, 'raw', false);
+  // Loop
+  async function check(queue, tries = 0) {
+    // Check queue
+    const message = await amqpOperator.checkQueue(queue, 'raw', false);
 
-		if (message) {
-			// Work with message
-			message.content = JSON.parse(message.content.toString());
-			return message;
-		}
+    if (message) {
+      return message;
+    }
 
-		// To close infinite loops
-		if (tries + 1 > 1200) {
-			throw new HttpError(408);
-		}
+    // To close infinite loops
+    if (tries + 1 > 1200) { // eslint-disable-line functional/no-conditional-statement
+      throw new HttpError(408);
+    }
 
-		// Nothing in queue
-		await setTimeoutPromise(pollWaitTime);
-		return check(queue, tries + 1);
-	}
+    // Nothing in queue
+    await setTimeoutPromise(pollWaitTime);
+    return check(queue, tries + 1);
+  }
 }

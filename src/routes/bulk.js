@@ -35,75 +35,87 @@ import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/bulk';
 
 export default async function (mongoUrl) {
-	const {createLogger} = Utils;
-	const logger = createLogger(); // eslint-disable-line no-unused-vars
+  const {createLogger} = Utils;
+  const logger = createLogger(); // eslint-disable-line no-unused-vars
 
-	const CONTENT_TYPES = ['application/xml', 'application/marc', 'application/json', 'application/alephseq'];
-	const OPERATION_TYPES = [OPERATIONS.CREATE, OPERATIONS.UPDATE];
-	const Service = await createService(mongoUrl);
+  const CONTENT_TYPES = [
+    'application/xml',
+    'application/marc',
+    'application/json',
+    'application/alephseq'
+  ];
+  const OPERATION_TYPES = [
+    OPERATIONS.CREATE,
+    OPERATIONS.UPDATE
+  ];
+  const Service = await createService(mongoUrl);
 
-	return new Router()
-		.use(passport.authenticate('melinda', {session: false}))
-		.use(checkContentType)
-		.post('/:operation', create)
-		.get('/', doQuery)
-		.get('/:id', readContent)
-		.delete('/', remove)
-		.delete('/:id', removeContent);
+  return new Router()
+    .use(passport.authenticate('melinda', {session: false}))
+    .use(checkContentType)
+    .post('/:operation', create)
+    .get('/', doQuery)
+    .get('/:id', readContent)
+    .delete('/', remove)
+    .delete('/:id', removeContent);
 
-	async function create(req, res, next) { // eslint-disable-line no-unused-vars
-		try {
-			logger.log('debug', 'Bulk job');
-			const params = {
-				correlationId: uuid(),
-				cataloger: req.user.id,
-				operation: req.params.operation.toUpperCase(),
-				contentType: req.headers['content-type'],
-				recordLoadParams: req.query || null
-			};
+  async function create(req, res, next) { // eslint-disable-line no-unused-vars
+    try {
+      logger.log('debug', 'Bulk job');
+      const params = {
+        correlationId: uuid(),
+        cataloger: req.user.id,
+        operation: req.params.operation.toUpperCase(),
+        contentType: req.headers['content-type'],
+        recordLoadParams: req.query || null
+      };
 
-			logger.log('debug', 'Params done');
-			if (params.operation && OPERATION_TYPES.includes(params.operation)) {
-				const response = await Service.create(req, params);
-				res.json(response);
-				return;
-			}
+      logger.log('debug', 'Params done');
+      if (params.operation && OPERATION_TYPES.includes(params.operation)) {
+        const response = await Service.create(req, params);
+        res.json(response);
+        return;
+      }
 
-			logger.log('debug', 'Invalid operation');
-			throw new HttpError(HttpStatus.BAD_REQUEST, 'Invalid operation');
-		} catch (error) {
-			next(error);
-		}
-	}
+      logger.log('debug', 'Invalid operation');
+      throw new HttpError(HttpStatus.BAD_REQUEST, 'Invalid operation');
+    } catch (error) {
+      if (error instanceof HttpError) {
+        res.status(error.status).send(error.payload);
+        return;
+      }
+      return next(error);
+    }
+  }
 
-	function checkContentType(req, res, next) {
-		if (req.headers['content-type'] === undefined || !CONTENT_TYPES.includes(req.headers['content-type'])) {
-			logger.log('debug', 'Invalid content type');
-			throw new HttpError(HttpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
-		}
+  function checkContentType(req, res, next) {
+    if (req.headers['content-type'] === undefined || !CONTENT_TYPES.includes(req.headers['content-type'])) { // eslint-disable-line functional/no-conditional-statement
+      logger.log('debug', 'Invalid content type');
+      throw new HttpError(HttpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
+    }
 
-		next();
-	}
+    return next();
+  }
 
-	async function doQuery(req, res, next) { // eslint-disable-line no-unused-vars
-		const response = await Service.doQuery({cataloger: req.user.id, query: req.query});
-		res.json(response);
-	}
+  async function doQuery(req, res, next) { // eslint-disable-line no-unused-vars
+    const response = await Service.doQuery({cataloger: req.user.id, query: req.query});
+    res.json(response);
+  }
 
-	/* Functions after this are here only to test purposes */
-	async function readContent(req, res, next) { // eslint-disable-line no-unused-vars
-		const {contentType, readStream} = await Service.readContent({cataloger: req.user.id, correlationId: req.params.id});
-		res.set('content-type', contentType);
-		readStream.pipe(res);
-	}
+  /* Functions after this are here only to test purposes */
+  async function readContent(req, res, next) { // eslint-disable-line no-unused-vars
+    const {contentType, readStream} = await Service.readContent({cataloger: req.user.id, correlationId: req.params.id});
+    res.set('content-type', contentType);
+    readStream.pipe(res);
+  }
 
-	async function remove(req, res, next) { // eslint-disable-line no-unused-vars
-		const response = await Service.remove({cataloger: req.user.id, correlationId: req.query.id});
-		res.json({request: req.query, result: response});
-	}
+  async function remove(req, res, next) { // eslint-disable-line no-unused-vars
+    const response = await Service.remove({cataloger: req.user.id, correlationId: req.query.id});
+    res.json({request: req.query, result: response});
+  }
 
-	async function removeContent(req, res, next) { // eslint-disable-line no-unused-vars
-		await Service.removeContent({cataloger: req.user.id, correlationId: req.params.id});
-		res.sendStatus(204);
-	}
+  async function removeContent(req, res, next) { // eslint-disable-line no-unused-vars
+    await Service.removeContent({cataloger: req.user.id, correlationId: req.params.id});
+    res.sendStatus(204);
+  }
 }

@@ -26,91 +26,71 @@
 *
 */
 
-import moment from 'moment';
 import {Error as HttpError, Utils} from '@natlibfi/melinda-commons';
 import {mongoFactory, QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
 
 const {createLogger} = Utils;
 
 export default async function (mongoUrl) {
-	const logger = createLogger(); // eslint-disable-line no-unused-vars
-	const mongoOperator = await mongoFactory(mongoUrl);
+  const logger = createLogger(); // eslint-disable-line no-unused-vars
+  const mongoOperator = await mongoFactory(mongoUrl);
 
-	return {create, doQuery, readContent, remove, removeContent};
+  return {create, doQuery, readContent, remove, removeContent};
 
-	async function create(req, {correlationId, cataloger, operation, contentType, recordLoadParams}) {
-		await mongoOperator.create({correlationId, cataloger, operation, contentType, recordLoadParams, stream: req});
-		logger.log('debug', 'Stream uploaded!');
-		return mongoOperator.setState({correlationId, cataloger, operation, state: QUEUE_ITEM_STATE.PENDING_QUEUING});
-	}
+  async function create(req, {correlationId, cataloger, operation, contentType, recordLoadParams}) {
+    await mongoOperator.create({correlationId, cataloger, operation, contentType, recordLoadParams, stream: req});
+    logger.log('debug', 'Stream uploaded!');
+    return mongoOperator.setState({correlationId, cataloger, operation, state: QUEUE_ITEM_STATE.PENDING_QUEUING});
+  }
 
-	async function readContent({cataloger, correlationId}) {
-		if (correlationId) {
-			return mongoOperator.readContent({cataloger, correlationId});
-		}
+  function readContent({cataloger, correlationId}) {
+    if (correlationId) {
+      return mongoOperator.readContent({cataloger, correlationId});
+    }
 
-		throw new HttpError(400);
-	}
+    throw new HttpError(400);
+  }
 
-	async function remove({cataloger, correlationId}) {
-		if (correlationId) {
-			return mongoOperator.remove({cataloger, correlationId});
-		}
+  function remove({cataloger, correlationId}) {
+    if (correlationId) {
+      return mongoOperator.remove({cataloger, correlationId});
+    }
 
-		throw new HttpError(400);
-	}
+    throw new HttpError(400);
+  }
 
-	async function removeContent({cataloger, correlationId}) {
-		if (correlationId) {
-			return mongoOperator.removeContent({cataloger, correlationId});
-		}
+  function removeContent({cataloger, correlationId}) {
+    if (correlationId) {
+      return mongoOperator.removeContent({cataloger, correlationId});
+    }
 
-		throw new HttpError(400);
-	}
+    throw new HttpError(400);
+  }
 
-	async function doQuery({cataloger, query}) {
-		// Query filters cataloger, correlationId, operation, creationTime, modificationTime
-		const params = await generateQuery();
-		logger.log('debug', 'Queue items querried:');
-		logger.log('debug', JSON.stringify(params, null, '\t'));
+  async function doQuery({cataloger, query}) {
+    // Query filters cataloger, correlationId, operation, creationTime, modificationTime
+    const params = await generateQuery();
+    logger.log('debug', 'Queue items querried:');
+    logger.log('debug', JSON.stringify(params, null, '\t'));
 
-		if (params) {
-			return mongoOperator.query(params);
-		}
+    if (params) {
+      return mongoOperator.query(params);
+    }
 
-		throw new HttpError(400);
+    throw new HttpError(400);
 
-		async function generateQuery() {
-			const doc = {};
+    function generateQuery() {
+      const doc = {
+        cataloger: cataloger ? cataloger : null,
+        correlationId: query.id ? query.id : null,
+        operation: query.operation ? query.operation : null
+      };
 
-			if (!cataloger) {
-				return false;
-			}
+      if (doc.cataloger === null) {
+        return false;
+      }
 
-			doc.cataloger = cataloger;
-
-			doc.correlationId = (query.id) ? query.id : null;
-			doc.operation = (query.operation) ? query.operation : null;
-
-			doc.creationTime = (query.creationTime) ? (query.creationTime.length === 1) ?
-				formatTime(query.creationTime[0]) : doc.$and = [
-					{creationTime: {$gte: formatTime(query.creationTime[0])}},
-					{creationTime: {$lte: formatTime(query.creationTime[1])}}
-				] : null;
-
-			doc.modificationTime = (query.creationTime) ? (query.modificationTime.length === 1) ?
-				formatTime(query.modificationTime[0]) : doc.$and = [
-					{modificationTime: {$gte: formatTime(query.modificationTime[0])}},
-					{modificationTime: {$lte: formatTime(query.modificationTime[1])}}
-				] : null;
-
-			return doc;
-		}
-
-		function formatTime(timestamp) {
-			// Ditch the timezone
-			const time = moment.utc(timestamp);
-			return time.toDate();
-		}
-	}
+      return doc;
+    }
+  }
 }
