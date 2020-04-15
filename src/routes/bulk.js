@@ -110,12 +110,30 @@ export default async function (mongoUrl) {
   }
 
   async function remove(req, res, next) { // eslint-disable-line no-unused-vars
-    const response = await Service.remove({cataloger: req.user.id, correlationId: req.query.id});
-    res.json({request: req.query, result: response});
+    try {
+      const response = await Service.remove({cataloger: req.user.id, correlationId: req.query.id});
+      res.json({request: req.query, result: response});
+    } catch (error) {
+      if (error instanceof HttpError) {
+        res.status(error.status).send(error.payload);
+        return;
+      }
+
+      return next(error);
+    }
   }
 
   async function removeContent(req, res, next) { // eslint-disable-line no-unused-vars
-    await Service.removeContent({cataloger: req.user.id, correlationId: req.params.id});
-    res.sendStatus(204);
+    try {
+      await Service.removeContent({cataloger: req.user.id, correlationId: req.params.id});
+      res.sendStatus(204);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        res.status(error.status).send(error.payload);
+        return;
+      }
+
+      return next(error);
+    }
   }
 }
