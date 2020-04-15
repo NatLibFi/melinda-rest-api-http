@@ -25,8 +25,8 @@ steps:
 ---
 kind: secret
 name: docker_username
-data: O8ILyMm9c1vMACCsVwpR5LMtHzZUlwVm8/kSRcZTnUZzfH4j3VQyj8mtvjADpRFGmcA=
+data: AejMpBmWwDw5zVwIuKkFgvvMXKD5Xs36fKRVLTO+jHITKSRpvplM+BUrQvWbR6JdgIU=
 ---
 kind: secret
 name: docker_password
-data: /dHEqODPc7fj/utHITiJBKBNB2kpMEi53H1nImIfCmIh/aVSJVnYbIMpe/l6wMhUODsImaKutLOFpD6nka6+yRnyJlFnBsbEi8YdupAoJnHNj+w9zcFqVZXo8tU
+data: XJYK8sxY/7vpd0FdISIJipfcgR3NgfJVu2STsttb/Cj8LEtMC6qnCGAzpnprOwds8fl68RnRZ1XuJeEmcLJswpyigGpezeZ7ubQPaW7+vu94cM2oFVq+PwFQ9NE=
