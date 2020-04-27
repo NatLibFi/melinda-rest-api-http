@@ -45,6 +45,6 @@ export const sruBibUrl = readEnvironmentVariable('SRU_URL_BIB');
 export const amqpUrl = readEnvironmentVariable('AMQP_URL', {defaultValue: 'amqp://127.0.0.1:5672/'});
 
 // Mongo variables to bulk
-export const mongoUrl = readEnvironmentVariable('MONGO_URI', {defaultValue: 'mongodb://127.0.0.1:27017/db'});
+export const mongoUri = readEnvironmentVariable('MONGO_URI', {defaultValue: 'mongodb://127.0.0.1:27017/db'});
 
 export const pollWaitTime = readEnvironmentVariable('POLL_WAIT_TIME', {defaultValue: 100});

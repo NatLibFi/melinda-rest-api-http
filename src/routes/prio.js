@@ -34,7 +34,7 @@ import {Utils, Error as HttpError} from '@natlibfi/melinda-commons';
 import {conversionFormats} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/prio';
 
-export default async ({sruBibUrl, amqpUrl, pollWaitTime}) => {
+export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
   const {createLogger, parseBoolean} = Utils;
   const logger = createLogger();
   const CONTENT_TYPES = {
@@ -44,7 +44,7 @@ export default async ({sruBibUrl, amqpUrl, pollWaitTime}) => {
   };
 
   const Service = await createService({
-    sruBibUrl, amqpUrl, pollWaitTime
+    sruBibUrl, amqpUrl, mongoUri, pollWaitTime
   });
 
   return new Router()
@@ -55,6 +55,7 @@ export default async ({sruBibUrl, amqpUrl, pollWaitTime}) => {
     .post('/:id', updateResource);
 
   async function readResource(req, res, next) {
+    logger.log('verbose', 'routes/Prio readResource');
     try {
       const type = req.headers['content-type'];
       const format = CONTENT_TYPES[type];
@@ -71,6 +72,7 @@ export default async ({sruBibUrl, amqpUrl, pollWaitTime}) => {
   }
 
   async function createResource(req, res, next) {
+    logger.log('verbose', 'routes/Prio createResource');
     try {
       const type = req.headers['content-type'];
       const format = CONTENT_TYPES[type];
@@ -83,15 +85,11 @@ export default async ({sruBibUrl, amqpUrl, pollWaitTime}) => {
         unique,
         noop,
         data: req.body,
-        cataloger: req.user,
+        cataloger: sanitizeCataloger(req.user),
         correlationId
       });
 
-      if (noop) {
-        res.status(HttpStatus.CREATED).set('Record-ID', messages.id);
-        return;
-      }
-
+      res.status(HttpStatus.CREATED);
       res.type('application/json').send(messages);
     } catch (error) {
       if (error instanceof HttpError) {
@@ -103,6 +101,7 @@ export default async ({sruBibUrl, amqpUrl, pollWaitTime}) => {
   }
 
   async function updateResource(req, res, next) {
+    logger.log('verbose', 'routes/Prio updateResource');
     try {
       const type = req.headers['content-type'];
       const format = CONTENT_TYPES[type];
@@ -114,11 +113,12 @@ export default async ({sruBibUrl, amqpUrl, pollWaitTime}) => {
         id: req.params.id,
         data: req.body,
         format,
-        cataloger: req.user,
+        cataloger: sanitizeCataloger(req.user),
         noop,
         correlationId
       });
-      res.status(HttpStatus.OK).set('Record-ID', messages.id);
+
+      res.status(HttpStatus.OK);
       res.type('application/json').json(messages);
     } catch (error) {
       if (error instanceof HttpError) {
@@ -131,10 +131,15 @@ export default async ({sruBibUrl, amqpUrl, pollWaitTime}) => {
 
   function checkContentType(req, res, next) {
     if (req.headers['content-type'] === undefined || !CONTENT_TYPES[req.headers['content-type']]) { // eslint-disable-line functional/no-conditional-statement
-      logger.log('debug', 'Invalid content type');
+      logger.log('verbose', 'Invalid content type');
       throw new HttpError(HttpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
     }
 
     return next();
+  }
+
+  function sanitizeCataloger(cataloger) {
+    const {id, authorization} = cataloger;
+    return {id, authorization};
   }
 };

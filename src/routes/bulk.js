@@ -61,7 +61,7 @@ export default async function (mongoUrl) {
 
   async function create(req, res, next) { // eslint-disable-line no-unused-vars
     try {
-      logger.log('debug', 'Bulk job');
+      logger.log('verbose', 'routes/Bulk create');
       const params = {
         correlationId: uuid(),
         cataloger: req.user.id,
@@ -70,14 +70,14 @@ export default async function (mongoUrl) {
         recordLoadParams: req.query || null
       };
 
-      logger.log('debug', 'Params done');
+      logger.log('verbose', 'Params done');
       if (params.operation && OPERATION_TYPES.includes(params.operation)) {
         const response = await Service.create(req, params);
         res.json(response);
         return;
       }
 
-      logger.log('debug', 'Invalid operation');
+      logger.log('verbose', 'Invalid operation');
       throw new HttpError(HttpStatus.BAD_REQUEST, 'Invalid operation');
     } catch (error) {
       if (error instanceof HttpError) {
@@ -90,7 +90,7 @@ export default async function (mongoUrl) {
 
   function checkContentType(req, res, next) {
     if (req.headers['content-type'] === undefined || !CONTENT_TYPES.includes(req.headers['content-type'])) { // eslint-disable-line functional/no-conditional-statement
-      logger.log('debug', 'Invalid content type');
+      logger.log('verbose', 'Invalid content type');
       throw new HttpError(HttpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
     }
 
@@ -98,18 +98,21 @@ export default async function (mongoUrl) {
   }
 
   async function doQuery(req, res, next) { // eslint-disable-line no-unused-vars
+    logger.log('verbose', 'routes/Bulk doQuery');
     const response = await Service.doQuery({cataloger: req.user.id, query: req.query});
     res.json(response);
   }
 
   /* Functions after this are here only to test purposes */
   async function readContent(req, res, next) { // eslint-disable-line no-unused-vars
+    logger.log('verbose', 'routes/Bulk readContent');
     const {contentType, readStream} = await Service.readContent({cataloger: req.user.id, correlationId: req.params.id});
     res.set('content-type', contentType);
     readStream.pipe(res);
   }
 
   async function remove(req, res, next) { // eslint-disable-line no-unused-vars
+    logger.log('verbose', 'routes/Bulk remove');
     try {
       const response = await Service.remove({cataloger: req.user.id, correlationId: req.query.id});
       res.json({request: req.query, result: response});
@@ -124,6 +127,7 @@ export default async function (mongoUrl) {
   }
 
   async function removeContent(req, res, next) { // eslint-disable-line no-unused-vars
+    logger.log('verbose', 'routes/Bulk removeContent');
     try {
       await Service.removeContent({cataloger: req.user.id, correlationId: req.params.id});
       res.sendStatus(204);

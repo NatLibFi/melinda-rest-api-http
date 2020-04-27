@@ -98,7 +98,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordValidationReport"
+                  "$ref": "#/components/schemas/Record ValidationReport"
                 }
               }
             }

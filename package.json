@@ -32,7 +32,7 @@
 	},
 	"dependencies": {
 		"@natlibfi/marc-record-serializers": "^5.0.1",
-		"@natlibfi/melinda-commons": "^7.3.3",
+		"@natlibfi/melinda-commons": "^8.0.0",
 		"@natlibfi/melinda-rest-api-commons": "git+https://github.com/NatLibFi/melinda-rest-api-commons.git#melkehitys-1054",
 		"@natlibfi/sru-client": "^3.1.2",
 		"body-parser": "^1.19.0",

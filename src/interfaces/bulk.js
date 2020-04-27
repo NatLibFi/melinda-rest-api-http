@@ -38,8 +38,8 @@ export default async function (mongoUrl) {
   return {create, doQuery, readContent, remove, removeContent};
 
   async function create(req, {correlationId, cataloger, operation, contentType, recordLoadParams}) {
-    await mongoOperator.create({correlationId, cataloger, operation, contentType, recordLoadParams, stream: req});
-    logger.log('debug', 'Stream uploaded!');
+    await mongoOperator.createBulk({correlationId, cataloger, operation, contentType, recordLoadParams, stream: req});
+    logger.log('verbose', 'Stream uploaded!');
     return mongoOperator.setState({correlationId, cataloger, operation, state: QUEUE_ITEM_STATE.PENDING_QUEUING});
   }
 
@@ -70,8 +70,7 @@ export default async function (mongoUrl) {
   async function doQuery({cataloger, query}) {
     // Query filters cataloger, correlationId, operation, creationTime, modificationTime
     const params = await generateQuery();
-    logger.log('debug', 'Queue items querried:');
-    logger.log('debug', JSON.stringify(params, null, '\t'));
+    logger.log('debug', `Queue items querried:\n${JSON.stringify(params)}`);
 
     if (params) {
       return mongoOperator.query(params);

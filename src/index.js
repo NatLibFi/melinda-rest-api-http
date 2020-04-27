@@ -35,11 +35,14 @@ run();
 
 async function run() {
   const {handleInterrupt} = Utils;
-  let server; // eslint-disable-line functional/no-let
 
   registerInterruptionHandlers();
 
-  server = await startApp({...config}); // eslint-disable-line prefer-const
+  const server = await startApp(config, handleUnexpectedAppError);
+
+  function handleUnexpectedAppError(message) {
+    handleTermination({code: 1, message});
+  }
 
   function registerInterruptionHandlers() {
     process
@@ -52,20 +55,20 @@ async function run() {
         handleTermination({code: 1, message: stack});
       });
 
-    function handleTermination({code = 0, message = false}) {
-      logMessage(message);
-
-      if (server) {
-        server.close();
-        return process.exit(code); // eslint-disable-line no-process-exit
-      }
-
-      process.exit(code); // eslint-disable-line no-process-exit
-    }
-
     function handleSignal(signal) {
       handleTermination({code: 1, message: `Received ${signal}`});
     }
+  }
+
+  function handleTermination({code = 0, message = false}) {
+    logMessage(message);
+
+    if (server) {
+      server.close();
+      return process.exit(code); // eslint-disable-line no-process-exit
+    }
+
+    process.exit(code); // eslint-disable-line no-process-exit
 
     function logMessage(message) {
       if (message) {
