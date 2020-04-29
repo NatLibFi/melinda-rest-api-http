@@ -32,7 +32,7 @@ import {mongoFactory, QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons
 const {createLogger} = Utils;
 
 export default async function (mongoUrl) {
-  const logger = createLogger(); // eslint-disable-line no-unused-vars
+  const logger = createLogger();
   const mongoOperator = await mongoFactory(mongoUrl);
 
   return {create, doQuery, readContent, remove, removeContent};

@@ -36,7 +36,7 @@ import createService from '../interfaces/bulk';
 
 export default async function (mongoUrl) {
   const {createLogger} = Utils;
-  const logger = createLogger(); // eslint-disable-line no-unused-vars
+  const logger = createLogger();
 
   const CONTENT_TYPES = [
     'application/xml',
@@ -59,7 +59,7 @@ export default async function (mongoUrl) {
     .delete('/', remove)
     .delete('/:id', removeContent);
 
-  async function create(req, res, next) { // eslint-disable-line no-unused-vars
+  async function create(req, res, next) {
     try {
       logger.log('verbose', 'routes/Bulk create');
       const params = {
@@ -97,21 +97,21 @@ export default async function (mongoUrl) {
     return next();
   }
 
-  async function doQuery(req, res, next) { // eslint-disable-line no-unused-vars
+  async function doQuery(req, res) {
     logger.log('verbose', 'routes/Bulk doQuery');
     const response = await Service.doQuery({cataloger: req.user.id, query: req.query});
     res.json(response);
   }
 
   /* Functions after this are here only to test purposes */
-  async function readContent(req, res, next) { // eslint-disable-line no-unused-vars
+  async function readContent(req, res) {
     logger.log('verbose', 'routes/Bulk readContent');
     const {contentType, readStream} = await Service.readContent({cataloger: req.user.id, correlationId: req.params.id});
     res.set('content-type', contentType);
     readStream.pipe(res);
   }
 
-  async function remove(req, res, next) { // eslint-disable-line no-unused-vars
+  async function remove(req, res, next) {
     logger.log('verbose', 'routes/Bulk remove');
     try {
       const response = await Service.remove({cataloger: req.user.id, correlationId: req.query.id});
@@ -126,7 +126,7 @@ export default async function (mongoUrl) {
     }
   }
 
-  async function removeContent(req, res, next) { // eslint-disable-line no-unused-vars
+  async function removeContent(req, res, next) {
     logger.log('verbose', 'routes/Bulk removeContent');
     try {
       await Service.removeContent({cataloger: req.user.id, correlationId: req.params.id});
