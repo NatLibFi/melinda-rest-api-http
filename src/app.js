@@ -1,8 +1,9 @@
 import bodyParser from 'body-parser';
 import express from 'express';
-import HttpStatus from 'http-status';
+import httpStatus from 'http-status';
 import passport from 'passport';
 import {Error as ApiError, Authentication, Utils} from '@natlibfi/melinda-commons';
+import {logError} from '@natlibfi/melinda-rest-api-commons';
 import {createApiDocRouter, createBulkRouter, createPrioRouter} from './routes';
 
 export default async function ({
@@ -11,7 +12,7 @@ export default async function ({
   ownAuthzURL, ownAuthzApiKey,
   sruBibUrl, amqpUrl, mongoUri,
   pollWaitTime
-}, exitCallback) {
+}) {
   const {createLogger, createExpressLogger} = Utils;
   const logger = createLogger();
   const server = await initExpress();
@@ -43,28 +44,29 @@ export default async function ({
     app.use(bodyParser.text({limit: '5MB', type: '*/*'}));
     app.use('/apidoc', createApiDocRouter());
     app.use('/', await createPrioRouter({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}));
-
     app.use(handleError);
 
     return app.listen(httpPort, () => logger.log('info', `Started Melinda REST API in port ${httpPort}`));
 
-    function handleError(err, req, res) {
+    function handleError(err, req, res, next) {
       logger.log('info', 'App/handleError');
-      if (err instanceof ApiError) {
-        logger.log('debug', 'Responding expected');
-        res.status(err.status).send(err.payload);
-        return;
+      if (err) {
+        logError(err);
+        if (err instanceof ApiError) {
+          logger.log('debug', 'Responding expected');
+          return res.status(err.status).send(err.payload);
+        }
+
+        if (req.aborted) {
+          logger.log('debug', 'Responding timeout');
+          return res.status(httpStatus.REQUEST_TIMEOUT).send(httpStatus['504_MESSAGE']);
+        }
+
+        logger.log('debug', 'Responding unexpected');
+        return res.sendStatus(httpStatus.INTERNAL_SERVER_ERROR);
       }
 
-      if (req.aborted) {
-        logger.log('debug', 'Responding timeout');
-        res.sendStatus(HttpStatus.REQUEST_TIMEOUT);
-        return;
-      }
-
-      logger.log('debug', 'Responding unexpected');
-      res.sendStatus(HttpStatus.INTERNAL_SERVER_ERROR);
-      exitCallback(err.stack);
+      next();
     }
   }
 }

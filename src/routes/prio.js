@@ -28,11 +28,11 @@
 
 import {Router} from 'express';
 import passport from 'passport';
-import HttpStatus from 'http-status';
 import {v4 as uuid} from 'uuid';
 import {Utils, Error as HttpError} from '@natlibfi/melinda-commons';
 import {conversionFormats} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/prio';
+import httpStatus from 'http-status';
 
 export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
   const {createLogger, parseBoolean} = Utils;
@@ -60,12 +60,11 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       const type = req.headers['content-type'];
       const format = CONTENT_TYPES[type];
       const record = await Service.read({id: req.params.id, format});
-      res.type(type).status(HttpStatus.OK)
+      res.type(type).status(httpStatus.OK)
         .send(record);
     } catch (error) {
-      if (error instanceof HttpError) {
-        res.status(error.status).send(error.payload);
-        return;
+      if (error instanceof HttpError) { // eslint-disable-line functional/no-conditional-statement
+        return res.status(error.status).send(error.payload);
       }
       return next(error);
     }
@@ -80,7 +79,7 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
 
       const unique = req.query.unique === undefined ? true : parseBoolean(req.query.unique);
       const noop = parseBoolean(req.query.noop);
-      const messages = await Service.create({
+      const {messages, id} = await Service.create({
         format,
         unique,
         noop,
@@ -89,12 +88,16 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         correlationId
       });
 
-      res.status(HttpStatus.CREATED);
-      res.type('application/json').send(messages);
-    } catch (error) {
-      if (error instanceof HttpError) {
-        res.status(error.status).send(error.payload);
+      if (!noop) {
+        res.status(httpStatus.CREATED).set('Record-ID', id)
+          .json(messages);
         return;
+      }
+
+      res.status(httpStatus.OK).json(messages);
+    } catch (error) {
+      if (error instanceof HttpError) { // eslint-disable-line functional/no-conditional-statement
+        return res.status(error.status).send(error.payload);
       }
       return next(error);
     }
@@ -118,21 +121,23 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         correlationId
       });
 
-      res.status(HttpStatus.OK);
-      res.type('application/json').json(messages);
+      if (!noop) {
+        return res.sendStatus(httpStatus.OK);
+      }
+
+      return res.status(httpStatus.OK).json(messages);
     } catch (error) {
-      if (error instanceof HttpError) {
-        res.status(error.status).send(error.payload);
-        return;
+      if (error instanceof HttpError) { // eslint-disable-line functional/no-conditional-statement
+        return res.status(error.status).send(error.payload);
       }
       return next(error);
     }
   }
 
   function checkContentType(req, res, next) {
-    if (req.headers['content-type'] === undefined || !CONTENT_TYPES[req.headers['content-type']]) { // eslint-disable-line functional/no-conditional-statement
+    if (req.headers['content-type'] === undefined || !CONTENT_TYPES[req.headers['content-type']]) {
       logger.log('verbose', 'Invalid content type');
-      throw new HttpError(HttpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
+      return res.status(httpStatus.UNSUPPORTED_MEDIA_TYPE).send('Invalid content-type');
     }
 
     return next();

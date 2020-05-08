@@ -28,6 +28,7 @@
 
 import {Error as HttpError, Utils} from '@natlibfi/melinda-commons';
 import {mongoFactory, QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
+import httpStatus from 'http-status';
 
 const {createLogger} = Utils;
 
@@ -35,7 +36,7 @@ export default async function (mongoUrl) {
   const logger = createLogger();
   const mongoOperator = await mongoFactory(mongoUrl);
 
-  return {create, doQuery, readContent, remove, removeContent};
+  return {create, doQuery, readContent, remove, removeContent, validateQueryParams};
 
   async function create(req, {correlationId, cataloger, operation, contentType, recordLoadParams}) {
     await mongoOperator.createBulk({correlationId, cataloger, operation, contentType, recordLoadParams, stream: req});
@@ -48,7 +49,7 @@ export default async function (mongoUrl) {
       return mongoOperator.readContent({cataloger, correlationId});
     }
 
-    throw new HttpError(400);
+    throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
   function remove({cataloger, correlationId}) {
@@ -56,7 +57,7 @@ export default async function (mongoUrl) {
       return mongoOperator.remove({cataloger, correlationId});
     }
 
-    throw new HttpError(400);
+    throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
   function removeContent({cataloger, correlationId}) {
@@ -64,19 +65,20 @@ export default async function (mongoUrl) {
       return mongoOperator.removeContent({cataloger, correlationId});
     }
 
-    throw new HttpError(400);
+    throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
   async function doQuery({cataloger, query}) {
     // Query filters cataloger, correlationId, operation, creationTime, modificationTime
     const params = await generateQuery();
-    logger.log('debug', `Queue items querried:\n${JSON.stringify(params)}`);
+    logger.log('debug', `Queue items querried`);
+    logger.log('silly', JSON.stringify(params));
 
     if (params) {
       return mongoOperator.query(params);
     }
 
-    throw new HttpError(400);
+    throw new HttpError(httpStatus.BAD_REQUEST);
 
     function generateQuery() {
       const doc = {
@@ -91,5 +93,22 @@ export default async function (mongoUrl) {
 
       return doc;
     }
+  }
+
+  function validateQueryParams(queryParams) {
+    if (queryParams.pOldNew && queryParams.pActiveLibrary) {
+      const {pOldNew} = queryParams;
+      const operation = pOldNew === 'NEW' ? 'CREATE' : 'UPDATE';
+      const recordLoadParams = {
+        pActiveLibrary: queryParams.pActiveLibrary,
+        pOldNew,
+        pRejectFile: queryParams.pRejectFile || null,
+        pLogFile: queryParams.pRejectFile || null
+      };
+      // Req.params.operation.toUpperCase()
+      return {operation, recordLoadParams};
+    }
+
+    throw new HttpError(httpStatus.BAD_REQUEST);
   }
 }

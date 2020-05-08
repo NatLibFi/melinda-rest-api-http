@@ -31,6 +31,7 @@ import {Error as HttpError, Utils} from '@natlibfi/melinda-commons';
 import {amqpFactory, conversions, OPERATIONS, mongoFactory, PRIO_QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
 import {MARCXML} from '@natlibfi/marc-record-serializers';
 import createSruClient from '@natlibfi/sru-client';
+import httpStatus from 'http-status';
 
 const setTimeoutPromise = promisify(setTimeout);
 
@@ -46,9 +47,14 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
   return {read, create, update};
 
   async function read({id, format}) {
+    validateRequestId(id);
     logger.log('verbose', `Reading record ${id} from datastore`);
     const record = await getRecord(id);
-    return converter.serialize(record, format);
+    if (record) {
+      return converter.serialize(record, format);
+    }
+
+    throw new HttpError(httpStatus.NOT_FOUND, 'Record not found');
   }
 
   async function create({data, format, cataloger, noop, unique, correlationId}) {
@@ -67,23 +73,24 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
     await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
 
     logger.log('verbose', `Waiting response to id: ${correlationId}`);
-    const response = await check(correlationId);
-    const content = JSON.parse(response.content.toString());
-    const responseData = content.data;
+    const message = await check(correlationId);
+    const messageContent = JSON.parse(message.content.toString());
+    const responseData = messageContent.data;
 
-    logger.log('verbose', `Got response to id: ${correlationId} status: ${responseData.status ? responseData.status : 'unexpected'}`);
+    logger.log('verbose', `Got response to id: ${correlationId} status: ${responseData.status ? responseData.status : 'unexpected'}, id: ${responseData.payload ? responseData.payload : 'undefined'}`);
     logger.log('silly', `Response data:\n${JSON.stringify(responseData)}`);
 
     // Ack message
-    amqpOperator.ackMessages([response]);
-    amqpOperator.removeQueue(correlationId);
+    await amqpOperator.ackMessages([message]);
+    await amqpOperator.removeQueue(correlationId);
 
     if (responseData.status === 'CREATED') {
+      await mongoOperator.pushId({correlationId, id: responseData.payload || undefined});
       // Reply to http
       if (noop) {
         return responseData.messages;
       }
-      return responseData;
+      return {messages: responseData.messages, id: responseData.payload};
     }
 
 
@@ -91,6 +98,7 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
   async function update({id, data, format, cataloger, noop, correlationId}) {
+    validateRequestId(id);
     logger.log('info', `Creating updating task for record ${id}`);
     const operation = OPERATIONS.UPDATE;
     const headers = {
@@ -108,18 +116,19 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
     await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
 
     logger.log('verbose', `Waiting response to correlation id: ${correlationId}`);
-    const response = await check(correlationId);
-    const content = JSON.parse(response.content.toString());
-    const responseData = content.data;
+    const message = await check(correlationId);
+    const messageContent = JSON.parse(message.content.toString());
+    const responseData = messageContent.data;
 
-    logger.log('verbose', `Got response to id: ${correlationId}`);
+    logger.log('verbose', `Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, id: ${responseData.payload ? responseData.payload : 'undefined'}`);
     logger.log('silly', `Response data:\n${JSON.stringify(responseData)}`);
 
     // Ack message
-    await amqpOperator.ackMessages([response]);
+    await amqpOperator.ackMessages([message]);
     await amqpOperator.removeQueue(correlationId);
 
     if (responseData.status === 'UPDATED') {
+      await mongoOperator.pushId({correlationId, id: responseData.payload || undefined});
       // Reply to http
       if (noop) {
         return responseData.messages;
@@ -139,6 +148,13 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
         .on('end', () => resolve())
         .on('error', err => reject(err));
     });
+  }
+
+  function validateRequestId(id) {
+    logger.log('info', `Validating request ${id}`);
+    if (id.length > 9) { // eslint-disable-line functional/no-conditional-statement
+      throw new HttpError(httpStatus.BAD_REQUEST, `Invalid request id ${id}`);
+    }
   }
 
   // Loop

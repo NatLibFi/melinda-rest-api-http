@@ -27,7 +27,7 @@
 */
 
 import {Router} from 'express';
-import HttpStatus from 'http-status';
+import httpStatus from 'http-status';
 import passport from 'passport';
 import {v4 as uuid} from 'uuid';
 import {Error as HttpError, Utils} from '@natlibfi/melinda-commons';
@@ -52,22 +52,24 @@ export default async function (mongoUrl) {
 
   return new Router()
     .use(passport.authenticate('melinda', {session: false}))
-    .use(checkContentType)
-    .post('/:operation', create)
+    .use(authorizeKVPOnly)
     .get('/', doQuery)
     .get('/:id', readContent)
     .delete('/', remove)
-    .delete('/:id', removeContent);
+    .delete('/:id', removeContent)
+    .use(checkContentType)
+    .post('/', create);
 
   async function create(req, res, next) {
     try {
       logger.log('verbose', 'routes/Bulk create');
+      const {operation, recordLoadParams} = Service.validateQueryParams(req.query);
       const params = {
         correlationId: uuid(),
         cataloger: req.user.id,
-        operation: req.params.operation.toUpperCase(),
+        operation,
         contentType: req.headers['content-type'],
-        recordLoadParams: req.query || null
+        recordLoadParams
       };
 
       logger.log('verbose', 'Params done');
@@ -78,7 +80,7 @@ export default async function (mongoUrl) {
       }
 
       logger.log('verbose', 'Invalid operation');
-      throw new HttpError(HttpStatus.BAD_REQUEST, 'Invalid operation');
+      throw new HttpError(httpStatus.BAD_REQUEST, 'Invalid operation');
     } catch (error) {
       if (error instanceof HttpError) {
         res.status(error.status).send(error.payload);
@@ -91,7 +93,7 @@ export default async function (mongoUrl) {
   function checkContentType(req, res, next) {
     if (req.headers['content-type'] === undefined || !CONTENT_TYPES.includes(req.headers['content-type'])) { // eslint-disable-line functional/no-conditional-statement
       logger.log('verbose', 'Invalid content type');
-      throw new HttpError(HttpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
+      throw new HttpError(httpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
     }
 
     return next();
@@ -133,11 +135,18 @@ export default async function (mongoUrl) {
       res.sendStatus(204);
     } catch (error) {
       if (error instanceof HttpError) {
-        res.status(error.status).send(error.payload);
-        return;
+        return res.status(error.status).send(error.payload);
       }
 
       return next(error);
     }
+  }
+
+  function authorizeKVPOnly(req, res, next) {
+    if (req.user.authorization.includes('KVP')) {
+      return next();
+    }
+
+    return res.status(httpStatus.FORBIDDEN).send('User creditianls do not have permission to use this endpoint');
   }
 }
