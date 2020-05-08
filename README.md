@@ -15,7 +15,7 @@ Trigged drone...
 | HTTP_PORT          | No        | 8080                         |
 | MONGO_URI          | No        | mongodb://127.0.0.1:27017/db |
 | POLL_WAIT_TIME     | No        | 100                          |
-| DEBUG              |           |                              |
+| LOG_LEVEL          | No        | info                         |
 
 ### ApiDoc
 https://rest.api.melinda-test.kansalliskirjasto.fi/dev/v1/apidoc
