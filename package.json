@@ -21,68 +21,44 @@
 	},
 	"scripts": {
 		"start": "node ./dist/index",
-		"start:dev": "npm run lint && npm run build && cross-env DEBUG=1 npm start",
-		"dev": "NODE_ENV=development cross-env DEBUG=1 nodemon",
-		"app:dev": "babel-node ./src/index",
-		"check-deps": "npm-check;exit 0",
+		"start:dev": "babel-node ./src/index",
 		"lint": "eslint src",
 		"lint:dev": "eslint --fix src",
+		"check-deps": "npm-check;exit 0",
 		"test": "npm run lint",
+		"dev": "NODE_ENV=development cross-env DEBUG=1 nodemon",
 		"build": "babel src --source-maps --copy-files --delete-dir-on-start --out-dir=dist --minified",
-		"build:dev": "npm run build && npm run check-deps",
-		"watch": "cross-env NODE_ENV=test chokidar src -c 'npm run test:dev && npm run coverage'"
+		"prod": "NODE_ENV=production npm run build && npm run start"
 	},
 	"dependencies": {
-		"@natlibfi/marc-record": "^4.0.4",
 		"@natlibfi/marc-record-serializers": "^5.0.1",
-		"@natlibfi/marc-record-validate": "^5.0.1",
-		"@natlibfi/marc-record-validators-melinda": "^8.2.1",
-		"@natlibfi/melinda-commons": "^7.2.0",
-		"@natlibfi/melinda-rest-api-commons": "git+https://github.com/NatLibFi/melinda-rest-api-commons.git#dev",
+		"@natlibfi/melinda-commons": "^8.0.0",
+		"@natlibfi/melinda-rest-api-commons": ">=1.0.0-alpha.1",
 		"@natlibfi/sru-client": "^3.1.2",
 		"body-parser": "^1.19.0",
 		"express": "^4.17.1",
 		"http-status": "^1.4.2",
-		"node-fetch": "^2.6.0",
+		"moment": "^2.24.0",
 		"nodemon": "^2.0.2",
 		"passport": ">=0.4.1 <1.0.0",
 		"passport-http": ">=0.3.0 <1.0.0",
-		"uuid": "^3.4.0"
+		"uuid": "^8.0.0"
 	},
 	"devDependencies": {
-		"@babel/core": "^7.8.4",
 		"@babel/cli": "^7.8.4",
+		"@babel/core": "^7.8.4",
 		"@babel/node": "^7.8.4",
 		"@babel/preset-env": "^7.8.4",
 		"@babel/register": "^7.8.3",
 		"babel-eslint": "^10.0.3",
-		"babel-plugin-rewire": "^1.2.0",
-		"chokidar-cli": "^2.1.0",
-		"cross-env": "^6.0.3",
+		"cross-env": "^7.0.0",
 		"eslint": "^6.8.0",
-		"eslint-config-xo": ">=0.27.2 < 1.0.0",
+		"@natlibfi/eslint-config-melinda-backend": ">1.0.0-alpha.1",
 		"eslint-plugin-import": "^2.20.0",
-		"mocha": "^7.0.0",
-		"npm-check": "^5.9.0",
-		"nyc": "^15.0.0"
+		"npm-check": "^5.9.0"
 	},
 	"eslintConfig": {
-		"parser": "babel-eslint",
-		"plugins": [
-			"import"
-		],
-		"extends": [
-			"xo",
-			"plugin:import/errors"
-		],
-		"rules": {
-			"prefer-arrow-callback": [
-				"error"
-			]
-		},
-		"env": {
-			"mocha": true
-		}
+		"extends": "@natlibfi/melinda-backend"
 	},
 	"babel": {
 		"presets": [
@@ -94,17 +70,10 @@
 					}
 				}
 			]
-		],
-		"env": {
-			"test": {
-				"plugins": [
-					"rewire"
-				]
-			}
-		}
+		]
 	},
 	"nodemonConfig": {
-		"exec": "npm run lint:dev && npm run app:dev",
+		"exec": "npm run lint:dev && npm run start:dev",
 		"watch": [
 			"src/*"
 		],

@@ -26,106 +26,89 @@
 *
 */
 
-import moment from 'moment';
-import ApiError, {Utils} from '@natlibfi/melinda-commons';
+import {Error as HttpError, Utils} from '@natlibfi/melinda-commons';
 import {mongoFactory, QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
+import httpStatus from 'http-status';
 
 const {createLogger} = Utils;
 
 export default async function (mongoUrl) {
-	const logger = createLogger(); // eslint-disable-line no-unused-vars
-	const mongoOperator = await mongoFactory(mongoUrl);
+  const logger = createLogger();
+  const mongoOperator = await mongoFactory(mongoUrl);
 
-	return {create, doQuery, readContent, remove, removeContent};
+  return {create, doQuery, readContent, remove, removeContent, validateQueryParams};
 
-	async function create(req, {correlationId, cataloger, operation, contentType, recordLoadParams}) {
-		await mongoOperator.create({correlationId, cataloger, operation, contentType, recordLoadParams, stream: req});
-		logger.log('debug', 'Stream uploaded!');
-		return mongoOperator.setState({correlationId, cataloger, operation, state: QUEUE_ITEM_STATE.PENDING_QUEUING});
-	}
+  async function create(req, {correlationId, cataloger, operation, contentType, recordLoadParams}) {
+    await mongoOperator.createBulk({correlationId, cataloger, operation, contentType, recordLoadParams, stream: req});
+    logger.log('verbose', 'Stream uploaded!');
+    return mongoOperator.setState({correlationId, cataloger, operation, state: QUEUE_ITEM_STATE.PENDING_QUEUING});
+  }
 
-	async function readContent({cataloger, correlationId}) {
-		if (correlationId) {
-			return mongoOperator.readContent({cataloger, correlationId});
-		}
+  function readContent({cataloger, correlationId}) {
+    if (correlationId) {
+      return mongoOperator.readContent({cataloger, correlationId});
+    }
 
-		throw new ApiError(400);
-	}
+    throw new HttpError(httpStatus.BAD_REQUEST);
+  }
 
-	async function remove({cataloger, correlationId}) {
-		if (correlationId) {
-			return mongoOperator.remove({cataloger, correlationId});
-		}
+  function remove({cataloger, correlationId}) {
+    if (correlationId) {
+      return mongoOperator.remove({cataloger, correlationId});
+    }
 
-		throw new ApiError(400);
-	}
+    throw new HttpError(httpStatus.BAD_REQUEST);
+  }
 
-	async function removeContent({cataloger, correlationId}) {
-		if (correlationId) {
-			return mongoOperator.removeContent({cataloger, correlationId});
-		}
+  function removeContent({cataloger, correlationId}) {
+    if (correlationId) {
+      return mongoOperator.removeContent({cataloger, correlationId});
+    }
 
-		throw new ApiError(400);
-	}
+    throw new HttpError(httpStatus.BAD_REQUEST);
+  }
 
-	async function doQuery({cataloger, query}) {
-		// Query filters cataloger, correlationId, operation, creationTime, modificationTime
-		const params = await generateQuery();
+  async function doQuery({cataloger, query}) {
+    // Query filters cataloger, correlationId, operation, creationTime, modificationTime
+    const params = await generateQuery();
+    logger.log('debug', `Queue items querried`);
+    logger.log('silly', JSON.stringify(params));
 
-		logger.log('debug', `Queue blobs querried: ${params}`);
+    if (params) {
+      return mongoOperator.query(params);
+    }
 
-		if (params) {
-			return mongoOperator.query(params);
-		}
+    throw new HttpError(httpStatus.BAD_REQUEST);
 
-		throw new ApiError(400);
+    function generateQuery() {
+      const doc = {
+        cataloger: cataloger ? cataloger : null,
+        correlationId: query.id ? query.id : {$ne: null},
+        operation: query.operation ? query.operation : {$ne: null}
+      };
 
-		async function generateQuery() {
-			const doc = {};
+      if (doc.cataloger === null) {
+        return false;
+      }
 
-			if (cataloger) {
-				doc.cataloger = cataloger;
-			} else {
-				return false;
-			}
+      return doc;
+    }
+  }
 
-			if (query.id) {
-				doc.correlationId = query.id;
-			}
+  function validateQueryParams(queryParams) {
+    if (queryParams.pOldNew && queryParams.pActiveLibrary) {
+      const {pOldNew} = queryParams;
+      const operation = pOldNew === 'NEW' ? 'CREATE' : 'UPDATE';
+      const recordLoadParams = {
+        pActiveLibrary: queryParams.pActiveLibrary,
+        pOldNew,
+        pRejectFile: queryParams.pRejectFile || null,
+        pLogFile: queryParams.pRejectFile || null
+      };
+      // Req.params.operation.toUpperCase()
+      return {operation, recordLoadParams};
+    }
 
-			if (query.operation) {
-				doc.operation = query.operation;
-			}
-
-			if (query.creationTime) {
-				if (query.creationTime.length === 1) {
-					doc.creationTime = formatTime(query.creationTime[0]);
-				} else {
-					doc.$and = [
-						{creationTime: {$gte: formatTime(query.creationTime[0])}},
-						{creationTime: {$lte: formatTime(query.creationTime[1])}}
-					];
-				}
-			}
-
-			if (query.modificationTime) {
-				if (query.modificationTime.length === 1) {
-					doc.modificationTime = formatTime(query.modificationTime[0]);
-				} else {
-					doc.$and = [
-						{modificationTime: {$gte: formatTime(query.modificationTime[0])}},
-						{modificationTime: {$lte: formatTime(query.modificationTime[1])}}
-					];
-				}
-			}
-
-			return doc;
-		}
-
-		function formatTime(timestamp) {
-			// Ditch the timezone
-			const time = moment.utc(timestamp);
-			return time.toDate();
-		}
-	}
+    throw new HttpError(httpStatus.BAD_REQUEST);
+  }
 }

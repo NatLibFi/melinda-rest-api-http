@@ -28,10 +28,10 @@
 
 import {Utils} from '@natlibfi/melinda-commons';
 
-const {readEnvironmentVariable} = Utils;
+const {readEnvironmentVariable, parseBoolean} = Utils;
 
 export const httpPort = readEnvironmentVariable('HTTP_PORT', {defaultValue: '8080'});
-export const enableProxy = readEnvironmentVariable('ENABLE_PROXY', '');
+export const enableProxy = readEnvironmentVariable('ENABLE_PROXY', {format: v => parseBoolean(v)});
 
 export const xServiceURL = readEnvironmentVariable('ALEPH_X_SVC_URL');
 export const userLibrary = readEnvironmentVariable('ALEPH_USER_LIBRARY');
@@ -45,7 +45,6 @@ export const sruBibUrl = readEnvironmentVariable('SRU_URL_BIB');
 export const amqpUrl = readEnvironmentVariable('AMQP_URL', {defaultValue: 'amqp://127.0.0.1:5672/'});
 
 // Mongo variables to bulk
-export const mongoUrl = readEnvironmentVariable('MONGO_URI', {defaultValue: 'mongodb://127.0.0.1:27017/db'});
+export const mongoUri = readEnvironmentVariable('MONGO_URI', {defaultValue: 'mongodb://127.0.0.1:27017/db'});
 
 export const pollWaitTime = readEnvironmentVariable('POLL_WAIT_TIME', {defaultValue: 100});
-export const [offlineBegin, offlineDuration] = readEnvironmentVariable('OFFLINE_PERIOD', {defaultValue: '0,0', format: v => v.split(',')});

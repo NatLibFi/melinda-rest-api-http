@@ -26,112 +26,125 @@
 *
 */
 
-import {Utils} from '@natlibfi/melinda-commons';
 import {Router} from 'express';
 import passport from 'passport';
-import HttpStatus from 'http-status';
 import {v4 as uuid} from 'uuid';
-import ApiError from '@natlibfi/melinda-commons';
-import {conversionFormats, checkIfOfflineHours} from '@natlibfi/melinda-rest-api-commons';
+import {Utils, Error as HttpError} from '@natlibfi/melinda-commons';
+import {conversionFormats} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/prio';
+import httpStatus from 'http-status';
 
-export default async ({sruBibUrl, amqpUrl, pollWaitTime, offlineBegin, offlineDuration}) => {
-	const {createLogger, parseBoolean} = Utils;
-	const logger = createLogger();
-	const CONTENT_TYPES = {
-		'application/json': conversionFormats.JSON,
-		'application/marc': conversionFormats.ISO2709,
-		'application/xml': conversionFormats.MARCXML
-	};
+export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
+  const {createLogger, parseBoolean} = Utils;
+  const logger = createLogger();
+  const CONTENT_TYPES = {
+    'application/json': conversionFormats.JSON,
+    'application/marc': conversionFormats.ISO2709,
+    'application/xml': conversionFormats.MARCXML
+  };
 
-	const Service = await createService({
-		sruBibUrl, amqpUrl, pollWaitTime
-	});
+  const Service = await createService({
+    sruBibUrl, amqpUrl, mongoUri, pollWaitTime
+  });
 
-	return new Router()
-		.use(passport.authenticate('melinda', {session: false}))
-		.use(checkOfflineHours)
-		.use(checkContentType)
-		.post('/', createResource)
-		.get('/:id', readResource)
-		.post('/:id', updateResource);
+  return new Router()
+    .use(passport.authenticate('melinda', {session: false}))
+    .use(checkContentType)
+    .post('/', createResource)
+    .get('/:id', readResource)
+    .post('/:id', updateResource);
 
-	async function readResource(req, res, next) { // eslint-disable-line no-unused-vars
-		try {
-			const type = req.headers['content-type'];
-			const format = CONTENT_TYPES[type];
-			const record = await Service.read({id: req.params.id, format});
-			res.type(type).status(HttpStatus.OK).send(record);
-		} catch (error) {
-			next(error);
-		}
-	}
+  async function readResource(req, res, next) {
+    logger.log('verbose', 'routes/Prio readResource');
+    try {
+      const type = req.headers['content-type'];
+      const format = CONTENT_TYPES[type];
+      const record = await Service.read({id: req.params.id, format});
+      res.type(type).status(httpStatus.OK)
+        .send(record);
+    } catch (error) {
+      if (error instanceof HttpError) { // eslint-disable-line functional/no-conditional-statement
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
+  }
 
-	async function createResource(req, res, next) { // eslint-disable-line no-unused-vars
-		try {
-			const type = req.headers['content-type'];
-			const format = CONTENT_TYPES[type];
-			const correlationId = uuid();
+  async function createResource(req, res, next) {
+    logger.log('verbose', 'routes/Prio createResource');
+    try {
+      const type = req.headers['content-type'];
+      const format = CONTENT_TYPES[type];
+      const correlationId = uuid();
 
-			const unique = req.query.unique === undefined ? true : parseBoolean(req.query.unique);
-			const noop = parseBoolean(req.query.noop);
-			const messages = await Service.create({
-				format,
-				unique,
-				noop,
-				data: req.body,
-				cataloger: req.user,
-				correlationId
-			});
+      const unique = req.query.unique === undefined ? true : parseBoolean(req.query.unique);
+      const noop = parseBoolean(req.query.noop);
+      const {messages, id} = await Service.create({
+        format,
+        unique,
+        noop,
+        data: req.body,
+        cataloger: sanitizeCataloger(req.user),
+        correlationId
+      });
 
-			if (noop) {
-				res.status(HttpStatus.CREATED).set('Record-ID', messages.id);
-				return;
-			}
+      if (!noop) {
+        res.status(httpStatus.CREATED).set('Record-ID', id)
+          .json(messages);
+        return;
+      }
 
-			res.type('application/json').send(messages);
-		} catch (error) {
-			next(error);
-		}
-	}
+      res.status(httpStatus.OK).json(messages);
+    } catch (error) {
+      if (error instanceof HttpError) { // eslint-disable-line functional/no-conditional-statement
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
+  }
 
-	async function updateResource(req, res, next) { // eslint-disable-line no-unused-vars
-		try {
-			const type = req.headers['content-type'];
-			const format = CONTENT_TYPES[type];
-			const correlationId = uuid();
+  async function updateResource(req, res, next) {
+    logger.log('verbose', 'routes/Prio updateResource');
+    try {
+      const type = req.headers['content-type'];
+      const format = CONTENT_TYPES[type];
+      const correlationId = uuid();
 
-			// Id must contain 9 digits nothing less, nothing more.
-			const noop = parseBoolean(req.query.noop);
-			const messages = await Service.update({
-				id: req.params.id,
-				data: req.body,
-				format,
-				cataloger: req.user,
-				noop,
-				correlationId
-			});
-			res.status(HttpStatus.OK).set('Record-ID', messages.id);
-			res.type('application/json').json(messages);
-		} catch (error) {
-			next(error);
-		}
-	}
+      // Id must contain 9 digits nothing less, nothing more.
+      const noop = parseBoolean(req.query.noop);
+      const messages = await Service.update({
+        id: req.params.id,
+        data: req.body,
+        format,
+        cataloger: sanitizeCataloger(req.user),
+        noop,
+        correlationId
+      });
 
-	function checkContentType(req, res, next) {
-		if (req.headers['content-type'] === undefined || !CONTENT_TYPES[req.headers['content-type']]) {
-			logger.log('debug', 'Invalid content type');
-			throw new ApiError(HttpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
-		}
+      if (!noop) {
+        return res.sendStatus(httpStatus.OK);
+      }
 
-		next();
-	}
+      return res.status(httpStatus.OK).json(messages);
+    } catch (error) {
+      if (error instanceof HttpError) { // eslint-disable-line functional/no-conditional-statement
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
+  }
 
-	function checkOfflineHours(req, res, next) {
-		if (checkIfOfflineHours(offlineBegin, offlineDuration)) {
-			throw new ApiError(HttpStatus.SERVICE_UNAVAILABLE, `${HttpStatus['503_MESSAGE']} Offline hours begin at ${offlineBegin} and will last next ${offlineDuration} hours.`);
-		}
+  function checkContentType(req, res, next) {
+    if (req.headers['content-type'] === undefined || !CONTENT_TYPES[req.headers['content-type']]) {
+      logger.log('verbose', 'Invalid content type');
+      return res.status(httpStatus.UNSUPPORTED_MEDIA_TYPE).send('Invalid content-type');
+    }
 
-		next();
-	}
+    return next();
+  }
+
+  function sanitizeCataloger(cataloger) {
+    const {id, authorization} = cataloger;
+    return {id, authorization};
+  }
 };
