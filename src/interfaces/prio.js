@@ -43,7 +43,7 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
   const amqpOperator = await amqpFactory(amqpUrl);
   const mongoOperator = await mongoFactory(mongoUri);
   const sruClient = createSruClient({serverUrl: sruBibUrl, version: '2.0', maximumRecords: '1'});
-  const sruSubClient = createSruClient({serverUrl: sruBibUrl, version: '2.0', maximumRecords: '1'});
+  const sruSubClient = createSruClient({serverUrl: sruBibUrl, version: '2.0'});
 
   return {read, create, update};
 
