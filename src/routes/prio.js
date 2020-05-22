@@ -67,7 +67,7 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
           .send(record);
       }
 
-      return res.type(type).status(httpStatus.OK).json({record, subrecords});
+      return res.type(type).status(httpStatus.OK).json({record, subrecords: childRecords});
     } catch (error) {
       if (error instanceof HttpError) { // eslint-disable-line functional/no-conditional-statement
         return res.status(error.status).send(error.payload);
