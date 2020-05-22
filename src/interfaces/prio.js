@@ -49,12 +49,13 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   async function read({id, format, subrecords}) {
     validateRequestId(id);
-    logger.log('verbose', `Reading record ${id} from datastore`);
+    logger.log('verbose', subrecords ? `Reading record ${id} and subrecords from sru` : `Reading record ${id} from sru`);
     const record = await getRecord(id);
 
     if (record) {
       if (subrecords) {
         const unserializedSubRecords = await getSubRecords(id);
+        logger.log('debug', JSON.stringify(unserializedSubRecords));
         if (unserializedSubRecords) {
           const serializedSubRecords = unserializedSubRecords.map(record => converter(record, format));
           return {record: converter.serialize(record, format), childRecords: serializedSubRecords};
