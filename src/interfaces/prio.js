@@ -43,15 +43,26 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
   const amqpOperator = await amqpFactory(amqpUrl);
   const mongoOperator = await mongoFactory(mongoUri);
   const sruClient = createSruClient({serverUrl: sruBibUrl, version: '2.0', maximumRecords: '1'});
+  const sruSubClient = createSruClient({serverUrl: sruBibUrl, version: '2.0', maximumRecords: '1'});
 
   return {read, create, update};
 
-  async function read({id, format}) {
+  async function read({id, format, subrecords}) {
     validateRequestId(id);
     logger.log('verbose', `Reading record ${id} from datastore`);
     const record = await getRecord(id);
+
     if (record) {
-      return converter.serialize(record, format);
+      if (subrecords) {
+        const unserializedSubRecords = await getSubRecords(id);
+        if (unserializedSubRecords) {
+          const serializedSubRecords = unserializedSubRecords.map(record => converter(record, format));
+          return {record: converter.serialize(record, format), childRecords: serializedSubRecords};
+        }
+        return {record: converter.serialize(record, format), childRecords: []};
+      }
+
+      return {record: converter.serialize(record, format)};
     }
 
     throw new HttpError(httpStatus.NOT_FOUND, 'Record not found');
@@ -142,6 +153,17 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
   function getRecord(id) {
     return new Promise((resolve, reject) => {
       sruClient.searchRetrieve(`rec.id=${id}`)
+        .on('record', xmlString => {
+          resolve(MARCXML.from(xmlString));
+        })
+        .on('end', () => resolve())
+        .on('error', err => reject(err));
+    });
+  }
+
+  function getSubRecords(id) {
+    return new Promise((resolve, reject) => {
+      sruSubClient.searchRetrieve(`melinda.partsofhost=${toAlephId(id)}`)
         .on('record', xmlString => {
           resolve(MARCXML.from(xmlString));
         })
