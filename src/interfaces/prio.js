@@ -36,7 +36,7 @@ import httpStatus from 'http-status';
 const setTimeoutPromise = promisify(setTimeout);
 
 export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
-  const {createLogger} = Utils;
+  const {createLogger, toAlephId} = Utils;
   const logger = createLogger();
   logger.log('debug', `Connecting prio to: ${amqpUrl} and ${mongoUri}`);
   const converter = conversions();
