@@ -28,7 +28,7 @@
 
 import {promisify} from 'util';
 import {Error as HttpError, Utils} from '@natlibfi/melinda-commons';
-import {amqpFactory, conversions, OPERATIONS, mongoFactory, PRIO_QUEUE_ITEM_STATE, conversionFormats} from '@natlibfi/melinda-rest-api-commons';
+import {amqpFactory, conversions, OPERATIONS, mongoFactory, PRIO_QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
 import {MARCXML} from '@natlibfi/marc-record-serializers';
 import createSruClient from '@natlibfi/sru-client';
 import httpStatus from 'http-status';
