@@ -28,7 +28,7 @@
 
 import {promisify} from 'util';
 import {Error as HttpError, Utils} from '@natlibfi/melinda-commons';
-import {amqpFactory, conversions, OPERATIONS, mongoFactory, PRIO_QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
+import {amqpFactory, conversions, OPERATIONS, mongoFactory, PRIO_QUEUE_ITEM_STATE, conversionFormats} from '@natlibfi/melinda-rest-api-commons';
 import {MARCXML} from '@natlibfi/marc-record-serializers';
 import createSruClient from '@natlibfi/sru-client';
 import httpStatus from 'http-status';
@@ -57,7 +57,7 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
         const unserializedSubRecords = await getSubRecords(id);
         logger.log('debug', JSON.stringify(unserializedSubRecords));
         if (unserializedSubRecords) {
-          const marcRecords = unserializedSubRecords.map(record => converter.unserialize(record, converter.conversionFormats.MARCXML))
+          const marcRecords = unserializedSubRecords.map(record => converter.unserialize(record, conversionFormats.MARCXML));
           const serializedSubRecords = marcRecords.map(record => converter.serialize(record, format));
           return {record: converter.serialize(record, format), childRecords: serializedSubRecords};
         }
