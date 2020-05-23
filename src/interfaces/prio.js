@@ -164,11 +164,12 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   function getSubRecords(id) {
     return new Promise((resolve, reject) => {
+      const records = [];
       sruSubClient.searchRetrieve(`melinda.partsofhost=${id}`)
         .on('record', xmlString => {
-          resolve(MARCXML.from(xmlString));
+          records.push(MARCXML.from(xmlString)); // eslint-disable-line functional/immutable-data
         })
-        .on('end', () => resolve())
+        .on('end', () => resolve(records))
         .on('error', err => reject(err));
     });
   }
