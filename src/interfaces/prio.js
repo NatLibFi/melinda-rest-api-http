@@ -57,7 +57,8 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
         const unserializedSubRecords = await getSubRecords(id);
         logger.log('debug', JSON.stringify(unserializedSubRecords));
         if (unserializedSubRecords) {
-          const serializedSubRecords = unserializedSubRecords.map(record => converter(record, format));
+          const marcRecords = unserializedSubRecords.map(record => converter.unserialize(record, converter.conversionFormats.MARCXML))
+          const serializedSubRecords = marcRecords.map(record => converter.serialize(record, format));
           return {record: converter.serialize(record, format), childRecords: serializedSubRecords};
         }
         return {record: converter.serialize(record, format), childRecords: []};
