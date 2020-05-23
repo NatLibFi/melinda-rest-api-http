@@ -164,7 +164,7 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   function getSubRecords(id) {
     return new Promise((resolve, reject) => {
-      sruSubClient.searchRetrieve(`melinda.partsofhost=${toAlephId(id)}`)
+      sruSubClient.searchRetrieve(`melinda.partsofhost=${id}`)
         .on('record', xmlString => {
           resolve(MARCXML.from(xmlString));
         })
