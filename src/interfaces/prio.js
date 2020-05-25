@@ -60,7 +60,7 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
           return {record: converter.serialize(record, format), childRecords: []};
         }
         const serializedSubRecords = marcRecords.map(record => converter.serialize(record, format));
-        return {record: JSON.stringify(converter.serialize(record, format)), childRecords: serializedSubRecords};
+        return {record: converter.serialize(record, format).toObject(), childRecords: serializedSubRecords};
       }
 
       return {record: converter.serialize(record, format)};
