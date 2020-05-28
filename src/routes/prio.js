@@ -117,7 +117,6 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       const format = CONTENT_TYPES[type];
       const correlationId = uuid();
 
-      // Id must contain 9 digits nothing less, nothing more.
       const noop = parseBoolean(req.query.noop);
       const messages = await Service.update({
         id: req.params.id,
@@ -127,10 +126,6 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         noop,
         correlationId
       });
-
-      if (!noop) {
-        return res.sendStatus(httpStatus.OK);
-      }
 
       return res.status(httpStatus.OK).json(messages);
     } catch (error) {
