@@ -82,7 +82,7 @@ export default async function (mongoUrl) {
 
     function generateQuery() {
       const doc = {
-        cataloger: cataloger ? cataloger : null,
+        recordLoadParams: {oCatalogerIn: cataloger ? cataloger : null},
         correlationId: query.id ? query.id : {$ne: null},
         operation: query.operation ? query.operation : {$ne: null}
       };
