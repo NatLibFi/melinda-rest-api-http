@@ -39,7 +39,7 @@ export default async function (mongoUrl) {
   return {create, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
 
   async function create(req, {correlationId, cataloger, operation, contentType, recordLoadParams}) {
-    await mongoOperator.createBulk({correlationId, cataloger, operation, contentType, recordLoadParams, stream: req});
+    await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream: req});
     logger.log('verbose', 'Stream uploaded!');
     return mongoOperator.setState({correlationId, cataloger, operation, state: QUEUE_ITEM_STATE.PENDING_QUEUING});
   }
@@ -82,7 +82,7 @@ export default async function (mongoUrl) {
 
     function generateQuery() {
       const doc = {
-        recordLoadParams: {oCatalogerIn: cataloger ? cataloger : null},
+        oCatalogerIn: cataloger ? cataloger : null,
         correlationId: query.id ? query.id : {$ne: null},
         operation: query.operation ? query.operation : {$ne: null}
       };
@@ -95,7 +95,7 @@ export default async function (mongoUrl) {
     }
   }
 
-  function validateQueryParams(queryParams, oCatalogerIn) {
+  function validateQueryParams(queryParams) {
     if (queryParams.pOldNew && queryParams.pActiveLibrary) {
       const {pOldNew} = queryParams;
       const operation = pOldNew === 'NEW' ? 'CREATE' : 'UPDATE';
@@ -105,7 +105,6 @@ export default async function (mongoUrl) {
         pRejectFile: queryParams.pRejectFile || null,
         pLogFile: queryParams.pRejectFile || null,
         pCatalogerIn: queryParams.pCatalogerIn || null,
-        oCatalogerIn
       };
       // Req.params.operation.toUpperCase()
       return {operation, recordLoadParams};

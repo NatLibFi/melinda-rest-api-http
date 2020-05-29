@@ -67,6 +67,7 @@ export default async function (mongoUrl) {
       const params = {
         correlationId: uuid(),
         cataloger: Service.checkCataloger(req.user.id, req.query.pCatalogerIn),
+        oCatalogerIn: req.user.id,
         operation,
         contentType: req.headers['content-type'],
         recordLoadParams

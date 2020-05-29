@@ -91,6 +91,7 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         noop,
         data: req.body,
         cataloger: sanitizeCataloger(req.user, req.query.cataloger),
+        oCatalogerIn: req.user.id,
         correlationId
       });
 
@@ -122,6 +123,7 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         data: req.body,
         format,
         cataloger: sanitizeCataloger(req.user, req.query.cataloger),
+        oCatalogerIn: req.user.id,
         noop,
         correlationId
       });
