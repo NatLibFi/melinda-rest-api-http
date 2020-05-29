@@ -55,7 +55,7 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
     if (record) {
       if (subrecords) {
         const marcRecords = await getSubRecords(id);
-        logger.log('debug', JSON.stringify(marcRecords));
+        logger.log('debug', `Subrecords: ${JSON.stringify(marcRecords)}`);
         if (marcRecords === []) {
           return {record: converter.serialize(record, format), childRecords: []};
         }
