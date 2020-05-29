@@ -38,38 +38,38 @@ export default async function (mongoUrl) {
 
   return {create, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
 
-  async function create(req, {correlationId, cataloger, operation, contentType, recordLoadParams}) {
+  async function create(req, {correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams}) {
     await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream: req});
     logger.log('verbose', 'Stream uploaded!');
-    return mongoOperator.setState({correlationId, cataloger, operation, state: QUEUE_ITEM_STATE.PENDING_QUEUING});
+    return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.PENDING_QUEUING});
   }
 
   function readContent({cataloger, correlationId}) {
     if (correlationId) {
-      return mongoOperator.readContent({cataloger, correlationId});
+      return mongoOperator.readContent({oCatalogerIn: cataloger, correlationId});
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  function remove({cataloger, correlationId}) {
+  function remove({oCatalogerIn, correlationId}) {
     if (correlationId) {
-      return mongoOperator.remove({cataloger, correlationId});
+      return mongoOperator.remove({oCatalogerIn, correlationId});
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  function removeContent({cataloger, correlationId}) {
+  function removeContent({oCatalogerIn, correlationId}) {
     if (correlationId) {
-      return mongoOperator.removeContent({cataloger, correlationId});
+      return mongoOperator.removeContent({oCatalogerIn, correlationId});
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  async function doQuery({cataloger, query}) {
-    // Query filters cataloger, correlationId, operation, creationTime, modificationTime
+  async function doQuery({oCatalogerIn, query}) {
+    // Query filters oCatalogerIn, correlationId, operation
     const params = await generateQuery();
     logger.log('debug', `Queue items querried`);
     logger.log('silly', JSON.stringify(params));
@@ -82,7 +82,7 @@ export default async function (mongoUrl) {
 
     function generateQuery() {
       const doc = {
-        oCatalogerIn: cataloger ? cataloger : null,
+        oCatalogerIn: oCatalogerIn ? oCatalogerIn : null,
         correlationId: query.id ? query.id : {$ne: null},
         operation: query.operation ? query.operation : {$ne: null}
       };
@@ -104,7 +104,7 @@ export default async function (mongoUrl) {
         pOldNew,
         pRejectFile: queryParams.pRejectFile || null,
         pLogFile: queryParams.pRejectFile || null,
-        pCatalogerIn: queryParams.pCatalogerIn || null,
+        pCatalogerIn: queryParams.pCatalogerIn || null
       };
       // Req.params.operation.toUpperCase()
       return {operation, recordLoadParams};

@@ -69,7 +69,7 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
     throw new HttpError(httpStatus.NOT_FOUND, 'Record not found');
   }
 
-  async function create({data, format, cataloger, noop, unique, correlationId}) {
+  async function create({data, format, cataloger, oCatalogerIn, noop, unique, correlationId}) {
     logger.log('verbose', 'Sending a new record to queue');
     const operation = OPERATIONS.CREATE;
     const headers = {
@@ -80,7 +80,7 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
       unique
     };
 
-    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, operation});
+    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation});
     // {queue, correlationId, headers, data}
     await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
 
@@ -105,11 +105,10 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
       return {messages: responseData.messages, id: responseData.payload};
     }
 
-
     throw new HttpError(responseData.status, responseData.payload || '');
   }
 
-  async function update({id, data, format, cataloger, noop, correlationId}) {
+  async function update({id, data, format, cataloger, oCatalogerIn, noop, correlationId}) {
     validateRequestId(id);
     logger.log('info', `Creating updating task for record ${id}`);
     const operation = OPERATIONS.UPDATE;
@@ -122,7 +121,7 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
     };
 
     logger.log('verbose', `Creating Mongo queue item for record ${id}`);
-    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, operation});
+    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation});
     // {queue, correlationId, headers, data}
     logger.log('verbose', `Sending record ${id} to be validated. Correlation id ${correlationId}`);
     await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
