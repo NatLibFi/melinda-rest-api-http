@@ -83,7 +83,6 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       const type = req.headers['content-type'];
       const format = CONTENT_TYPES[type];
       const correlationId = uuid();
-
       const unique = req.query.unique === undefined ? true : parseBoolean(req.query.unique);
       const noop = parseBoolean(req.query.noop);
       const {messages, id} = await Service.create({
@@ -91,7 +90,7 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         unique,
         noop,
         data: req.body,
-        cataloger: sanitizeCataloger(req.user),
+        cataloger: sanitizeCataloger(req.user, req.query.cataloger),
         correlationId
       });
 
@@ -122,7 +121,7 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         id: req.params.id,
         data: req.body,
         format,
-        cataloger: sanitizeCataloger(req.user),
+        cataloger: sanitizeCataloger(req.user, req.query.cataloger),
         noop,
         correlationId
       });
@@ -145,8 +144,17 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
     return next();
   }
 
-  function sanitizeCataloger(cataloger) {
-    const {id, authorization} = cataloger;
+  function sanitizeCataloger(passportCataloger, queryCataloger) {
+    const {id, authorization} = passportCataloger;
+
+    if (authorization.includes('KVP') && queryCataloger) {
+      return {id: queryCataloger, authorization};
+    }
+
+    if (!authorization.includes('KVP') && queryCataloger !== undefined) { // eslint-disable-line functional/no-conditional-statement
+      throw new HttpError(httpStatus.FORBIDDEN, 'Account has no permission to do this request');
+    }
+
     return {id, authorization};
   }
 };

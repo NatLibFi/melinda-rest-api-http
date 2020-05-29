@@ -63,10 +63,10 @@ export default async function (mongoUrl) {
   async function create(req, res, next) {
     try {
       logger.log('verbose', 'routes/Bulk create');
-      const {operation, recordLoadParams} = Service.validateQueryParams(req.query);
+      const {operation, recordLoadParams} = Service.validateQueryParams(req.query, req.user.id);
       const params = {
         correlationId: uuid(),
-        cataloger: req.user.id,
+        cataloger: Service.checkCataloger(req.user.id, req.query.pCatalogerIn),
         operation,
         contentType: req.headers['content-type'],
         recordLoadParams

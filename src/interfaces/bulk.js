@@ -36,7 +36,7 @@ export default async function (mongoUrl) {
   const logger = createLogger();
   const mongoOperator = await mongoFactory(mongoUrl);
 
-  return {create, doQuery, readContent, remove, removeContent, validateQueryParams};
+  return {create, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
 
   async function create(req, {correlationId, cataloger, operation, contentType, recordLoadParams}) {
     await mongoOperator.createBulk({correlationId, cataloger, operation, contentType, recordLoadParams, stream: req});
@@ -95,7 +95,7 @@ export default async function (mongoUrl) {
     }
   }
 
-  function validateQueryParams(queryParams) {
+  function validateQueryParams(queryParams, oCatalogerIn) {
     if (queryParams.pOldNew && queryParams.pActiveLibrary) {
       const {pOldNew} = queryParams;
       const operation = pOldNew === 'NEW' ? 'CREATE' : 'UPDATE';
@@ -103,12 +103,22 @@ export default async function (mongoUrl) {
         pActiveLibrary: queryParams.pActiveLibrary,
         pOldNew,
         pRejectFile: queryParams.pRejectFile || null,
-        pLogFile: queryParams.pRejectFile || null
+        pLogFile: queryParams.pRejectFile || null,
+        pCatalogerIn: queryParams.pCatalogerIn || null,
+        oCatalogerIn
       };
       // Req.params.operation.toUpperCase()
       return {operation, recordLoadParams};
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
+  }
+
+  function checkCataloger(id, paramsId) {
+    if (paramsId !== undefined) {
+      return paramsId;
+    }
+
+    return id;
   }
 }
