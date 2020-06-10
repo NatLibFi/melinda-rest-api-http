@@ -52,7 +52,7 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.log('verbose', subrecords ? `Reading record ${id} and subrecords from sru` : `Reading record ${id} from sru`);
     const record = await getRecord(id);
     const serializedRecord = await converter.serialize(record, format);
-    logger.log('silly', `Serialized record: ${serializedRecord}`);
+    logger.log('silly', `Serialized record: ${JSON.stringify(serializedRecord)}`);
     if (record) {
       if (subrecords) {
         const marcRecords = await getSubRecords(id);
