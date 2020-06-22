@@ -43,27 +43,16 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
   const amqpOperator = await amqpFactory(amqpUrl);
   const mongoOperator = await mongoFactory(mongoUri);
   const sruClient = createSruClient({serverUrl: sruBibUrl, version: '2.0', maximumRecords: '1'});
-  const sruSubClient = createSruClient({serverUrl: sruBibUrl, version: '2.0'});
 
   return {read, create, update};
 
-  async function read({id, format, subrecords}) {
+  async function read({id, format}) {
     validateRequestId(id);
-    logger.log('verbose', subrecords ? `Reading record ${id} and subrecords from sru` : `Reading record ${id} from sru`);
+    logger.log('verbose', `Reading record ${id} from sru`);
     const record = await getRecord(id);
     const serializedRecord = await converter.serialize(record, format);
     logger.log('silly', `Serialized record: ${JSON.stringify(serializedRecord)}`);
     if (record) {
-      if (subrecords) {
-        const marcRecords = await getSubRecords(id);
-        logger.log('debug', `Subrecords: ${JSON.stringify(marcRecords)}`);
-        if (marcRecords === []) {
-          return {record: serializedRecord, childRecords: []};
-        }
-        const serializedSubRecords = await marcRecords.map(record => converter.serialize(record, format));
-        return {record: serializedRecord, childRecords: serializedSubRecords};
-      }
-
       return {record: serializedRecord};
     }
 
@@ -158,18 +147,6 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
           resolve(MARCXML.from(xmlString));
         })
         .on('end', () => resolve())
-        .on('error', err => reject(err));
-    });
-  }
-
-  function getSubRecords(id) {
-    return new Promise((resolve, reject) => {
-      const records = [];
-      sruSubClient.searchRetrieve(`melinda.partsofhost=${id}`)
-        .on('record', xmlString => {
-          records.push(MARCXML.from(xmlString)); // eslint-disable-line functional/immutable-data
-        })
-        .on('end', () => resolve(records))
         .on('error', err => reject(err));
     });
   }

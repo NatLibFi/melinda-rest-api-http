@@ -59,16 +59,10 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
     try {
       const type = req.headers['content-type'];
       const format = CONTENT_TYPES[type];
-      const subrecords = parseBoolean(req.query.subrecords);
-      const {record, childRecords} = await Service.read({id: req.params.id, format, subrecords});
-
-      if (!subrecords) {
-        return res.type(type).status(httpStatus.OK)
-          .send(record);
-      }
+      const {record} = await Service.read({id: req.params.id, format});
 
       return res.type(type).status(httpStatus.OK)
-        .send({record, subrecords: childRecords});
+        .send(record);
     } catch (error) {
       if (error instanceof HttpError) { // eslint-disable-line functional/no-conditional-statement
         return res.status(error.status).send(error.payload);
