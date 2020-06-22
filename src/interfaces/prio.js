@@ -42,7 +42,7 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
   const converter = conversions();
   const amqpOperator = await amqpFactory(amqpUrl);
   const mongoOperator = await mongoFactory(mongoUri);
-  const sruClient = createSruClient({url: sruBibUrl, recordSchema: 'marc'});
+  const sruClient = createSruClient({url: sruBibUrl, recordSchema: 'marcxml'});
 
   return {read, create, update};
 
