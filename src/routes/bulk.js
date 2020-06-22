@@ -94,7 +94,7 @@ export default async function (mongoUrl) {
 
   async function doQuery(req, res) {
     logger.log('verbose', 'routes/Bulk doQuery');
-    const response = await Service.doQuery({oCatalogerIn: req.user.id, query: req.query});
+    const response = await Service.doQuery({query: req.query});
     res.json(response);
   }
 

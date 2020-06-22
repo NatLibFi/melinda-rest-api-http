@@ -68,9 +68,12 @@ export default async function (mongoUrl) {
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  async function doQuery({oCatalogerIn, query}) {
+  function doQuery({query}) {
     // Query filters oCatalogerIn, correlationId, operation
-    const params = await generateQuery();
+    const params = {
+      correlationId: query.id ? query.id : {$ne: null}
+    };
+
     logger.log('debug', `Queue items querried`);
     logger.log('silly', JSON.stringify(params));
 
@@ -79,20 +82,6 @@ export default async function (mongoUrl) {
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
-
-    function generateQuery() {
-      const doc = {
-        oCatalogerIn: oCatalogerIn ? oCatalogerIn : null,
-        correlationId: query.id ? query.id : {$ne: null},
-        operation: query.operation ? query.operation : {$ne: null}
-      };
-
-      if (doc.cataloger === null) {
-        return false;
-      }
-
-      return doc;
-    }
   }
 
   function validateQueryParams(queryParams) {
