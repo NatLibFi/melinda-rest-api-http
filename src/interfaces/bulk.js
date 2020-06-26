@@ -92,7 +92,7 @@ export default async function (mongoUrl) {
         pActiveLibrary: queryParams.pActiveLibrary,
         pOldNew,
         pRejectFile: queryParams.pRejectFile || null,
-        pLogFile: queryParams.pRejectFile || null,
+        pLogFile: queryParams.pLogFile || null,
         pCatalogerIn: queryParams.pCatalogerIn || null
       };
       // Req.params.operation.toUpperCase()
