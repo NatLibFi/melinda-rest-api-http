@@ -75,7 +75,7 @@ export default async function (mongoUrl) {
     };
 
     logger.log('debug', `Queue items querried`);
-    logger.log('silly', JSON.stringify(params));
+    logger.log('debug', JSON.stringify(params));
 
     if (params) {
       return mongoOperator.query(params);
