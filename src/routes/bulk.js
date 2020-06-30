@@ -101,7 +101,7 @@ export default async function (mongoUrl) {
   /* Functions after this are here only to test purposes */
   async function readContent(req, res) {
     logger.log('verbose', 'routes/Bulk readContent');
-    const {contentType, readStream} = await Service.readContent({oCatalogerIn: req.user.id, correlationId: req.params.id});
+    const {contentType, readStream} = await Service.readContent(req.params.id);
     res.set('content-type', contentType);
     readStream.pipe(res);
   }
