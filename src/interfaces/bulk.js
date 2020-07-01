@@ -44,9 +44,9 @@ export default async function (mongoUrl) {
     return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.PENDING_QUEUING});
   }
 
-  function readContent({correlationId}) {
+  function readContent(correlationId) {
     if (correlationId) {
-      return mongoOperator.readContent({correlationId});
+      return mongoOperator.readContent(correlationId);
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
