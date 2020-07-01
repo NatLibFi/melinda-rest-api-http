@@ -36,63 +36,52 @@ export default async function (mongoUrl) {
   const logger = createLogger();
   const mongoOperator = await mongoFactory(mongoUrl);
 
-  return {create, doQuery, readContent, remove, removeContent, validateQueryParams};
+  return {create, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
 
-  async function create(req, {correlationId, cataloger, operation, contentType, recordLoadParams}) {
-    await mongoOperator.createBulk({correlationId, cataloger, operation, contentType, recordLoadParams, stream: req});
+  async function create(req, {correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams}) {
+    await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream: req});
     logger.log('verbose', 'Stream uploaded!');
-    return mongoOperator.setState({correlationId, cataloger, operation, state: QUEUE_ITEM_STATE.PENDING_QUEUING});
+    return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.PENDING_QUEUING});
   }
 
-  function readContent({cataloger, correlationId}) {
+  function readContent(correlationId) {
     if (correlationId) {
-      return mongoOperator.readContent({cataloger, correlationId});
+      return mongoOperator.readContent(correlationId);
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  function remove({cataloger, correlationId}) {
+  function remove({oCatalogerIn, correlationId}) {
     if (correlationId) {
-      return mongoOperator.remove({cataloger, correlationId});
+      return mongoOperator.remove({oCatalogerIn, correlationId});
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  function removeContent({cataloger, correlationId}) {
+  function removeContent({oCatalogerIn, correlationId}) {
     if (correlationId) {
-      return mongoOperator.removeContent({cataloger, correlationId});
+      return mongoOperator.removeContent({oCatalogerIn, correlationId});
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  async function doQuery({cataloger, query}) {
-    // Query filters cataloger, correlationId, operation, creationTime, modificationTime
-    const params = await generateQuery();
+  function doQuery({query}) {
+    // Query filters oCatalogerIn, correlationId, operation
+    const params = {
+      correlationId: query.id ? query.id : {$ne: null}
+    };
+
     logger.log('debug', `Queue items querried`);
-    logger.log('silly', JSON.stringify(params));
+    logger.log('debug', JSON.stringify(params));
 
     if (params) {
       return mongoOperator.query(params);
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
-
-    function generateQuery() {
-      const doc = {
-        cataloger: cataloger ? cataloger : null,
-        correlationId: query.id ? query.id : {$ne: null},
-        operation: query.operation ? query.operation : {$ne: null}
-      };
-
-      if (doc.cataloger === null) {
-        return false;
-      }
-
-      return doc;
-    }
   }
 
   function validateQueryParams(queryParams) {
@@ -103,12 +92,21 @@ export default async function (mongoUrl) {
         pActiveLibrary: queryParams.pActiveLibrary,
         pOldNew,
         pRejectFile: queryParams.pRejectFile || null,
-        pLogFile: queryParams.pRejectFile || null
+        pLogFile: queryParams.pLogFile || null,
+        pCatalogerIn: queryParams.pCatalogerIn || null
       };
       // Req.params.operation.toUpperCase()
       return {operation, recordLoadParams};
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
+  }
+
+  function checkCataloger(id, paramsId) {
+    if (paramsId !== undefined) {
+      return paramsId;
+    }
+
+    return id;
   }
 }

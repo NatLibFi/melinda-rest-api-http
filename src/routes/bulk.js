@@ -38,35 +38,28 @@ export default async function (mongoUrl) {
   const {createLogger} = Utils;
   const logger = createLogger();
 
-  const CONTENT_TYPES = [
-    'application/xml',
-    'application/marc',
-    'application/json',
-    'application/alephseq'
-  ];
-  const OPERATION_TYPES = [
-    OPERATIONS.CREATE,
-    OPERATIONS.UPDATE
-  ];
+  const CONTENT_TYPES = ['application/xml', 'application/marc', 'application/json', 'application/alephseq'];
+  const OPERATION_TYPES = [OPERATIONS.CREATE, OPERATIONS.UPDATE];
   const Service = await createService(mongoUrl);
 
   return new Router()
     .use(passport.authenticate('melinda', {session: false}))
     .use(authorizeKVPOnly)
-    .get('/', doQuery)
     .get('/:id', readContent)
-    .delete('/', remove)
+    .get('/', doQuery)
     .delete('/:id', removeContent)
+    .delete('/', remove)
     .use(checkContentType)
     .post('/', create);
 
   async function create(req, res, next) {
     try {
       logger.log('verbose', 'routes/Bulk create');
-      const {operation, recordLoadParams} = Service.validateQueryParams(req.query);
+      const {operation, recordLoadParams} = Service.validateQueryParams(req.query, req.user.id);
       const params = {
         correlationId: uuid(),
-        cataloger: req.user.id,
+        cataloger: Service.checkCataloger(req.user.id, req.query.pCatalogerIn),
+        oCatalogerIn: req.user.id,
         operation,
         contentType: req.headers['content-type'],
         recordLoadParams
@@ -101,14 +94,14 @@ export default async function (mongoUrl) {
 
   async function doQuery(req, res) {
     logger.log('verbose', 'routes/Bulk doQuery');
-    const response = await Service.doQuery({cataloger: req.user.id, query: req.query});
+    const response = await Service.doQuery({query: req.query});
     res.json(response);
   }
 
   /* Functions after this are here only to test purposes */
   async function readContent(req, res) {
     logger.log('verbose', 'routes/Bulk readContent');
-    const {contentType, readStream} = await Service.readContent({cataloger: req.user.id, correlationId: req.params.id});
+    const {contentType, readStream} = await Service.readContent(req.params.id);
     res.set('content-type', contentType);
     readStream.pipe(res);
   }
@@ -116,7 +109,7 @@ export default async function (mongoUrl) {
   async function remove(req, res, next) {
     logger.log('verbose', 'routes/Bulk remove');
     try {
-      const response = await Service.remove({cataloger: req.user.id, correlationId: req.query.id});
+      const response = await Service.remove({oCatalogerIn: req.user.id, correlationId: req.query.id});
       res.json({request: req.query, result: response});
     } catch (error) {
       if (error instanceof HttpError) {
@@ -131,7 +124,7 @@ export default async function (mongoUrl) {
   async function removeContent(req, res, next) {
     logger.log('verbose', 'routes/Bulk removeContent');
     try {
-      await Service.removeContent({cataloger: req.user.id, correlationId: req.params.id});
+      await Service.removeContent({oCatalogerIn: req.user.id, correlationId: req.params.id});
       res.sendStatus(204);
     } catch (error) {
       if (error instanceof HttpError) {
