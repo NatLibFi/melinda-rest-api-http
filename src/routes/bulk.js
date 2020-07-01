@@ -45,10 +45,10 @@ export default async function (mongoUrl) {
   return new Router()
     .use(passport.authenticate('melinda', {session: false}))
     .use(authorizeKVPOnly)
-    .get('/', doQuery)
     .get('/:id', readContent)
-    .delete('/', remove)
+    .get('/', doQuery)
     .delete('/:id', removeContent)
+    .delete('/', remove)
     .use(checkContentType)
     .post('/', create);
 
