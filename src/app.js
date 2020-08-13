@@ -2,7 +2,8 @@ import bodyParser from 'body-parser';
 import express from 'express';
 import httpStatus from 'http-status';
 import passport from 'passport';
-import {Error as ApiError, Authentication, Utils} from '@natlibfi/melinda-commons';
+import {Error as ApiError} from '@natlibfi/melinda-commons';
+import {Authentication, createLogger, createExpressLogger} from '@natlibfi/melinda-backend-commons';
 import {logError} from '@natlibfi/melinda-rest-api-commons';
 import {createApiDocRouter, createBulkRouter, createPrioRouter} from './routes';
 
@@ -13,7 +14,6 @@ export default async function ({
   sruBibUrl, amqpUrl, mongoUri,
   pollWaitTime
 }) {
-  const {createLogger, createExpressLogger} = Utils;
   const logger = createLogger();
   const server = await initExpress();
 

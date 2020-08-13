@@ -30,12 +30,12 @@ import {Router} from 'express';
 import httpStatus from 'http-status';
 import passport from 'passport';
 import {v4 as uuid} from 'uuid';
-import {Error as HttpError, Utils} from '@natlibfi/melinda-commons';
+import {createLogger} from '@natlibfi/melinda-backend-commons';
+import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/bulk';
 
 export default async function (mongoUrl) {
-  const {createLogger} = Utils;
   const logger = createLogger();
 
   const CONTENT_TYPES = ['application/xml', 'application/marc', 'application/json', 'application/alephseq'];

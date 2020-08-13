@@ -27,7 +27,8 @@
 */
 
 import {promisify} from 'util';
-import {Error as HttpError, Utils} from '@natlibfi/melinda-commons';
+import {createLogger} from '@natlibfi/melinda-backend-commons';
+import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {amqpFactory, conversions, OPERATIONS, mongoFactory, PRIO_QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
 import {MARCXML} from '@natlibfi/marc-record-serializers';
 import createSruClient from '@natlibfi/sru-client';
@@ -36,7 +37,6 @@ import httpStatus from 'http-status';
 const setTimeoutPromise = promisify(setTimeout);
 
 export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
-  const {createLogger} = Utils;
   const logger = createLogger();
   logger.log('debug', `Connecting prio to: ${amqpUrl} and ${mongoUri}`);
   const converter = conversions();

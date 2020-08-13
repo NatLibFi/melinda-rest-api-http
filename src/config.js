@@ -26,9 +26,8 @@
 *
 */
 
-import {Utils} from '@natlibfi/melinda-commons';
-
-const {readEnvironmentVariable, parseBoolean} = Utils;
+import {parseBoolean} from '@natlibfi/melinda-commons';
+import {readEnvironmentVariable} from '@natlibfi/melinda-backend-commons';
 
 export const httpPort = readEnvironmentVariable('HTTP_PORT', {defaultValue: '8080'});
 export const enableProxy = readEnvironmentVariable('ENABLE_PROXY', {format: v => parseBoolean(v)});

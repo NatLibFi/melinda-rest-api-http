@@ -29,13 +29,13 @@
 import {Router} from 'express';
 import passport from 'passport';
 import {v4 as uuid} from 'uuid';
-import {Utils, Error as HttpError} from '@natlibfi/melinda-commons';
+import {createLogger} from '@natlibfi/melinda-backend-commons';
+import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {conversionFormats} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/prio';
 import httpStatus from 'http-status';
 
 export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
-  const {createLogger, parseBoolean} = Utils;
   const logger = createLogger();
   const CONTENT_TYPES = {
     'application/json': conversionFormats.JSON,

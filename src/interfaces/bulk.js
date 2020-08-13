@@ -26,11 +26,10 @@
 *
 */
 
-import {Error as HttpError, Utils} from '@natlibfi/melinda-commons';
+import {createLogger} from '@natlibfi/melinda-backend-commons';
+import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {mongoFactory, QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
 import httpStatus from 'http-status';
-
-const {createLogger} = Utils;
 
 export default async function (mongoUrl) {
   const logger = createLogger();
