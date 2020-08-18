@@ -36,6 +36,7 @@
 		"@natlibfi/melinda-commons": "^9.0.0",
 		"@natlibfi/melinda-rest-api-commons": ">=1.0.0-alpha.2",
 		"@natlibfi/sru-client": "^4.0.1",
+		"@babel/runtime": "7.11.2",
 		"body-parser": "^1.19.0",
 		"express": "^4.17.1",
 		"http-status": "^1.4.2",
