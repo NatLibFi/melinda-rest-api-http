@@ -49,16 +49,18 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
 
   return new Router()
     .use(passport.authenticate('melinda', {session: false}))
+    .get('/:id', readResource)
     .use(checkContentType)
     .post('/', createResource)
-    .get('/:id', readResource)
     .post('/:id', updateResource);
 
   async function readResource(req, res, next) {
     logger.log('verbose', 'routes/Prio readResource');
     try {
-      const type = req.headers['content-type'];
+      const type = req.headers.accept;
+      logger.log('debug', type);
       const format = CONTENT_TYPES[type];
+      logger.log('debug', format);
       const {record} = await Service.read({id: req.params.id, format});
 
       return res.type(type).status(httpStatus.OK)
@@ -74,7 +76,7 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
   async function createResource(req, res, next) {
     logger.log('verbose', 'routes/Prio createResource');
     try {
-      const type = req.headers['content-type'];
+      const type = req.headers.accept;
       const format = CONTENT_TYPES[type];
       const correlationId = uuid();
       const unique = req.query.unique === undefined ? true : parseBoolean(req.query.unique);
