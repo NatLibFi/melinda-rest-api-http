@@ -49,9 +49,9 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
 
   return new Router()
     .use(passport.authenticate('melinda', {session: false}))
+    .get('/:id', readResource)
     .use(checkContentType)
     .post('/', createResource)
-    .get('/:id', readResource)
     .post('/:id', updateResource);
 
   async function readResource(req, res, next) {
