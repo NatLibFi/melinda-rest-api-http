@@ -74,7 +74,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
   async function createResource(req, res, next) {
     logger.log('verbose', 'routes/Prio createResource');
     try {
-      const type = req.headers.accept;
+      const type = req.headers['content-type'];
       const format = CONTENT_TYPES[type];
       const correlationId = uuid();
       const unique = req.query.unique === undefined ? true : parseBoolean(req.query.unique);
