@@ -35,7 +35,7 @@ import {conversionFormats} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/prio';
 import httpStatus from 'http-status';
 
-export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
+export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
   const logger = createLogger();
   const CONTENT_TYPES = {
     'application/json': conversionFormats.JSON,
@@ -44,20 +44,20 @@ export default async ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) => {
   };
 
   const Service = await createService({
-    sruBibUrl, amqpUrl, mongoUri, pollWaitTime
+    sruUrl, amqpUrl, mongoUri, pollWaitTime
   });
 
   return new Router()
     .use(passport.authenticate('melinda', {session: false}))
+    .get('/:id', readResource)
     .use(checkContentType)
     .post('/', createResource)
-    .get('/:id', readResource)
     .post('/:id', updateResource);
 
   async function readResource(req, res, next) {
     logger.log('verbose', 'routes/Prio readResource');
     try {
-      const type = req.headers['content-type'];
+      const type = req.headers.accept;
       const format = CONTENT_TYPES[type];
       const {record} = await Service.read({id: req.params.id, format});
 

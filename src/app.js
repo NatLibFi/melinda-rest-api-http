@@ -11,7 +11,7 @@ export default async function ({
   httpPort, enableProxy,
   xServiceURL, userLibrary,
   ownAuthzURL, ownAuthzApiKey,
-  sruBibUrl, amqpUrl, mongoUri,
+  sruUrl, amqpUrl, mongoUri,
   pollWaitTime
 }) {
   const logger = createLogger();
@@ -43,7 +43,7 @@ export default async function ({
     app.use('/bulk', await createBulkRouter(mongoUri)); // Must be here to avoid bodyparser
     app.use(bodyParser.text({limit: '5MB', type: '*/*'}));
     app.use('/apidoc', createApiDocRouter());
-    app.use('/', await createPrioRouter({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}));
+    app.use('/', await createPrioRouter({sruUrl, amqpUrl, mongoUri, pollWaitTime}));
     app.use(handleError);
 
     return app.listen(httpPort, () => logger.log('info', `Started Melinda REST API in port ${httpPort}`));

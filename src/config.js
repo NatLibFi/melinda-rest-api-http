@@ -30,7 +30,7 @@ import {parseBoolean} from '@natlibfi/melinda-commons';
 import {readEnvironmentVariable} from '@natlibfi/melinda-backend-commons';
 
 export const httpPort = readEnvironmentVariable('HTTP_PORT', {defaultValue: '8080'});
-export const enableProxy = readEnvironmentVariable('ENABLE_PROXY', {format: v => parseBoolean(v)});
+export const enableProxy = readEnvironmentVariable('ENABLE_PROXY', {defaultValue: false, format: v => parseBoolean(v)});
 
 export const xServiceURL = readEnvironmentVariable('ALEPH_X_SVC_URL');
 export const userLibrary = readEnvironmentVariable('ALEPH_USER_LIBRARY');
@@ -38,7 +38,7 @@ export const userLibrary = readEnvironmentVariable('ALEPH_USER_LIBRARY');
 export const ownAuthzURL = readEnvironmentVariable('OWN_AUTHZ_URL');
 export const ownAuthzApiKey = readEnvironmentVariable('OWN_AUTHZ_API_KEY');
 
-export const sruBibUrl = readEnvironmentVariable('SRU_URL_BIB');
+export const sruUrl = readEnvironmentVariable('SRU_URL');
 
 // Amqp variables to priority
 export const amqpUrl = readEnvironmentVariable('AMQP_URL', {defaultValue: 'amqp://127.0.0.1:5672/'});
@@ -46,4 +46,4 @@ export const amqpUrl = readEnvironmentVariable('AMQP_URL', {defaultValue: 'amqp:
 // Mongo variables to bulk
 export const mongoUri = readEnvironmentVariable('MONGO_URI', {defaultValue: 'mongodb://127.0.0.1:27017/db'});
 
-export const pollWaitTime = readEnvironmentVariable('POLL_WAIT_TIME', {defaultValue: 100});
+export const pollWaitTime = readEnvironmentVariable('POLL_WAIT_TIME', {defaultValue: 100, format: v => Number(v)});

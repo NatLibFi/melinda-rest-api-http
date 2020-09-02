@@ -36,13 +36,13 @@ import httpStatus from 'http-status';
 
 const setTimeoutPromise = promisify(setTimeout);
 
-export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
+export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   const logger = createLogger();
   logger.log('debug', `Connecting prio to: ${amqpUrl} and ${mongoUri}`);
   const converter = conversions();
   const amqpOperator = await amqpFactory(amqpUrl);
   const mongoOperator = await mongoFactory(mongoUri);
-  const sruClient = createSruClient({url: sruBibUrl, recordSchema: 'marcxml'});
+  const sruClient = createSruClient({url: sruUrl, recordSchema: 'marcxml'});
 
   return {read, create, update};
 
@@ -144,7 +144,7 @@ export default async function ({sruBibUrl, amqpUrl, mongoUri, pollWaitTime}) {
     return new Promise((resolve, reject) => {
       sruClient.searchRetrieve(`rec.id=${id}`)
         .on('record', xmlString => {
-          resolve(MARCXML.from(xmlString));
+          resolve(MARCXML.from(xmlString, {subfieldValues: false}));
         })
         .on('end', () => resolve())
         .on('error', err => reject(err));
