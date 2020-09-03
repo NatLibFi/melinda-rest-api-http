@@ -50,9 +50,10 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     validateRequestId(id);
     logger.log('verbose', `Reading record ${id} from sru`);
     const record = await getRecord(id);
-    const serializedRecord = await converter.serialize(record, format);
-    logger.log('silly', `Serialized record: ${JSON.stringify(serializedRecord)}`);
+
     if (record) {
+      const serializedRecord = await converter.serialize(record, format);
+      logger.log('silly', `Serialized record: ${JSON.stringify(serializedRecord)}`);
       return {record: serializedRecord};
     }
 
@@ -142,11 +143,26 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   function getRecord(id) {
     return new Promise((resolve, reject) => {
+      let promise; // eslint-disable-line functional/no-let
+
       sruClient.searchRetrieve(`rec.id=${id}`)
         .on('record', xmlString => {
-          resolve(MARCXML.from(xmlString, {subfieldValues: false}));
+          promise = MARCXML.from(xmlString, {subfieldValues: false});
         })
-        .on('end', () => resolve())
+        .on('end', async () => {
+          if (promise) {
+            try {
+              const record = await promise;
+              resolve(record);
+            } catch (err) {
+              reject(err);
+            }
+
+            return;
+          }
+
+          resolve();
+        })
         .on('error', err => reject(err));
     });
   }
