@@ -161,7 +161,6 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
             return;
           }
 
-
           resolve();
         })
         .on('error', err => reject(err));
