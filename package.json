@@ -31,10 +31,10 @@
 	},
 	"dependencies": {
 		"@babel/runtime": "^7.11.2",
-		"@natlibfi/marc-record-serializers": "^7.0.0",
+		"@natlibfi/marc-record-serializers": "^7.1.2-alpha.1",
 		"@natlibfi/melinda-backend-commons": "^1.0.4",
 		"@natlibfi/melinda-commons": "^10.0.0",
-		"@natlibfi/melinda-rest-api-commons": "^1.0.0-alpha.2",
+		"@natlibfi/melinda-rest-api-commons": "^1.0.0-alpha.10",
 		"@natlibfi/sru-client": "^4.0.1",
 		"body-parser": "^1.19.0",
 		"express": "^4.17.1",
