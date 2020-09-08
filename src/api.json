@@ -252,7 +252,7 @@
         "parameters": [
           {
             "name": "id",
-            "description": "The identifier of the record that's going to be updated",
+            "description": "The identifier of the record that's going to be retrieved. Header param 'Accept' is used to rule response content-type",
             "in": "path",
             "required": true,
             "schema": {
