@@ -51,10 +51,15 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.log('verbose', `Reading record ${id} from sru`);
     const record = await getRecord(id);
 
-    if (record) {
-      const serializedRecord = await converter.serialize(record, format);
-      logger.log('silly', `Serialized record: ${JSON.stringify(serializedRecord)}`);
-      return {record: serializedRecord};
+    try {
+      if (record) {
+        const serializedRecord = await converter.serialize(record, format);
+        logger.log('silly', `Serialized record: ${JSON.stringify(serializedRecord)}`);
+        return {record: serializedRecord};
+      }
+    } catch (error) {
+      logger.log('error', JSON.stringify(error));
+      throw new HttpError(httpStatus.INTERNAL_SERVER_ERROR, 'Serialization error');
     }
 
     throw new HttpError(httpStatus.NOT_FOUND, 'Record not found');
