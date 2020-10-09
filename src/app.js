@@ -3,7 +3,8 @@ import express from 'express';
 import httpStatus from 'http-status';
 import passport from 'passport';
 import {Error as ApiError} from '@natlibfi/melinda-commons';
-import {Authentication, createLogger, createExpressLogger} from '@natlibfi/melinda-backend-commons';
+import {createLogger, createExpressLogger} from '@natlibfi/melinda-backend-commons';
+import AlephStrategy from '@natlibfi/passport-melinda-aleph';
 import {logError} from '@natlibfi/melinda-rest-api-commons';
 import {createApiDocRouter, createBulkRouter, createPrioRouter} from './routes';
 
@@ -34,7 +35,7 @@ export default async function ({
 
     app.use(createExpressLogger());
 
-    passport.use(new Authentication.Aleph.AlephStrategy({
+    passport.use(new AlephStrategy({
       xServiceURL, userLibrary,
       ownAuthzURL, ownAuthzApiKey
     }));
