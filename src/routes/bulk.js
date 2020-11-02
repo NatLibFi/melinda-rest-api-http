@@ -86,7 +86,7 @@ export default async function (mongoUrl) {
   function checkContentType(req, res, next) {
     if (req.headers['content-type'] === undefined || !CONTENT_TYPES.includes(req.headers['content-type'])) { // eslint-disable-line functional/no-conditional-statement
       logger.log('verbose', 'Invalid content type');
-      throw new HttpError(httpStatus.NOT_ACCEPTABLE, 'Invalid content-type');
+      throw new HttpError(httpStatus.UNSUPPORTED_MEDIA_TYPE, 'Invalid content-type');
     }
 
     return next();
