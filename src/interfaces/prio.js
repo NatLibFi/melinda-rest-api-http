@@ -91,16 +91,13 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     await amqpOperator.ackMessages([message]);
     await amqpOperator.removeQueue(correlationId);
 
-    if (!noop) { // eslint-disable-line functional/no-conditional-statement
-      await mongoOperator.remove(correlationId);
-    }
-
     if (responseData.status === 'CREATED') {
-      await mongoOperator.pushId({correlationId, id: responseData.payload || undefined});
       // Reply to http
       if (noop) {
         return responseData.messages;
       }
+
+      await mongoOperator.remove(correlationId);
       return {messages: responseData.messages, id: responseData.payload};
     }
 
@@ -140,16 +137,13 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     await amqpOperator.ackMessages([message]);
     await amqpOperator.removeQueue(correlationId);
 
-    if (!noop) { // eslint-disable-line functional/no-conditional-statement
-      await mongoOperator.remove(correlationId);
-    }
-
     if (responseData.status === 'UPDATED') {
-      await mongoOperator.pushId({correlationId, id: responseData.payload || undefined});
       // Reply to http
       if (noop) {
         return responseData.messages;
       }
+
+      await mongoOperator.remove(correlationId);
       return responseData;
     }
 
