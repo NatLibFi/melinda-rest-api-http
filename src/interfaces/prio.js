@@ -75,7 +75,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       logger.log('verbose', `Creating Mongo queue item for correlationId ${correlationId}`);
       await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation});
     }
-    
+
     // {queue, correlationId, headers, data}
     await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
 
@@ -119,7 +119,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       logger.log('verbose', `Creating Mongo queue item for record ${id}`);
       await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation});
     }
-    
+
     // {queue, correlationId, headers, data}
     logger.log('verbose', `Sending record ${id} to be validated. Correlation id ${correlationId}`);
     await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
