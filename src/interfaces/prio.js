@@ -71,38 +71,47 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       unique
     };
 
-    if (!noop) { // eslint-disable-line functional/no-conditional-statement
-      logger.log('verbose', `Creating Mongo queue item for correlationId ${correlationId}`);
-      await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation});
-    }
-
-    // {queue, correlationId, headers, data}
-    await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
-
-    logger.log('verbose', `Waiting response to id: ${correlationId}`);
-    const message = await check(correlationId);
-    const messageContent = JSON.parse(message.content.toString());
-    const responseData = messageContent.data;
-
-    logger.log('verbose', `Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
-    logger.log('silly', `Response data:\n${JSON.stringify(responseData)}`);
-
-    // Ack message
-    await amqpOperator.ackMessages([message]);
-    await amqpOperator.removeQueue(correlationId);
-
-    if (responseData.status === 'CREATED') {
-      // Reply to http
-      if (noop) {
+    if (noop) {
+      logger.log('verbose', `Handling noop request`);
+      const responseData = await handleRequest();
+      if (responseData.status === 'CREATED') {
         return responseData.messages;
       }
 
+      throw new HttpError(responseData.status, responseData.payload || '');
+    }
+
+    logger.log('verbose', `Creating Mongo queue item for correlationId ${correlationId}`);
+    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation});
+    const responseData = await handleRequest();
+
+    if (responseData.status === 'CREATED') {
       await mongoOperator.remove(correlationId);
       return {messages: responseData.messages, id: responseData.payload};
     }
 
     throw new HttpError(responseData.status, responseData.payload || '');
+
+    async function handleRequest() {
+      // {queue, correlationId, headers, data}
+      await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
+
+      logger.log('verbose', `Waiting response to id: ${correlationId}`);
+      const message = await check(correlationId);
+      const messageContent = JSON.parse(message.content.toString());
+      const responseData = messageContent.data;
+
+      logger.log('verbose', `Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
+      logger.log('silly', `Response data:\n${JSON.stringify(responseData)}`);
+
+      // Ack message
+      await amqpOperator.ackMessages([message]);
+      await amqpOperator.removeQueue(correlationId);
+
+      return responseData;
+    }
   }
+
 
   async function update({id, data, format, cataloger, oCatalogerIn, noop, correlationId}) {
     validateRequestId(id);
@@ -116,38 +125,47 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       noop
     };
 
-    if (!noop) { // eslint-disable-line functional/no-conditional-statement
-      logger.log('verbose', `Creating Mongo queue item for record ${id}`);
-      await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation});
-    }
+    if (noop) {
+      logger.log('verbose', `Handling noop request`);
+      const responseData = await handleRequest();
 
-    // {queue, correlationId, headers, data}
-    logger.log('verbose', `Sending record ${id} to be validated. Correlation id ${correlationId}`);
-    await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
-
-    logger.log('verbose', `Waiting response to correlation id: ${correlationId}`);
-    const message = await check(correlationId);
-    const messageContent = JSON.parse(message.content.toString());
-    const responseData = messageContent.data;
-
-    logger.log('verbose', `Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
-    logger.log('silly', `Response data:\n${JSON.stringify(responseData)}`);
-
-    // Ack message
-    await amqpOperator.ackMessages([message]);
-    await amqpOperator.removeQueue(correlationId);
-
-    if (responseData.status === 'UPDATED') {
-      // Reply to http
-      if (noop) {
+      if (responseData.status === 'UPDATED') {
         return responseData.messages;
       }
 
+      throw new HttpError(responseData.status, responseData.payload || '');
+    }
+
+    logger.log('verbose', `Creating Mongo queue item for record ${id}`);
+    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation});
+    const responseData = await handleRequest();
+
+    if (responseData.status === 'UPDATED') {
       await mongoOperator.remove(correlationId);
       return responseData;
     }
 
     throw new HttpError(responseData.status, responseData.payload || '');
+
+    async function handleRequest() {
+      // {queue, correlationId, headers, data}
+      logger.log('verbose', `Sending record ${id} to be validated. Correlation id ${correlationId}`);
+      await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
+
+      logger.log('verbose', `Waiting response to correlation id: ${correlationId}`);
+      const message = await check(correlationId);
+      const messageContent = JSON.parse(message.content.toString());
+      const responseData = messageContent.data;
+
+      logger.log('verbose', `Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
+      logger.log('silly', `Response data:\n${JSON.stringify(responseData)}`);
+
+      // Ack message
+      amqpOperator.ackMessages([message]);
+      amqpOperator.removeQueue(correlationId);
+
+      return responseData;
+    }
   }
 
   function getRecord(id) {
@@ -178,9 +196,10 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   function validateRequestId(id) {
     logger.log('info', `Validating request ${id}`);
-    if (id.length > 9) { // eslint-disable-line functional/no-conditional-statement
-      throw new HttpError(httpStatus.BAD_REQUEST, `Invalid request id ${id}`);
+    if (id.length === 9) {
+      return;
     }
+    throw new HttpError(httpStatus.BAD_REQUEST, `Invalid request id ${id}`);
   }
 
   // Loop
@@ -197,7 +216,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     }
 
     if (result.queueItemState === PRIO_QUEUE_ITEM_STATE.ABORT) { // eslint-disable-line functional/no-conditional-statement
-      throw new HttpError(408, 'Request timeout, try again later');
+      throw new HttpError(httpStatus.REQUEST_TIMEOUT, 'Request timeout, try again later');
     }
 
     // If DONE
