@@ -6,20 +6,20 @@
   },
   "tags": [
     {
-      "name": "/",
+      "name": "/v1/bib/",
       "description": "Operate on bibliographic records"
     },
     {
-      "name": "/bulk/",
+      "name": "/v1/bib/bulk/",
       "description": "Operate on bibliographic records in bulk format"
     }
   ],
   "paths": {
-    "/": {
+    "/v1/bib/": {
       "post": {
         "summary": "Create a record",
         "tags": [
-          "/"
+          "/v1/bib/"
         ],
         "parameters": [
           {
@@ -47,7 +47,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/MarcRecord"
+                "$ref": "#/components/schemas/marcRecord"
               }
             },
             "application/xml": {
@@ -80,7 +80,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordValidationReport"
+                  "$ref": "#/components/schemas/recordValidationReport"
                 }
               }
             }
@@ -98,7 +98,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Record ValidationReport"
+                  "$ref": "#/components/schemas/recordValidationReport"
                 }
               }
             }
@@ -120,7 +120,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordDuplicateReport"
+                  "$ref": "#/components/schemas/recordDuplicateReport"
                 }
               }
             }
@@ -133,7 +133,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordValidationReport"
+                  "$ref": "#/components/schemas/recordValidationReport"
                 }
               }
             }
@@ -141,11 +141,11 @@
         }
       }
     },
-    "/{id}": {
+    "/v1/bib/{id}": {
       "post": {
         "summary": "Update a record",
         "tags": [
-          "/"
+          "/v1/bib/"
         ],
         "parameters": [
           {
@@ -159,11 +159,14 @@
           },
           {
             "name": "noop",
-            "description": "Do not actually do the update the record",
+            "description": "Do not actually do the update the record. Boolean value 1 or 0",
             "in": "query",
             "schema": {
-              "type": "boolean",
-              "default": false
+              "type": "number",
+              "default": 0,
+              "maximum": 1,
+              "minimum": 0,
+              "maxLength": 1
             }
           }
         ],
@@ -173,7 +176,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/MarcRecord"
+                "$ref": "#/components/schemas/marcRecord"
               }
             },
             "application/xml": {
@@ -206,7 +209,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordValidationReport"
+                  "$ref": "#/components/schemas/recordValidationReport"
                 }
               }
             }
@@ -227,7 +230,7 @@
             "description": "The request has timed out"
           },
           "409": {
-            "description": "The record has changed in datastore"
+            "description": "The request contains out of date record data"
           },
           "415": {
             "description": "The request is in a format that is not supported"
@@ -237,7 +240,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordValidationReport"
+                  "$ref": "#/components/schemas/recordValidationReport"
                 }
               }
             }
@@ -247,13 +250,22 @@
       "get": {
         "summary": "Retrieve a record",
         "tags": [
-          "/"
+          "/v1/bib/"
         ],
         "parameters": [
           {
             "name": "id",
-            "description": "The identifier of the record that's going to be retrieved. Header param 'Accept' is used to rule response content-type",
+            "description": "The identifier of the record that's going to be retrieved",
             "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Accept",
+            "description": "Header param 'Accept' is used to rule response content-type",
+            "in": "header",
             "required": true,
             "schema": {
               "type": "string"
@@ -270,7 +282,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MarcRecord"
+                  "$ref": "#/components/schemas/marcRecord"
                 }
               },
               "application/xml": {
@@ -318,11 +330,11 @@
         }
       }
     },
-    "/bulk/": {
+    "/v1/bib/bulk/": {
       "post": {
         "summary": "Create bulk ",
         "tags": [
-          "/bulk/"
+          "/v1/bib/bulk/"
         ],
         "parameters": [
           {
@@ -368,7 +380,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/MarcRecord"
+                "$ref": "#/components/schemas/marcRecord"
               }
             },
             "application/xml": {
@@ -401,7 +413,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordValidationReport"
+                  "$ref": "#/components/schemas/recordValidationReport"
                 }
               }
             }
@@ -419,7 +431,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordValidationReport"
+                  "$ref": "#/components/schemas/recordValidationReport"
                 }
               }
             }
@@ -438,7 +450,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordDuplicateReport"
+                  "$ref": "#/components/schemas/recordDuplicateReport"
                 }
               }
             }
@@ -448,67 +460,178 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordValidationReport"
+                  "$ref": "#/components/schemas/recordValidationReport"
                 }
               }
             }
           }
         }
-      }
-    },
-    "get": {
-      "summary": "Retrieve a bulk request information",
-      "tags": [
-        "/bulk/"
-      ],
-      "parameters": [
-        {
-          "name": "id",
-          "description": "The identifier of the request",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "type": "string"
-          }
-        },
-        {
-          "name": "operation",
-          "description": "The identifier of the request type",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "type": "string",
-            "enum": [
-              "create",
-              "update"
-            ]
-          }
-        }
-      ],
-      "security": [
-        {
-          "httpBasic": []
-        }
-      ],
-      "responses": {
-        "200": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BulkQueryResponse"
-              },
-              "description": "A list of Queue item objects. Empty list if no resources were found"
+      },
+      "get": {
+        "summary": "Retrieve queue items",
+        "tags": [
+          "/v1/bib/bulk/"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Queue item identifier",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
-        },
-        "401": {
-          "description": "Credentials are invalid or missing"
-        },
-        "403": {
-          "description": "The credentials are not authorized for this operation"
-        },
-        "404": {
-          "description": "The record does not exist"
+        ],
+        "security": [
+          {
+            "httpBasic": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of queue item objects (See #/components/schemas/dbQueueItem-prio & #/components/schemas/dbQueueItem-bulk). Empty list if no resources were found",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/dbQueueItem-bulk"
+              }
+            }
+          },
+          "401": {
+            "description": "Credentials are invalid or missing"
+          },
+          "403": {
+            "description": "The credentials are not authorized for this operation"
+          },
+          "404": {
+            "description": "The record does not exist"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove queue item",
+        "tags": [
+          "/v1/bib/bulk/"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Queue item identifier",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "httpBasic": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Queue item removal report",
+            "schema": {
+              "$ref": "#/components/schemas/queueItemRemoveResponse"
+            }
+          },
+          "401": {
+            "description": "Credentials are invalid or missing"
+          },
+          "403": {
+            "description": "The credentials are not authorized for this operation"
+          },
+          "404": {
+            "description": "The record does not exist"
+          }
+        }
+      }
+    },
+    "/v1/bib/bulk/{id}": {
+      "get": {
+        "summary": "Retrieve queue item content",
+        "tags": [
+          "/v1/bib/bulk/"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Queue item identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "httpBasic": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Queue item content"
+          },
+          "401": {
+            "description": "Credentials are invalid or missing"
+          },
+          "403": {
+            "description": "The credentials are not authorized for this operation"
+          },
+          "404": {
+            "description": "Queue item does not exist"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove queue item content",
+        "tags": [
+          "/v1/bib/bulk/"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Queue item identifier",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "httpBasic": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Queue item content removed"
+          },
+          "401": {
+            "description": "Credentials are invalid or missing"
+          },
+          "403": {
+            "description": "The credentials are not authorized for this operation"
+          },
+          "404": {
+            "description": "Queue item does not exist"
+          }
         }
       }
     }
@@ -521,7 +644,7 @@
       }
     },
     "schemas": {
-      "RecordDuplicateReport": {
+      "recordDuplicateReport": {
         "type": "array",
         "items": {
           "type": "string"
@@ -530,7 +653,7 @@
           "000001234"
         ]
       },
-      "RecordValidationReport": {
+      "recordValidationReport": {
         "type": "array",
         "items": {
           "type": "json"
@@ -542,7 +665,29 @@
           }
         ]
       },
-      "MarcRecord": {
+      "queueItemRemoveResponse": {
+        "type": "object",
+        "properties": {
+          "request": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              }
+            }
+          },
+          "result": {
+            "type": "boolean"
+          }
+        },
+        "example": {
+          "request": {
+            "id": "00000000-0000-0000-0000-00000000000"
+          },
+          "result": "true"
+        }
+      },
+      "marcRecord": {
         "type": "object",
         "properties": {
           "leader": {
@@ -600,23 +745,27 @@
           }
         },
         "example": {
-          "leader": "00000cam a22003494i 4500",
+          "leader": "",
           "fields": [
             {
-              "tag": "245",
-              "ind1": "0",
+              "tag": "001",
+              "value": "000000001"
+            },
+            {
+              "tag": "100",
+              "ind1": " ",
               "Ind2": " ",
               "subfields": [
                 {
                   "code": "a",
-                  "value": "foo"
+                  "value": "foo, faa"
                 }
               ]
             }
           ]
         }
       },
-      "DBQueueItem-bulk": {
+      "dbQueueItem-bulk": {
         "type": "object",
         "properties": {
           "correlationId": {
@@ -674,86 +823,64 @@
             }
           }
         }
-      }
-    },
-    "DBQueueItem-prio": {
-      "type": "object",
-      "properties": {
-        "correlationId": {
-          "type": "string",
-          "description": "The identifier of the queue item"
-        },
-        "cataloger": {
-          "type": "string",
-          "description": "The identifier of cataloger"
-        },
-        "operation": {
-          "type": "string",
-          "description": "The request operation type",
-          "enum": [
-            "CREATE",
-            "UPDATE"
-          ]
-        },
-        "queueItemState": {
-          "type": "string",
-          "description": "The request queue item state",
-          "enum": [
-            "PENDING_VALIDATION",
-            "VALIDATING",
-            "VALIDATED",
-            "IMPORTING",
-            "DONE",
-            "ERROR",
-            "ABORT"
-          ]
-        },
-        "creationTime": {
-          "type": "string",
-          "description": "The request creation time"
-        },
-        "modificationTime": {
-          "type": "string",
-          "description": "Last modification time of the request"
-        },
-        "handledId": {
-          "type": "string",
-          "description": "Handled record id",
-          "enum": [
-            "000000000",
-            "",
-            "undefined"
-          ]
+      },
+      "dbQueueItem-prio": {
+        "type": "object",
+        "properties": {
+          "correlationId": {
+            "type": "string",
+            "description": "The identifier of the queue item"
+          },
+          "cataloger": {
+            "type": "string",
+            "description": "The identifier of cataloger"
+          },
+          "operation": {
+            "type": "string",
+            "description": "The request operation type",
+            "enum": [
+              "CREATE",
+              "UPDATE"
+            ]
+          },
+          "queueItemState": {
+            "type": "string",
+            "description": "The request queue item state",
+            "enum": [
+              "PENDING_VALIDATION",
+              "VALIDATING",
+              "VALIDATED",
+              "IMPORTING",
+              "DONE",
+              "ERROR",
+              "ABORT"
+            ]
+          },
+          "creationTime": {
+            "type": "string",
+            "description": "The request creation time"
+          },
+          "modificationTime": {
+            "type": "string",
+            "description": "Last modification time of the request"
+          },
+          "handledId": {
+            "type": "string",
+            "description": "Handled record id",
+            "enum": [
+              "000000000",
+              "",
+              "undefined"
+            ]
+          }
         }
       }
     },
-    "BulkQueryResponse": {
-      "type": "object",
-      "properties": {
-        "response": {
-          "type": "array",
-          "items": [
-            {
-              "type": "object",
-              "schema": {
-                "$ref": "#/components/schemas/DBQueueItem-bulk"
-              }
-            },
-            {
-              "type": "object",
-              "schema": {
-                "$ref": "#/components/schemas/DBQueueItem-prio"
-              }
-            }
-          ]
-        }
+    "examples": {
+      "MARCXML": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><record><leader>00000cam a22003494i 4500</leader><datafield tag=\"245\" ind1=\"0\" ind2=\" \"><subfield code=\"a\">foo</subfield></datafield></record>",
+      "ISO2709": {
+        "externalValue": "https://raw.githubusercontent.com/NatLibFi/melinda-rest-api/master/test-fixtures/conversion/iso2709_1"
       }
-    }
-  },
-  "examples": {
-    "MARCXML": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><record><leader>00000cam a22003494i 4500</leader><datafield tag=\"245\" ind1=\"0\" ind2=\" \"><subfield code=\"a\">foo</subfield></datafield></record>",
-    "ISO2709": {
-      "externalValue": "https://raw.githubusercontent.com/NatLibFi/melinda-rest-api/master/test-fixtures/conversion/iso2709_1"
     }
   }
 }
