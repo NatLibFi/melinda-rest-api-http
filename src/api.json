@@ -380,6 +380,9 @@
           "content": {
             "application/json": {
               "schema": {
+                "type": "string"
+              },
+              "example": {
                 "$ref": "#/components/schemas/marcRecord"
               }
             },
@@ -399,6 +402,14 @@
               "example": {
                 "$ref": "#/components/examples/ISO2709"
               }
+            },
+            "application/alephseq": {
+              "schema": {
+                "type": "string"
+              },
+              "example": {
+                "$ref": "#/components/examples/Alephseq"
+              }
             }
           }
         },
@@ -409,29 +420,11 @@
         ],
         "responses": {
           "200": {
-            "description": "The record was not actually created (The parameter **noop** was set to true)",
+            "description": "Returns created bulk queue item",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/recordValidationReport"
-                }
-              }
-            }
-          },
-          "201": {
-            "description": "The record was created succesfully",
-            "headers": {
-              "Record-ID": {
-                "description": "The Record's identifier",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/recordValidationReport"
+                  "$ref": "#/components/schemas/dbQueueItem-bulk"
                 }
               }
             }
@@ -880,7 +873,8 @@
       "MARCXML": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><record><leader>00000cam a22003494i 4500</leader><datafield tag=\"245\" ind1=\"0\" ind2=\" \"><subfield code=\"a\">foo</subfield></datafield></record>",
       "ISO2709": {
         "externalValue": "https://raw.githubusercontent.com/NatLibFi/melinda-rest-api/master/test-fixtures/conversion/iso2709_1"
-      }
+      },
+      "Alephseq": "000000001 FMT   L BK\n000000001 LDR   L ^^^^^xxx^x00000000x^0000\n000000001 001   L 000000001\n000000001 005   L 20090820094953.0"
     }
   }
 }
