@@ -71,22 +71,16 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       unique
     };
 
-    if (noop) {
-      logger.log('verbose', `Handling noop request`);
-      const responseData = await handleRequest();
-      if (responseData.status === 'CREATED') {
-        return responseData.messages;
-      }
-
-      throw new HttpError(responseData.status, responseData.payload || '');
-    }
-
     logger.log('verbose', `Creating Mongo queue item for correlationId ${correlationId}`);
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation});
     const responseData = await handleRequest();
 
     if (responseData.status === 'CREATED') {
       await mongoOperator.remove(correlationId);
+      if (noop) {
+        return responseData.messages;
+      }
+
       return {messages: responseData.messages, id: responseData.payload};
     }
 
@@ -125,23 +119,17 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       noop
     };
 
-    if (noop) {
-      logger.log('verbose', `Handling noop request`);
-      const responseData = await handleRequest();
-
-      if (responseData.status === 'UPDATED') {
-        return responseData.messages;
-      }
-
-      throw new HttpError(responseData.status, responseData.payload || '');
-    }
-
     logger.log('verbose', `Creating Mongo queue item for record ${id}`);
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation});
     const responseData = await handleRequest();
 
     if (responseData.status === 'UPDATED') {
       await mongoOperator.remove(correlationId);
+
+      if (noop) {
+        return responseData.messages;
+      }
+
       return responseData;
     }
 
