@@ -1,5 +1,7 @@
 # Melinda REST API for ILS integration [![Build Status](https://travis-ci.org/NatLibFi/melinda-rest-api-http.svg)](https://travis-ci.org/NatLibFi/melinda-rest-api-http) [![Test Coverage](https://codeclimate.com/github/NatLibFi/melinda-rest-api-http/badges/coverage.svg)](https://codeclimate.com/github/NatLibFi/melinda-rest-api-http/coverage)
 
+Melinda REST API for ILS integration
+
 ### Environment variables
 | Name               | Mandatory | Default                      |
 |--------------------|-----------|------------------------------|
@@ -17,8 +19,6 @@
 
 ### ApiDoc
 https://rest.api.melinda-test.kansalliskirjasto.fi/apidoc/v1/bib/
-
-Melinda REST API for ILS integration
 
 ## License and copyright
 
