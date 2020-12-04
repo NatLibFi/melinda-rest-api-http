@@ -1,7 +1,5 @@
 # Melinda REST API for ILS integration [![Build Status](https://travis-ci.org/NatLibFi/melinda-rest-api-http.svg)](https://travis-ci.org/NatLibFi/melinda-rest-api-http) [![Test Coverage](https://codeclimate.com/github/NatLibFi/melinda-rest-api-http/badges/coverage.svg)](https://codeclimate.com/github/NatLibFi/melinda-rest-api-http/coverage)
 
-Trigged drone...
-
 ### Environment variables
 | Name               | Mandatory | Default                      |
 |--------------------|-----------|------------------------------|
@@ -18,7 +16,7 @@ Trigged drone...
 | LOG_LEVEL          | No        | info                         |
 
 ### ApiDoc
-https://rest.api.melinda-test.kansalliskirjasto.fi/dev/v1/apidoc
+https://rest.api.melinda-test.kansalliskirjasto.fi/apidoc/v1/bib/
 
 Melinda REST API for ILS integration
 
