@@ -41,7 +41,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   logger.log('debug', `Connecting prio to: ${amqpUrl} and ${mongoUri}`);
   const converter = conversions();
   const amqpOperator = await amqpFactory(amqpUrl);
-  const mongoOperator = await mongoFactory(mongoUri);
+  const mongoOperator = await mongoFactory(mongoUri, 'prio');
   const sruClient = createSruClient({url: sruUrl, recordSchema: 'marcxml'});
 
   return {read, create, update};

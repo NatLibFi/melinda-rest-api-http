@@ -33,7 +33,7 @@ import httpStatus from 'http-status';
 
 export default async function (mongoUrl) {
   const logger = createLogger();
-  const mongoOperator = await mongoFactory(mongoUrl);
+  const mongoOperator = await mongoFactory(mongoUrl, 'bulk');
 
   return {create, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
 
