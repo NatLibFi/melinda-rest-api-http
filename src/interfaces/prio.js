@@ -29,7 +29,7 @@
 import {promisify} from 'util';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
-import {amqpFactory, conversions, OPERATIONS, mongoFactory, PRIO_QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
+import {amqpFactory, conversions, OPERATIONS, mongoFactory, QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
 import {MARCXML} from '@natlibfi/marc-record-serializers';
 import createSruClient from '@natlibfi/sru-client';
 import httpStatus from 'http-status';
@@ -203,12 +203,12 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       logger.log('debug', `Queue item ${correlationId}, state ${result.queueItemState}`);
     }
 
-    if (result.queueItemState === PRIO_QUEUE_ITEM_STATE.ABORT) { // eslint-disable-line functional/no-conditional-statement
+    if (result.queueItemState === QUEUE_ITEM_STATE.ABORT) { // eslint-disable-line functional/no-conditional-statement
       throw new HttpError(httpStatus.REQUEST_TIMEOUT, 'Request timeout, try again later');
     }
 
     // If DONE
-    if (result.queueItemState === PRIO_QUEUE_ITEM_STATE.DONE || result.queueItemState === PRIO_QUEUE_ITEM_STATE.ERROR) {
+    if (result.queueItemState === QUEUE_ITEM_STATE.DONE || result.queueItemState === QUEUE_ITEM_STATE.ERROR) {
       // Check queue
       const message = await amqpOperator.checkQueue(correlationId, 'raw', false);
 

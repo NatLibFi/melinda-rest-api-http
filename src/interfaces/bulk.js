@@ -40,7 +40,7 @@ export default async function (mongoUrl) {
   async function create(req, {correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams}) {
     await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream: req});
     logger.log('verbose', 'Stream uploaded!');
-    return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.PENDING_QUEUING});
+    return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
   }
 
   function readContent(correlationId) {
