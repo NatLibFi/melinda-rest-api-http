@@ -1,6 +1,9 @@
 import httpStatus from 'http-status';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {CONTENT_TYPES} from '../config';
+import {createLogger} from '@natlibfi/melinda-backend-commons';
+
+const logger = createLogger();
 
 export function authorizeKVPOnly(req, res, next) {
   if (req.user.authorization.includes('KVP')) {
@@ -25,7 +28,8 @@ export function sanitizeCataloger(passportCataloger, queryCataloger) {
 }
 
 export function checkAcceptHeader(req, res, next) {
-  if (req.headers.Accept === undefined || !CONTENT_TYPES[req.headers.Accept]) {
+  logger.log('debug', `routesUtils:checkAcceptHeader: accept: ${req.headers.accept}`);
+  if (req.headers.accept === undefined || !CONTENT_TYPES[req.headers.accept]) {
     return res.status(httpStatus.UNSUPPORTED_MEDIA_TYPE).send('Invalid Accept header');
   }
 
@@ -33,6 +37,7 @@ export function checkAcceptHeader(req, res, next) {
 }
 
 export function checkContentType(req, res, next) {
+  logger.log('debug', `routesUtils:checkContentType: content-type: ${req.headers['content-type']}`);
   if (req.headers['content-type'] === undefined || !CONTENT_TYPES[req.headers['content-type']]) {
     return res.status(httpStatus.UNSUPPORTED_MEDIA_TYPE).send('Invalid content-type');
   }
