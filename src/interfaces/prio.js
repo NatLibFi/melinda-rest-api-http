@@ -77,7 +77,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     const responseData = await handleRequest();
 
     if (responseData.status === 'CREATED') {
-      await mongoOperator.remove(correlationId);
+      await mongoOperator.remove({correlationId});
       if (noop) {
         return responseData.messages;
       }
@@ -125,7 +125,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     const responseData = await handleRequest();
 
     if (responseData.status === 'UPDATED') {
-      await mongoOperator.remove(correlationId);
+      await mongoOperator.remove({correlationId});
 
       if (noop) {
         return responseData.messages;
