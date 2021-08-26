@@ -34,6 +34,7 @@ import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/bulk';
+import {authorizeKVPOnly} from './routeUtils';
 
 export default async function (mongoUrl) {
   const logger = createLogger();
@@ -133,13 +134,5 @@ export default async function (mongoUrl) {
 
       return next(error);
     }
-  }
-
-  function authorizeKVPOnly(req, res, next) {
-    if (req.user.authorization.includes('KVP')) {
-      return next();
-    }
-
-    return res.status(httpStatus.FORBIDDEN).send('User creditianls do not have permission to use this endpoint');
   }
 }

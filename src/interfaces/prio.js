@@ -45,7 +45,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   const mongoOperator = await mongoFactory(mongoUri, 'prio');
   const sruClient = createSruClient({url: sruUrl, recordSchema: 'marcxml'});
 
-  return {read, create, update};
+  return {read, create, update, doQuery};
 
   async function read({id, format}) {
     validateRequestId(id);
@@ -222,5 +222,21 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // Nothing in queue
     return check(correlationId, result.queueItemState, true);
+  }
+
+  function doQuery({query}) {
+    // Query filters oCatalogerIn, correlationId, operation
+    const params = {
+      correlationId: query.id ? query.id : {$ne: null}
+    };
+
+    logger.log('debug', `Queue items querried`);
+    logger.log('debug', JSON.stringify(params));
+
+    if (params) {
+      return mongoOperator.query(params);
+    }
+
+    throw new HttpError(httpStatus.BAD_REQUEST);
   }
 }

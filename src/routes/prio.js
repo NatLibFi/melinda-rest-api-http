@@ -31,28 +31,23 @@ import passport from 'passport';
 import {v4 as uuid} from 'uuid';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
-import {conversionFormats} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/prio';
 import httpStatus from 'http-status';
+import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger} from './routeUtils';
+import {CONTENT_TYPES} from '../config';
 
 export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
   const logger = createLogger();
-  const CONTENT_TYPES = {
-    'application/json': conversionFormats.JSON,
-    'application/marc': conversionFormats.ISO2709,
-    'application/xml': conversionFormats.MARCXML
-  };
-
   const Service = await createService({
     sruUrl, amqpUrl, mongoUri, pollWaitTime
   });
 
   return new Router()
     .use(passport.authenticate('melinda', {session: false}))
-    .get('/:id', readResource)
-    .use(checkContentType)
-    .post('/', createResource)
-    .post('/:id', updateResource);
+    .get('/prio/', authorizeKVPOnly, getPrioLogs)
+    .get('/:id', checkAcceptHeader, readResource)
+    .post('/', checkContentType, createResource)
+    .post('/:id', checkContentType, updateResource);
 
   async function readResource(req, res, next) {
     logger.log('verbose', 'routes/Prio readResource');
@@ -131,26 +126,9 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
     }
   }
 
-  function checkContentType(req, res, next) {
-    if (req.headers['content-type'] === undefined || !CONTENT_TYPES[req.headers['content-type']]) {
-      logger.log('verbose', 'Invalid content type');
-      return res.status(httpStatus.UNSUPPORTED_MEDIA_TYPE).send('Invalid content-type');
-    }
-
-    return next();
-  }
-
-  function sanitizeCataloger(passportCataloger, queryCataloger) {
-    const {id, authorization} = passportCataloger;
-
-    if (authorization.includes('KVP') && queryCataloger) {
-      return {id: queryCataloger, authorization};
-    }
-
-    if (!authorization.includes('KVP') && queryCataloger !== undefined) { // eslint-disable-line functional/no-conditional-statement
-      throw new HttpError(httpStatus.FORBIDDEN, 'Account has no permission to do this request');
-    }
-
-    return {id, authorization};
+  async function getPrioLogs(req, res) {
+    logger.log('verbose', 'routes/Bulk doQuery');
+    const response = await Service.doQuery({query: req.query});
+    res.json(response);
   }
 };
