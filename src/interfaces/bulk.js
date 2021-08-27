@@ -1,3 +1,4 @@
+/* eslint-disable max-statements */
 /**
 *
 * @licstart  The following is the entire license notice for the JavaScript code in this file.
@@ -84,11 +85,14 @@ export default async function (mongoUrl) {
   }
 
   function validateQueryParams(queryParams) {
+
+    logger.debug(`bulk/validateQueryParams: queryParams: ${JSON.stringify(queryParams)}`);
     if (queryParams.pOldNew && queryParams.pActiveLibrary) {
       const {pOldNew} = queryParams;
 
       if (pOldNew !== 'NEW' && pOldNew !== 'OLD') {
-        throw new HttpError(httpStatus.BAD_REQUEST, 'Invalidi pOldNew query parameter. (Valid values: OLD/NEW)');
+        logger.debug(`bulk/validateQueryParams: invalid pOldNew: ${JSON.stringify(pOldNew)}`);
+        throw new HttpError(httpStatus.BAD_REQUEST, `Invalid pOldNew query parameter '${pOldNew}'. (Valid values: OLD/NEW)`);
       }
 
       const operation = pOldNew === 'NEW' ? 'CREATE' : 'UPDATE';
@@ -103,6 +107,7 @@ export default async function (mongoUrl) {
       return {operation, recordLoadParams};
     }
 
+    logger.debug(`bulk/validateQueryParams: mandatory query param missing: pOldNew: ${JSON.stringify(queryParams.pOldNew)}, pActiveLibrary: ${JSON.stringify(queryParams.pActiveLibrary)}`);
     throw new HttpError(httpStatus.BAD_REQUEST, 'Missing one or more mandatory query parameters. (pActiveLibrary, pOldNew)');
   }
 
