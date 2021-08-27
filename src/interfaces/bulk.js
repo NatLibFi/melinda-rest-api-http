@@ -98,7 +98,7 @@ export default async function (mongoUrl) {
       return {operation, recordLoadParams};
     }
 
-    throw new HttpError(httpStatus.BAD_REQUEST);
+    throw new HttpError(httpStatus.BAD_REQUEST, 'Missing one or more mandatory query parameters. (pActiveLibrary, pOldNew)');
   }
 
   function checkCataloger(id, paramsId) {
