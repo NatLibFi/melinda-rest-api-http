@@ -86,6 +86,11 @@ export default async function (mongoUrl) {
   function validateQueryParams(queryParams) {
     if (queryParams.pOldNew && queryParams.pActiveLibrary) {
       const {pOldNew} = queryParams;
+
+      if (pOldNew !== 'NEW' && pOldNew !== 'OLD') {
+        throw new HttpError(httpStatus.BAD_REQUEST, 'Invalidi pOldNew query parameter. (Valid values: OLD/NEW)');
+      }
+
       const operation = pOldNew === 'NEW' ? 'CREATE' : 'UPDATE';
       const recordLoadParams = {
         pActiveLibrary: queryParams.pActiveLibrary,
