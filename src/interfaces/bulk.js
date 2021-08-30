@@ -45,6 +45,7 @@ export default async function (mongoUrl) {
   }
 
   function readContent(correlationId) {
+    logger.debug(`Reading content for ${correlationId}`);
     if (correlationId) {
       return mongoOperator.readContent(correlationId);
     }
