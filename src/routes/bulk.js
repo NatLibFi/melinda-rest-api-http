@@ -94,18 +94,34 @@ export default async function (mongoUrl) {
     return next();
   }
 
-  async function doQuery(req, res) {
-    logger.log('verbose', 'routes/Bulk doQuery');
-    const response = await Service.doQuery({query: req.query});
-    res.json(response);
+  async function doQuery(req, res, next) {
+    try {
+      logger.log('verbose', 'routes/Bulk doQuery');
+      const response = await Service.doQuery({query: req.query});
+      res.json(response);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        res.status(error.status).send(error.payload);
+        return;
+      }
+      return next(error);
+    }
   }
 
   /* Functions after this are here only to test purposes */
-  async function readContent(req, res) {
-    logger.log('verbose', 'routes/Bulk readContent');
-    const {contentType, readStream} = await Service.readContent(req.params.id);
-    res.set('content-type', contentType);
-    readStream.pipe(res);
+  async function readContent(req, res, next) {
+    try {
+      logger.log('verbose', 'routes/Bulk readContent');
+      const {contentType, readStream} = await Service.readContent(req.params.id);
+      res.set('content-type', contentType);
+      readStream.pipe(res);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        res.status(error.status).send(error.payload);
+        return;
+      }
+      return next(error);
+    }
   }
 
   async function remove(req, res, next) {
