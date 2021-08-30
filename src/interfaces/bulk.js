@@ -71,6 +71,7 @@ export default async function (mongoUrl) {
 
   function doQuery({query}) {
     // Query filters oCatalogerIn, correlationId, operation
+    // currently filters only by correlationId
     const params = {
       correlationId: query.id ? query.id : {$ne: null}
     };

@@ -94,10 +94,18 @@ export default async function (mongoUrl) {
     return next();
   }
 
-  async function doQuery(req, res) {
-    logger.log('verbose', 'routes/Bulk doQuery');
-    const response = await Service.doQuery({query: req.query});
-    res.json(response);
+  async function doQuery(req, res, next) {
+    try {
+      logger.log('verbose', 'routes/Bulk doQuery');
+      const response = await Service.doQuery({query: req.query});
+      res.json(response);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        res.status(error.status).send(error.payload);
+        return;
+      }
+      return next(error);
+    }
   }
 
   /* Functions after this are here only to test purposes */
