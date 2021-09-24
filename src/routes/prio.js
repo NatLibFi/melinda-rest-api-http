@@ -85,6 +85,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         correlationId
       });
 
+      // responseData: {messages:<messages> id:<id>}
       if (!noop) {
         res.status(httpStatus.CREATED).set('Record-ID', id)
           .json(messages);
@@ -94,6 +95,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       res.status(httpStatus.OK).json(messages);
     } catch (error) {
       if (error instanceof HttpError) { // eslint-disable-line functional/no-conditional-statement
+        logger.debug(`${JSON.stringify(error)}`);
         return res.status(error.status).send(error.payload);
       }
       return next(error);
