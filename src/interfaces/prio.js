@@ -104,7 +104,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       // We get responseData from check
 
       logger.log('verbose', `Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
-      logger.log('silly', `interfaces/prio/create/handleRequest: Response data:\n${JSON.stringify(responseData)}`);
+      logger.log('silly', `interfaces/prio/create/handleRequest: Response data: ${JSON.stringify(responseData)}`);
 
       // Ack message was in check
 
