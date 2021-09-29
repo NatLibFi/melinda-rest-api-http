@@ -215,6 +215,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     }
 
     // If ABORT -> Timeout
+    // Does not read responses from queue:correlationId
     if (result.queueItemState === QUEUE_ITEM_STATE.ABORT) { // eslint-disable-line functional/no-conditional-statement
       logger.log('debug', `Queue item ${correlationId}, state ${result.queueItemState} - Timeout!`);
       throw new HttpError(httpStatus.REQUEST_TIMEOUT, 'Request timeout, try again later');
