@@ -296,7 +296,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.log('debug', JSON.stringify(params));
 
     if (params) {
-      return mongoOperator.query(params);
+      return mongoOperator.query(params); // njsscan-ignore: node_nosqli_injection
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
