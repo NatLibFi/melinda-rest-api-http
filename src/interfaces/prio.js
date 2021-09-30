@@ -289,7 +289,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   function doQuery({query}) {
     // Query filters oCatalogerIn, correlationId, operation
     const params = {
-      correlationId: query.id ? sanitize(query.id) : {$ne: null}
+      correlationId: query.id ? sanitize(query.id) : {$ne: null} // njsscan-ignore: node_nosqli_injection
     };
 
     logger.log('debug', `Queue items querried`);
