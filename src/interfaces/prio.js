@@ -236,6 +236,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // Get responseData from queue for validator errors/messages
     // messageContent: {"data":{"status":409,"payload":["000503874"]}}
+    // This should be removed?
 
     const message = await amqpOperator.checkQueue(correlationId, 'raw', false);
     logger.log('silly', `interfaces/prio/check message ${JSON.stringify(message)}`);
