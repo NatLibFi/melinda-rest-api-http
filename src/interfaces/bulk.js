@@ -8,8 +8,7 @@
 * Copyright (C) 2018-2019 University Of Helsinki (The National Library Of Finland)
 *
 * This file is part of melinda-rest-api-http
-*
-* melinda-rest-api-http program is free software: you can redistribute it and/or modify
+** melinda-rest-api-http program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU Affero General Public License as
 * published by the Free Software Foundation, either version 3 of the
 * License, or (at your option) any later version.
@@ -31,6 +30,7 @@ import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {mongoFactory, QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
 import httpStatus from 'http-status';
+import sanitize from 'mongo-sanitize';
 
 export default async function (mongoUrl) {
   const logger = createLogger();
@@ -73,7 +73,7 @@ export default async function (mongoUrl) {
     // Query filters oCatalogerIn, correlationId, operation
     // currently filters only by correlationId
     const params = {
-      correlationId: query.id ? query.id : {$ne: null}
+      correlationId: query.id ? sanitize(query.id) : {$ne: null}
     };
 
     logger.log('debug', `Queue items querried`);

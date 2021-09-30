@@ -35,6 +35,7 @@ import {amqpFactory, conversions, OPERATIONS, mongoFactory, QUEUE_ITEM_STATE} fr
 import {MARCXML} from '@natlibfi/marc-record-serializers';
 import createSruClient from '@natlibfi/sru-client';
 import httpStatus from 'http-status';
+import sanitize from 'mongo-sanitize';
 
 const setTimeoutPromise = promisify(setTimeout);
 
@@ -288,7 +289,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   function doQuery({query}) {
     // Query filters oCatalogerIn, correlationId, operation
     const params = {
-      correlationId: query.id ? query.id : {$ne: null}
+      correlationId: query.id ? sanitize(query.id) : {$ne: null}
     };
 
     logger.log('debug', `Queue items querried`);
