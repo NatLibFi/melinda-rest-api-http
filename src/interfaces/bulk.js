@@ -72,9 +72,12 @@ export default async function (mongoUrl) {
   function doQuery({query}) {
     // Query filters oCatalogerIn, correlationId, operation
     // currently filters only by correlationId
-    const clean = query.id ? sanitize(query.id) : {$ne: null};
+
+    const foundId = Boolean(query.id);
+    const clean = query.id ? sanitize(query.id) : '';
+
     const params = {
-      correlationId: clean // njsscan-ignore: node_nosqli_injection
+      correlationId: foundId ? clean : {$ne: null} // njsscan-ignore: node_nosqli_injection
     };
 
     logger.log('debug', `Queue items querried`);
