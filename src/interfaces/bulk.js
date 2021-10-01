@@ -69,10 +69,11 @@ export default async function (mongoUrl) {
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  function doQuery({query}) {
+  function doQuery(incomingParams) {
     // Query filters oCatalogerIn, correlationId, operation
     // currently filters only by correlationId
 
+    const {query} = incomingParams;
     const foundId = Boolean(query.id); // ignore: node_nosqli_injection
     const clean = foundId ? sanitize(query.id) : ''; // ignore: node_nosqli_injection
 
