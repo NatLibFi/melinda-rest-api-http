@@ -288,15 +288,17 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   function doQuery({query}) {
     // Query filters oCatalogerIn, correlationId, operation
+    const clean = query.id ? sanitize(query.id) : {$ne: null};
+
     const params = {
-      correlationId: query.id ? sanitize(query.id) : {$ne: null} // njsscan-ignore: node_nosqli_injection
+      correlationId: clean // njsscan-ignore: node_nosqli_injection
     };
 
     logger.log('debug', `Queue items querried`);
     logger.log('debug', JSON.stringify(params));
 
     if (params) {
-      return mongoOperator.query(params); // njsscan-ignore: node_nosqli_injection
+      return mongoOperator.query(params);
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
