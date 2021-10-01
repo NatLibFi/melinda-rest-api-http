@@ -73,7 +73,7 @@ export default async function (mongoUrl) {
     // Query filters oCatalogerIn, correlationId, operation
     // currently filters only by correlationId
 
-    const foundId = Boolean(query.id);
+    const foundId = Boolean(query.id); // njsscan-ignore: node_nosqli_injection
     const clean = query.id ? sanitize(query.id) : ''; // njsscan-ignore: node_nosqli_injection
 
     const params = { // njsscan-ignore: node_nosqli_injection
