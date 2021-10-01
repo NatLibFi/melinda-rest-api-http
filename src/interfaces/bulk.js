@@ -73,18 +73,18 @@ export default async function (mongoUrl) {
     // Query filters oCatalogerIn, correlationId, operation
     // currently filters only by correlationId
 
-    const foundId = Boolean(query.id); // njsscan-ignore: node_nosqli_injection
-    const clean = query.id ? sanitize(query.id) : ''; // njsscan-ignore: node_nosqli_injection
+    const foundId = Boolean(query.id); // ignore: node_nosqli_injection
+    const clean = query.id ? sanitize(query.id) : ''; // ignore: node_nosqli_injection
 
     const params = { // njsscan-ignore: node_nosqli_injection
-      correlationId: foundId ? clean : {$ne: null} // njsscan-ignore: node_nosqli_injection
+      correlationId: foundId ? clean : {$ne: null} // ignore: node_nosqli_injection
     };
 
     logger.log('debug', `Queue items querried`);
     logger.log('debug', JSON.stringify(params));
 
     if (params) {
-      return mongoOperator.query(params); // njsscan-ignore: node_nosqli_injection
+      return mongoOperator.query(params); // ignore: node_nosqli_injection
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
