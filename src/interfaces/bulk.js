@@ -74,7 +74,7 @@ export default async function (mongoUrl) {
     // currently filters only by correlationId
 
     const foundId = Boolean(query.id); // ignore: node_nosqli_injection
-    const clean = query.id ? sanitize(query.id) : ''; // ignore: node_nosqli_injection
+    const clean = foundId ? sanitize(query.id) : ''; // ignore: node_nosqli_injection
 
     const params = { // njsscan-ignore: node_nosqli_injection
       correlationId: foundId ? clean : {$ne: null} // ignore: node_nosqli_injection
