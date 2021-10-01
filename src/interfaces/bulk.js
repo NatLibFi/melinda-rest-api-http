@@ -74,18 +74,18 @@ export default async function (mongoUrl) {
     // currently filters only by correlationId
 
     const {query} = incomingParams;
-    const foundId = Boolean(query.id); // ignore: node_nosqli_injection
-    const clean = foundId ? sanitize(query.id) : ''; // ignore: node_nosqli_injection
+    const foundId = Boolean(query.id);
+    const clean = foundId ? sanitize(query.id) : '';
 
-    const params = { // njsscan-ignore: node_nosqli_injection
-      correlationId: foundId ? clean : {$ne: null} // ignore: node_nosqli_injection
+    const params = {
+      correlationId: foundId ? clean : {$ne: null}
     };
 
     logger.log('debug', `Queue items querried`);
     logger.log('debug', JSON.stringify(params));
 
     if (params) {
-      return mongoOperator.query(params); // ignore: node_nosqli_injection
+      return mongoOperator.query(params);
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);

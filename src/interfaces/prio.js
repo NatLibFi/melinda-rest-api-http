@@ -291,7 +291,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     const clean = query.id ? sanitize(query.id) : {$ne: null};
 
     const params = {
-      correlationId: clean // njsscan-ignore: node_nosqli_injection
+      correlationId: clean
     };
 
     logger.log('debug', `Queue items querried`);
