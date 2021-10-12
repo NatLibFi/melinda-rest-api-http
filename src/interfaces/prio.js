@@ -75,7 +75,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     };
 
     logger.log('verbose', `Creating Mongo queue item for correlationId ${correlationId}`);
-    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation});
+    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, unique, prio: true});
     const responseData = await handleRequest();
     logger.debug(`prio/create response from handleRequest: ${JSON.stringify(responseData)}`);
 
@@ -131,7 +131,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.log('verbose', `Creating Mongo queue item for record ${id}`);
 
     // Should add noop to mongo
-    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation});
+    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, prio: true});
     const responseData = await handleRequest();
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
@@ -245,6 +245,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     const message = await amqpOperator.checkQueue(correlationId, 'raw', false);
     logger.log('silly', `interfaces/prio/check message ${JSON.stringify(message)}`);
 
+    // This has currently responses for noop from validator
     if (message) {
       const messageContent = JSON.parse(message.content.toString());
       logger.log('silly', `Got messageContent: ${JSON.stringify(messageContent)}`);
