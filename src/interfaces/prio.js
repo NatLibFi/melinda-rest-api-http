@@ -95,7 +95,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     throw new HttpError(responseData.status, responseData.payload || '');
 
     async function handleRequest() {
-      logger.debug(`interfaces/prio/create/handleRequest`);
+      logger.silly(`interfaces/prio/create/handleRequest`);
       // {queue, correlationId, headers, data}
       await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
 
@@ -118,7 +118,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   async function update({id, data, format, cataloger, oCatalogerIn, noop, correlationId}) {
     validateRequestId(id);
-    logger.info(`Creating updating task for record ${id}`);
+    logger.info(`Creating updating task for record ${id} / ${correlationId}`);
     const operation = OPERATIONS.UPDATE;
     const headers = {
       operation,
@@ -195,7 +195,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
   function validateRequestId(id) {
-    logger.info(`Validating request ${id}`);
+    logger.debug(`Validating request ${id}`);
     if (id.length === 9) {
       return;
     }
@@ -235,7 +235,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   async function getResponseDataForDoneNError(result) {
 
-    logger.debug(`Mongo Result: ${JSON.stringify(result)}`);
+    logger.silly(`Mongo Result: ${JSON.stringify(result)}`);
     const correlationId = result.correlationId || '';
 
     // Get responseData from queue for validator errors/messages
@@ -251,7 +251,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       logger.silly(`Got messageContent: ${JSON.stringify(messageContent)}`);
       const responseData = messageContent.data;
       logger.silly(`Got responseData: ${JSON.stringify(responseData)}`);
-      logger.verbose(`interfaces/prio/check Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
+      logger.debug(`interfaces/prio/check Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
 
       await amqpOperator.ackMessages([message]);
       return responseData;
@@ -281,10 +281,10 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     const operationStatus = result.operation === OPERATIONS.CREATE ? 'CREATED' : 'UPDATED';
     const responseStatus = operationStatus || 'unknown';
-    logger.debug(`responseStatus ${JSON.stringify(responseStatus)}`);
+    logger.silly(`responseStatus ${JSON.stringify(responseStatus)}`);
 
     const responsePayload = handledIds[0] || '';
-    logger.debug(`responsePayload ${JSON.stringify(responsePayload)}`);
+    logger.silly(`responsePayload ${JSON.stringify(responsePayload)}`);
 
     return {status: responseStatus, payload: responsePayload || ''};
 
@@ -298,8 +298,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       correlationId: clean
     };
 
-    logger.debug(`Queue items querried`);
-    logger.debug(JSON.stringify(params));
+    logger.debug(`Queue items querried with params: ${JSON.stringify(params)}`);
 
     if (params) {
       return mongoOperator.query(params);

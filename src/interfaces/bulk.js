@@ -81,8 +81,7 @@ export default async function (mongoUrl) {
       correlationId: foundId ? clean : {$ne: null}
     };
 
-    logger.debug(`Queue items querried`);
-    logger.debug(JSON.stringify(params));
+    logger.debug(`Queue items querried with params: ${JSON.stringify(params)}`);
 
     if (params) {
       return mongoOperator.query(params);
@@ -93,7 +92,7 @@ export default async function (mongoUrl) {
 
   function validateQueryParams(queryParams) {
 
-    logger.debug(`bulk/validateQueryParams: queryParams: ${JSON.stringify(queryParams)}`);
+    logger.silly(`bulk/validateQueryParams: queryParams: ${JSON.stringify(queryParams)}`);
     if (queryParams.pOldNew && queryParams.pActiveLibrary) {
       const {pOldNew} = queryParams;
 

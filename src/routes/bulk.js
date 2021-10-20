@@ -56,7 +56,7 @@ export default async function (mongoUrl) {
 
   async function create(req, res, next) {
     try {
-      logger.verbose('routes/Bulk create');
+      logger.silly('routes/Bulk create');
       const {operation, recordLoadParams} = Service.validateQueryParams(req.query, req.user.id);
       const params = {
         correlationId: uuid(),
@@ -67,14 +67,14 @@ export default async function (mongoUrl) {
         recordLoadParams
       };
 
-      logger.verbose('Params done');
+      logger.silly('Params done');
       if (params.operation && OPERATION_TYPES.includes(params.operation)) {
         const response = await Service.create(req, params);
         res.json(response);
         return;
       }
 
-      logger.verbose('Invalid operation');
+      logger.debug('Invalid operation');
       throw new HttpError(httpStatus.BAD_REQUEST, 'Invalid operation');
     } catch (error) {
       if (error instanceof HttpError) {
@@ -96,7 +96,7 @@ export default async function (mongoUrl) {
 
   async function doQuery(req, res, next) {
     try {
-      logger.verbose('routes/Bulk doQuery');
+      logger.silly('routes/Bulk doQuery');
       const response = await Service.doQuery({query: req.query});
       res.json(response);
     } catch (error) {
@@ -111,7 +111,7 @@ export default async function (mongoUrl) {
   /* Functions after this are here only to test purposes */
   async function readContent(req, res, next) {
     try {
-      logger.verbose('routes/Bulk readContent');
+      logger.silly('routes/Bulk readContent');
       const {contentType, readStream} = await Service.readContent(req.params.id);
       res.set('content-type', contentType);
       readStream.pipe(res);
@@ -125,7 +125,7 @@ export default async function (mongoUrl) {
   }
 
   async function remove(req, res, next) {
-    logger.verbose('routes/Bulk remove');
+    logger.silly('routes/Bulk remove');
     try {
       const response = await Service.remove({oCatalogerIn: req.user.id, correlationId: req.query.id});
       res.json({request: req.query, result: response});
@@ -140,7 +140,7 @@ export default async function (mongoUrl) {
   }
 
   async function removeContent(req, res, next) {
-    logger.verbose('routes/Bulk removeContent');
+    logger.silly('routes/Bulk removeContent');
     try {
       await Service.removeContent({oCatalogerIn: req.user.id, correlationId: req.params.id});
       res.sendStatus(204);

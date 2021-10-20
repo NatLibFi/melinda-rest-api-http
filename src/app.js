@@ -52,7 +52,6 @@ export default async function ({
 
     // eslint-disable-next-line max-statements
     function handleError(err, req, res, next) {
-      logger.info('App/handleError');
       logger.debug(`App/handleError: Error: ${JSON.stringify(err)}`);
       if (err) {
         logError(err);
