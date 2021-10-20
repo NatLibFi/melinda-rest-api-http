@@ -109,7 +109,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
       // Ack message was in check
 
-      await amqpOperator.removeQueue(correlationId);
+      amqpOperator.removeQueue(correlationId);
 
       return responseData;
     }
