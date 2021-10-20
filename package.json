@@ -33,7 +33,7 @@
 		"@babel/runtime": "^7.15.4",
 		"@natlibfi/marc-record-serializers": "^8.0.0-alpha.1",
 		"@natlibfi/melinda-backend-commons": "^2.0.5",
-		"@natlibfi/melinda-commons": "^11.1.9",
+		"@natlibfi/melinda-commons": "^11.1.10-alpha.1",
 		"@natlibfi/melinda-rest-api-commons": "^2.0.0-alpha.12",
 		"@natlibfi/passport-melinda-aleph": "^1.1.2",
 		"@natlibfi/sru-client": "^4.1.0",
