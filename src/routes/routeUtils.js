@@ -28,7 +28,7 @@ export function sanitizeCataloger(passportCataloger, queryCataloger) {
 }
 
 export function checkAcceptHeader(req, res, next) {
-  logger.log('debug', `routesUtils:checkAcceptHeader: accept: ${req.headers.accept}`);
+  logger.debug(`routesUtils:checkAcceptHeader: accept: ${req.headers.accept}`);
   if (req.headers.accept === undefined || !CONTENT_TYPES[req.headers.accept]) {
     return res.status(httpStatus.UNSUPPORTED_MEDIA_TYPE).send('Invalid Accept header');
   }
@@ -37,7 +37,7 @@ export function checkAcceptHeader(req, res, next) {
 }
 
 export function checkContentType(req, res, next) {
-  logger.log('debug', `routesUtils:checkContentType: content-type: ${req.headers['content-type']}`);
+  logger.debug(`routesUtils:checkContentType: content-type: ${req.headers['content-type']}`);
   if (req.headers['content-type'] === undefined || !CONTENT_TYPES[req.headers['content-type']]) {
     return res.status(httpStatus.UNSUPPORTED_MEDIA_TYPE).send('Invalid content-type');
   }

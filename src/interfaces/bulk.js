@@ -40,7 +40,7 @@ export default async function (mongoUrl) {
 
   async function create(req, {correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams}) {
     await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream: req});
-    logger.log('verbose', 'Stream uploaded!');
+    logger.verbose('Stream uploaded!');
     return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
   }
 
@@ -81,8 +81,8 @@ export default async function (mongoUrl) {
       correlationId: foundId ? clean : {$ne: null}
     };
 
-    logger.log('debug', `Queue items querried`);
-    logger.log('debug', JSON.stringify(params));
+    logger.debug(`Queue items querried`);
+    logger.debug(JSON.stringify(params));
 
     if (params) {
       return mongoOperator.query(params);

@@ -51,7 +51,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
     .post('/:id', checkContentType, updateResource);
 
   async function readResource(req, res, next) {
-    logger.log('verbose', 'routes/Prio readResource');
+    logger.verbose('routes/Prio readResource');
     try {
       const type = req.headers.accept;
       const format = CONTENT_TYPES[type];
@@ -68,7 +68,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
   }
 
   async function createResource(req, res, next) {
-    logger.log('verbose', 'routes/Prio createResource');
+    logger.verbose('routes/Prio createResource');
     try {
       const type = req.headers['content-type'];
       const format = CONTENT_TYPES[type];
@@ -103,7 +103,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
   }
 
   async function updateResource(req, res, next) {
-    logger.log('verbose', 'routes/Prio updateResource');
+    logger.verbose('routes/Prio updateResource');
     try {
       const type = req.headers['content-type'];
       const format = CONTENT_TYPES[type];
@@ -130,7 +130,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
   }
 
   async function getPrioLogs(req, res) {
-    logger.log('verbose', 'routes/Bulk doQuery');
+    logger.verbose('routes/Bulk doQuery');
     const response = await Service.doQuery({query: req.query});
     res.json(response);
   }

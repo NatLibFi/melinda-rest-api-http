@@ -41,7 +41,7 @@ const setTimeoutPromise = promisify(setTimeout);
 
 export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   const logger = createLogger();
-  logger.log('debug', `Connecting prio to: ${amqpUrl} and ${mongoUri}`);
+  logger.debug(`Connecting prio to: ${amqpUrl} and ${mongoUri}`);
   const converter = conversions();
   const amqpOperator = await amqpFactory(amqpUrl);
   const mongoOperator = await mongoFactory(mongoUri, 'prio');
@@ -51,12 +51,12 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   async function read({id, format}) {
     validateRequestId(id);
-    logger.log('verbose', `Reading record ${id} from sru`);
+    logger.verbose(`Reading record ${id} from sru`);
     const record = await getRecord(id);
 
     if (record) {
       const serializedRecord = await converter.serialize(record, format);
-      logger.log('silly', `Serialized record: ${JSON.stringify(serializedRecord)}`);
+      logger.silly(`Serialized record: ${JSON.stringify(serializedRecord)}`);
       return {record: serializedRecord};
     }
 
@@ -64,7 +64,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
   async function create({data, format, cataloger, oCatalogerIn, noop, unique, correlationId}) {
-    logger.log('verbose', 'Sending a new record to queue');
+    logger.verbose('Sending a new record to queue');
     const operation = OPERATIONS.CREATE;
     const headers = {
       operation,
@@ -74,7 +74,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       unique
     };
 
-    logger.log('verbose', `Creating Mongo queue item for correlationId ${correlationId}`);
+    logger.verbose(`Creating Mongo queue item for correlationId ${correlationId}`);
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, unique, prio: true});
     const responseData = await handleRequest();
     logger.debug(`prio/create response from handleRequest: ${JSON.stringify(responseData)}`);
@@ -99,13 +99,13 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       // {queue, correlationId, headers, data}
       await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
 
-      logger.log('verbose', `interfaces/prio/create/handleRequest: Waiting response to id: ${correlationId}`);
+      logger.verbose(`interfaces/prio/create/handleRequest: Waiting response to id: ${correlationId}`);
       const responseData = await check(correlationId);
 
       // We get responseData from check
 
-      logger.log('verbose', `Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
-      logger.log('silly', `interfaces/prio/create/handleRequest: Response data: ${JSON.stringify(responseData)}`);
+      logger.verbose(`Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
+      logger.silly(`interfaces/prio/create/handleRequest: Response data: ${JSON.stringify(responseData)}`);
 
       // Ack message was in check
 
@@ -118,7 +118,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   async function update({id, data, format, cataloger, oCatalogerIn, noop, correlationId}) {
     validateRequestId(id);
-    logger.log('info', `Creating updating task for record ${id}`);
+    logger.info(`Creating updating task for record ${id}`);
     const operation = OPERATIONS.UPDATE;
     const headers = {
       operation,
@@ -128,7 +128,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       noop
     };
 
-    logger.log('verbose', `Creating Mongo queue item for record ${id}`);
+    logger.verbose(`Creating Mongo queue item for record ${id}`);
 
     // Should add noop to mongo
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, prio: true});
@@ -150,16 +150,16 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     async function handleRequest() {
       // {queue, correlationId, headers, data}
-      logger.log('verbose', `Sending record ${id} to be validated. Correlation id ${correlationId}`);
+      logger.verbose(`Sending record ${id} to be validated. Correlation id ${correlationId}`);
       await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
 
-      logger.log('verbose', `Waiting response to correlation id: ${correlationId}`);
+      logger.verbose(`Waiting response to correlation id: ${correlationId}`);
       const responseData = await check(correlationId);
 
       // We get responseData from check
 
-      logger.log('verbose', `Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
-      logger.log('silly', `interfaces/prio/handleRequest: Response data:\n${JSON.stringify(responseData)}`);
+      logger.verbose(`Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
+      logger.silly(`interfaces/prio/handleRequest: Response data:\n${JSON.stringify(responseData)}`);
 
       // Ack message -> move to handleRequest
       amqpOperator.removeQueue(correlationId);
@@ -195,7 +195,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
   function validateRequestId(id) {
-    logger.log('info', `Validating request ${id}`);
+    logger.info(`Validating request ${id}`);
     if (id.length === 9) {
       return;
     }
@@ -214,13 +214,13 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     const result = await mongoOperator.queryById(correlationId, true);
 
     if (queueItemState !== result.queueItemState) { // eslint-disable-line functional/no-conditional-statement
-      logger.log('debug', `Queue item ${correlationId}, state ${result.queueItemState}`);
+      logger.debug(`Queue item ${correlationId}, state ${result.queueItemState}`);
     }
 
     // If ABORT -> Timeout
     // Does not read responses from queue:correlationId
     if (result.queueItemState === QUEUE_ITEM_STATE.ABORT) { // eslint-disable-line functional/no-conditional-statement
-      logger.log('debug', `Queue item ${correlationId}, state ${result.queueItemState} - Timeout!`);
+      logger.debug(`Queue item ${correlationId}, state ${result.queueItemState} - Timeout!`);
       const errorMessage = result.errorMessage || 'Request timeout, try again later';
       throw new HttpError(httpStatus.REQUEST_TIMEOUT, errorMessage);
     }
@@ -243,22 +243,22 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     // This should be removed?
 
     const message = await amqpOperator.checkQueue(correlationId, 'raw', false);
-    logger.log('silly', `interfaces/prio/check message ${JSON.stringify(message)}`);
+    logger.silly(`interfaces/prio/check message ${JSON.stringify(message)}`);
 
     // This has currently responses for noop from validator
     if (message) {
       const messageContent = JSON.parse(message.content.toString());
-      logger.log('silly', `Got messageContent: ${JSON.stringify(messageContent)}`);
+      logger.silly(`Got messageContent: ${JSON.stringify(messageContent)}`);
       const responseData = messageContent.data;
-      logger.log('silly', `Got responseData: ${JSON.stringify(responseData)}`);
-      logger.log('verbose', `interfaces/prio/check Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
+      logger.silly(`Got responseData: ${JSON.stringify(responseData)}`);
+      logger.verbose(`interfaces/prio/check Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
 
       await amqpOperator.ackMessages([message]);
       return responseData;
     }
 
     // Create responseData for those errors that didn't sendErrorResponse through queue
-    logger.log('debug', `No message in queue ${correlationId}, responding based on the queueItem`);
+    logger.debug(`No message in queue ${correlationId}, responding based on the queueItem`);
 
     if (result.queueItemState === QUEUE_ITEM_STATE.ERROR) {
       logger.debug(`QueueItemState is ERROR, errorStatus: ${result.errorStatus} errorMessage: ${result.errorMessage}`);
@@ -298,8 +298,8 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       correlationId: clean
     };
 
-    logger.log('debug', `Queue items querried`);
-    logger.log('debug', JSON.stringify(params));
+    logger.debug(`Queue items querried`);
+    logger.debug(JSON.stringify(params));
 
     if (params) {
       return mongoOperator.query(params);
