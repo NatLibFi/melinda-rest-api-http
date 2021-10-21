@@ -28,6 +28,7 @@
 */
 
 import {Router} from 'express';
+import {inspect} from 'util';
 import passport from 'passport';
 import {v4 as uuid} from 'uuid';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
@@ -85,13 +86,17 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         correlationId
       });
 
-      // responseData: {messages:<messages> id:<id>}
+      // create returns: {messages:<messages> id:<id>}
+      logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
+      logger.silly(`id: ${inspect(id, {colors: true, maxArrayLength: 3, depth: 1})}`);
+
       if (!noop) {
         res.status(httpStatus.CREATED).set('Record-ID', id)
           .json(messages);
         return;
       }
 
+      // Note: noops return OK even if they fail marc-record-validate validations
       res.status(httpStatus.OK).json(messages);
     } catch (error) {
       if (error instanceof HttpError) { // eslint-disable-line functional/no-conditional-statement
@@ -120,6 +125,10 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         correlationId
       });
 
+      // update gets messages as messeages for noop and {status, payload} as messages for non-noop
+      logger.debug(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
+
+      // Note: noops return OK even if they fail marc-record-validate validations
       return res.status(httpStatus.OK).json(messages);
     } catch (error) {
       if (error instanceof HttpError) { // eslint-disable-line functional/no-conditional-statement

@@ -28,7 +28,7 @@
 *
 */
 
-import {promisify} from 'util';
+import {promisify, inspect} from 'util';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {amqpFactory, conversions, OPERATIONS, mongoFactory, QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
@@ -77,7 +77,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.verbose(`Creating Mongo queue item for correlationId ${correlationId}`);
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, unique, prio: true});
     const responseData = await handleRequest({correlationId, headers, data});
-    logger.debug(`prio/create response from handleRequest: ${JSON.stringify(responseData)}`);
+    logger.debug(`prio/create response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
 
     // Should handle cases where operation was changed by validator
 
@@ -85,7 +85,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       // If we want to retain data also for prio in mongo do not remove mongo item here
       await mongoOperator.remove({correlationId});
       if (noop) {
-        return responseData.messages;
+        return {messages: responseData.messages, id: undefined};
       }
 
       return {messages: responseData.messages, id: responseData.payload};
@@ -110,9 +110,9 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     logger.verbose(`Creating Mongo queue item for record ${id}`);
 
-    // Should add noop to mongo
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, prio: true});
     const responseData = await handleRequest({correlationId, headers, data});
+    logger.debug(`prio/update response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
     if (responseData.status === 'UPDATED') {
@@ -139,8 +139,8 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // We get responseData from check
 
-    logger.verbose(`Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
-    logger.silly(`interfaces/prio/create/handleRequest: Response data: ${JSON.stringify(responseData)}`);
+    logger.verbose(`Got response to id: ${correlationId}, status: ${responseData.status}, payload: ${responseData.payload}, messages: ${responseData.messages}`);
+    logger.debug(`interfaces/prio/create/handleRequest: Response data: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}`);
 
     // Ack message was in check
 
@@ -215,15 +215,18 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     return check(correlationId, result.queueItemState, true);
   }
 
-  async function getResponseDataForDoneNError(result) {
+  // async
+  function getResponseDataForDoneNError(result) {
 
-    logger.silly(`Mongo Result: ${JSON.stringify(result)}`);
+    logger.debug(`Mongo Result: ${JSON.stringify(result)}`);
     const correlationId = result.correlationId || '';
+    const {noop} = result.operationSettings;
 
     // Get responseData from queue for validator errors/messages for noop operations
     // messageContent: {"data":{"status":409,"payload":["000503874"]}}
     // This should be removed?
 
+    /*
     const message = await amqpOperator.checkQueue(correlationId, 'raw', false);
     logger.silly(`interfaces/prio/check message ${JSON.stringify(message)}`);
 
@@ -238,10 +241,14 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       await amqpOperator.ackMessages([message]);
       return responseData;
     }
+    */
 
     // Create responseData for those errors that didn't sendErrorResponse through queue
     logger.debug(`No message in queue ${correlationId}, responding based on the queueItem`);
+    logger.debug(`${result}`);
 
+
+    // ResponseData for ERRORs
     if (result.queueItemState === QUEUE_ITEM_STATE.ERROR) {
       logger.debug(`QueueItemState is ERROR, errorStatus: ${result.errorStatus} errorMessage: ${result.errorMessage}`);
       const errorStatus = result.errorStatus || httpStatus.INTERNAL_SERVER_ERROR;
@@ -250,6 +257,15 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       return {status: errorStatus, payload: responsePayload};
     }
 
+    // ResponseData for non-ERROR noops
+    if (noop) {
+      logger.debug(`QueueItem is noop!`);
+      const noopOperationStatus = result.operation === OPERATIONS.CREATE ? 'CREATED' : 'UPDATED';
+      const noopMessages = result.noopValidationMessages[0].messages;
+      return {status: noopOperationStatus, messages: noopMessages, payload: ''};
+    }
+
+    // ResponseData for non-ERROR non-noops
     const handledIds = result.handledIds ? result.handledIds : [];
     const rejectedIds = result.rejectedIds ? result.rejectedIds : [];
 
@@ -269,7 +285,6 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.silly(`responsePayload ${JSON.stringify(responsePayload)}`);
 
     return {status: responseStatus, payload: responsePayload || ''};
-
   }
 
   function doQuery({query}) {
