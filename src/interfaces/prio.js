@@ -76,12 +76,13 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     logger.verbose(`Creating Mongo queue item for correlationId ${correlationId}`);
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, unique, prio: true});
-    const responseData = await handleRequest();
+    const responseData = await handleRequest({correlationId, headers, data});
     logger.debug(`prio/create response from handleRequest: ${JSON.stringify(responseData)}`);
 
     // Should handle cases where operation was changed by validator
 
     if (responseData.status === 'CREATED') {
+      // If we want to retain data also for prio in mongo do not remove mongo item here
       await mongoOperator.remove({correlationId});
       if (noop) {
         return responseData.messages;
@@ -91,28 +92,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     }
 
     // Currently errors if validator changed the operation (CREATE -> UPDATE)
-
     throw new HttpError(responseData.status, responseData.payload || '');
-
-    async function handleRequest() {
-      logger.silly(`interfaces/prio/create/handleRequest`);
-      // {queue, correlationId, headers, data}
-      await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
-
-      logger.verbose(`interfaces/prio/create/handleRequest: Waiting response to id: ${correlationId}`);
-      const responseData = await check(correlationId);
-
-      // We get responseData from check
-
-      logger.verbose(`Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
-      logger.silly(`interfaces/prio/create/handleRequest: Response data: ${JSON.stringify(responseData)}`);
-
-      // Ack message was in check
-
-      amqpOperator.removeQueue(correlationId);
-
-      return responseData;
-    }
   }
 
 
@@ -132,7 +112,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // Should add noop to mongo
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, prio: true});
-    const responseData = await handleRequest();
+    const responseData = await handleRequest({correlationId, headers, data});
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
     if (responseData.status === 'UPDATED') {
@@ -147,25 +127,26 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // Note: if validator changed the operation -> this errors currently
     throw new HttpError(responseData.status, responseData.payload || '');
+  }
 
-    async function handleRequest() {
-      // {queue, correlationId, headers, data}
-      logger.verbose(`Sending record ${id} to be validated. Correlation id ${correlationId}`);
-      await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
+  async function handleRequest({correlationId, headers, data}) {
+    logger.silly(`interfaces/prio/create/handleRequest`);
+    // {queue, correlationId, headers, data}
+    await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
 
-      logger.verbose(`Waiting response to correlation id: ${correlationId}`);
-      const responseData = await check(correlationId);
+    logger.verbose(`interfaces/prio/create/handleRequest: Waiting response to id: ${correlationId}`);
+    const responseData = await check(correlationId);
 
-      // We get responseData from check
+    // We get responseData from check
 
-      logger.verbose(`Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
-      logger.silly(`interfaces/prio/handleRequest: Response data:\n${JSON.stringify(responseData)}`);
+    logger.verbose(`Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
+    logger.silly(`interfaces/prio/create/handleRequest: Response data: ${JSON.stringify(responseData)}`);
 
-      // Ack message -> move to handleRequest
-      amqpOperator.removeQueue(correlationId);
+    // Ack message was in check
 
-      return responseData;
-    }
+    amqpOperator.removeQueue(correlationId);
+
+    return responseData;
   }
 
   function getRecord(id) {
@@ -195,7 +176,8 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
   function validateRequestId(id) {
-    logger.debug(`Validating request ${id}`);
+    logger.debug(`Validating requestId ${id}`);
+    // This should also check that id has only numbers
     if (id.length === 9) {
       return;
     }
@@ -238,7 +220,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.silly(`Mongo Result: ${JSON.stringify(result)}`);
     const correlationId = result.correlationId || '';
 
-    // Get responseData from queue for validator errors/messages
+    // Get responseData from queue for validator errors/messages for noop operations
     // messageContent: {"data":{"status":409,"payload":["000503874"]}}
     // This should be removed?
 
@@ -292,6 +274,8 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   function doQuery({query}) {
     // Query filters oCatalogerIn, correlationId, operation
+    // Note currently only id works!
+    // (id = correlationId)
     const clean = query.id ? sanitize(query.id) : {$ne: null};
 
     const params = {
