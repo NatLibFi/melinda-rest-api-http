@@ -631,51 +631,51 @@
           }
         }
       }
-    }
-  },
-  "/v1/bib/prio/": {
-    "get": {
-      "summary": "Retrieve prio queue items",
-      "tags": [
-        "/v1/bib/prio/"
-      ],
-      "produces": [
-        "application/json"
-      ],
-      "parameters": [
-        {
-          "name": "id",
-          "description": "Queue item identifier",
-          "in": "query",
-          "required": false,
-          "schema": {
-            "type": "string"
-          }
-        }
-      ],
-      "security": [
-        {
-          "httpBasic": []
-        }
-      ],
-      "responses": {
-        "200": {
-          "description": "Array of queue item objects (See #/components/schemas/dbQueueItem-prio). Empty list if no resources were found",
-          "schema": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/dbQueueItem-prio"
+    },
+    "/v1/bib/prio/": {
+      "get": {
+        "summary": "Retrieve prio queue items",
+        "tags": [
+          "/v1/bib/prio/"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Queue item identifier",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
-        },
-        "401": {
-          "description": "Credentials are invalid or missing"
-        },
-        "403": {
-          "description": "The credentials are not authorized for this operation"
-        },
-        "404": {
-          "description": "The record does not exist"
+        ],
+        "security": [
+          {
+            "httpBasic": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of queue item objects (See #/components/schemas/dbQueueItem-prio). Empty list if no resources were found",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/dbQueueItem-prio"
+              }
+            }
+          },
+          "401": {
+            "description": "Credentials are invalid or missing"
+          },
+          "403": {
+            "description": "The credentials are not authorized for this operation"
+          },
+          "404": {
+            "description": "The record does not exist"
+          }
         }
       }
     }
@@ -904,13 +904,14 @@
               "description": "A load process report. As default only kept for those processes that didn't handle all the records as expected",
               "type": "object",
               "properties": {
-              "status": {
-                "type": "string",
-                "description": "Http status from load process"
-              },
-              "processId": {
-                "type": "string",
-                "description": "Process id of the load process"}
+                "status": {
+                  "type": "string",
+                  "description": "Http status from load process"
+                },
+                "processId": {
+                  "type": "string",
+                  "description": "Process id of the load process"
+                }
               },
               "processedAll": {
                 "type": "boolean",
@@ -982,7 +983,7 @@
                 "type": "boolean",
                 "description": "Is the operation a noop operation. If true it will not not actually create or update the record in the datastore."
               }
-          }
+            }
           },
           "queueItemState": {
             "type": "string",
@@ -1037,13 +1038,14 @@
               "description": "A load process report. As default only kept for those processes that didn't handle all the records as expected",
               "type": "object",
               "properties": {
-              "status": {
-                "type": "string",
-                "description": "Http status from load process"
-              },
-              "processId": {
-                "type": "string",
-                "description": "Process id of the load process"}
+                "status": {
+                  "type": "string",
+                  "description": "Http status from load process"
+                },
+                "processId": {
+                  "type": "string",
+                  "description": "Process id of the load process"
+                }
               },
               "processedAll": {
                 "type": "boolean",
@@ -1081,8 +1083,8 @@
             "items": {
               "type": "json",
               "$ref": "#/components/schemas/recordValidationReport"
+            }
           }
-        }
         }
       }
     },
