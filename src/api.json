@@ -7,11 +7,15 @@
   "tags": [
     {
       "name": "/v1/bib/",
-      "description": "Operate on bibliographic records"
+      "description": "Operate on single bibliographic records"
     },
     {
       "name": "/v1/bib/bulk/",
-      "description": "Operate on bibliographic records in bulk format"
+      "description": "Operate on bibliographic records in bulk format. Also admin operations for operatiing on bib records in bulk format."
+    },
+    {
+      "name": "/v1/bib/prio/",
+      "description": "Admin operations for operating on single bibliographic records"
     }
   ],
   "paths": {
@@ -486,7 +490,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Array of queue item objects (See #/components/schemas/dbQueueItem-prio & #/components/schemas/dbQueueItem-bulk). Empty list if no resources were found",
+            "description": "Array of queue item objects (See #/components/schemas/dbQueueItem-bulk). Empty list if no resources were found",
             "schema": {
               "type": "array",
               "items": {
@@ -625,6 +629,53 @@
           "404": {
             "description": "Queue item does not exist"
           }
+        }
+      }
+    }
+  },
+  "/v1/bib/prio/": {
+    "get": {
+      "summary": "Retrieve prio queue items",
+      "tags": [
+        "/v1/bib/prio/"
+      ],
+      "produces": [
+        "application/json"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "description": "Queue item identifier",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "security": [
+        {
+          "httpBasic": []
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Array of queue item objects (See #/components/schemas/dbQueueItem-prio). Empty list if no resources were found",
+          "schema": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/dbQueueItem-prio"
+            }
+          }
+        },
+        "401": {
+          "description": "Credentials are invalid or missing"
+        },
+        "403": {
+          "description": "The credentials are not authorized for this operation"
+        },
+        "404": {
+          "description": "The record does not exist"
         }
       }
     }
