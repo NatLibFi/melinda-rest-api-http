@@ -39,7 +39,7 @@ export default async function (mongoUrl) {
   return {create, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
 
   async function create(req, {correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams}) {
-    await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream: req});
+    await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream: req, prio: false});
     logger.verbose('Stream uploaded!');
     return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
   }
