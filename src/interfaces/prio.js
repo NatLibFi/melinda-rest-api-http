@@ -79,7 +79,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.verbose(`Creating Mongo queue item for correlationId ${correlationId}`);
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, unique, prio: true});
     const responseData = await handleRequest({correlationId, headers, data});
-    logger.debug(`prio/create response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
+    logger.silly(`prio/create response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
 
     // Should handle cases where operation was changed by validator
 
@@ -114,7 +114,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, prio: true});
     const responseData = await handleRequest({correlationId, headers, data});
-    logger.debug(`prio/update response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
+    logger.silly(`prio/update response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
     if (responseData.status === 'UPDATED') {
@@ -142,7 +142,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     // We get responseData from check
 
     logger.verbose(`Got response to id: ${correlationId}, status: ${responseData.status}, payload: ${responseData.payload}, messages: ${responseData.messages}`);
-    logger.debug(`interfaces/prio/create/handleRequest: Response data: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}`);
+    logger.silly(`interfaces/prio/create/handleRequest: Response data: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}`);
 
     // Ack message was in check
 
