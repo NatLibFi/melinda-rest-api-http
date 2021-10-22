@@ -1,4 +1,4 @@
-# Melinda REST API for ILS integration [![Build Status](https://travis-ci.org/NatLibFi/melinda-rest-api-http.svg)](https://travis-ci.org/NatLibFi/melinda-rest-api-http) 
+# Melinda REST API for ILS integration 
 Melinda REST API for ILS integration
 
 ### Environment variables
@@ -7,7 +7,7 @@ Melinda REST API for ILS integration
 | ALEPH_USER_LIBRARY | Yes       |                              |
 | ALEPH_X_SVC_URL    | Yes       |                              |
 | ENABLE_PROXY       | Yes       |                              |
-| OWN_AUTHZ_API_KEY: | Yes       |                              |
+| OWN_AUTHZ_API_KEY  | Yes       |                              |
 | OWN_AUTHZ_URL      | Yes       |                              |
 | SRU_URL_BIB        | Yes       |                              |
 | AMQP_URL           | No        | amqp://127.0.0.1:5672/       |
