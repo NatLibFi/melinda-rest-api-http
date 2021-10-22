@@ -50,6 +50,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   return {read, create, update, doQuery};
 
   async function read({id, format}) {
+    logger.info(`Reading record ${id} / ${format}`);
     validateRequestId(id);
     logger.verbose(`Reading record ${id} from sru`);
     const record = await getRecord(id);
@@ -64,6 +65,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
   async function create({data, format, cataloger, oCatalogerIn, noop, unique, correlationId}) {
+    logger.info(`Creating CREATE task for a new record ${correlationId}`);
     logger.verbose('Sending a new record to queue');
     const operation = OPERATIONS.CREATE;
     const headers = {
@@ -98,7 +100,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   async function update({id, data, format, cataloger, oCatalogerIn, noop, correlationId}) {
     validateRequestId(id);
-    logger.info(`Creating updating task for record ${id} / ${correlationId}`);
+    logger.info(`Creating UPDATE task for record ${id} / ${correlationId}`);
     const operation = OPERATIONS.UPDATE;
     const headers = {
       operation,

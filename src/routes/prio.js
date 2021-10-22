@@ -126,7 +126,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       });
 
       // update gets messages as messeages for noop and {status, payload} as messages for non-noop
-      logger.debug(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
+      logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
 
       // Note: noops return OK even if they fail marc-record-validate validations
       return res.status(httpStatus.OK).json(messages);
