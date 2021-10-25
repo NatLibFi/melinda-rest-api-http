@@ -224,31 +224,9 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     const correlationId = result.correlationId || '';
     const {noop} = result.operationSettings;
 
-    // Get responseData from queue for validator errors/messages for noop operations
-    // messageContent: {"data":{"status":409,"payload":["000503874"]}}
-    // This should be removed?
-
-    /*
-    const message = await amqpOperator.checkQueue(correlationId, 'raw', false);
-    logger.silly(`interfaces/prio/check message ${JSON.stringify(message)}`);
-
-    // This has currently responses for noop from validator
-    if (message) {
-      const messageContent = JSON.parse(message.content.toString());
-      logger.silly(`Got messageContent: ${JSON.stringify(messageContent)}`);
-      const responseData = messageContent.data;
-      logger.silly(`Got responseData: ${JSON.stringify(responseData)}`);
-      logger.debug(`interfaces/prio/check Got response to id: ${correlationId}, status: ${responseData.status ? responseData.status : 'unexpected'}, payload: ${responseData.payload ? responseData.payload : 'undefined'}`);
-
-      await amqpOperator.ackMessages([message]);
-      return responseData;
-    }
-    */
-
     // Create responseData for those errors that didn't sendErrorResponse through queue
-    logger.debug(`No message in queue ${correlationId}, responding based on the queueItem`);
+    logger.debug(`Responding for ${correlationId} based on the queueItem`);
     logger.debug(`${result}`);
-
 
     // ResponseData for ERRORs
     if (result.queueItemState === QUEUE_ITEM_STATE.ERROR) {

@@ -10,7 +10,7 @@ export function authorizeKVPOnly(req, res, next) {
     return next();
   }
 
-  return res.status(httpStatus.FORBIDDEN).send('User creditianls do not have permission to use this endpoint');
+  return res.status(httpStatus.FORBIDDEN).send('User credentials do not have permission to use this endpoint');
 }
 
 export function sanitizeCataloger(passportCataloger, queryCataloger) {
