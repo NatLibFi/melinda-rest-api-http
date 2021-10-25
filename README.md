@@ -1,4 +1,7 @@
 # Melinda REST API for ILS integration 
+![Version](https://img.shields.io/github/package-json/v/NatLibFi/melinda-rest-api-commons.svg)
+![Node Version](https://img.shields.io/node/v/@natlibfi/melinda-rest-api-commons.svg)
+
 Melinda REST API for ILS integration
 
 ### Environment variables
