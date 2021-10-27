@@ -1,5 +1,3 @@
-/* eslint-disable max-lines */
-/* eslint-disable max-statements */
 /**
 *
 * @licstart  The following is the entire license notice for the JavaScript code in this file.
@@ -202,11 +200,8 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     }
 
     // If ABORT -> Timeout
-    // Does not read responses from queue:correlationId
-    if (result.queueItemState === QUEUE_ITEM_STATE.ABORT) { // eslint-disable-line functional/no-conditional-statement
-      logger.debug(`Queue item ${correlationId}, state ${result.queueItemState} - Timeout!`);
-      const errorMessage = result.errorMessage || 'Request timeout, try again later';
-      throw new HttpError(httpStatus.REQUEST_TIMEOUT, errorMessage);
+    if (result.queueItemState === QUEUE_ITEM_STATE.ABORT) {
+      return getResponseDataForAbort(result);
     }
 
     if (result.queueItemState === QUEUE_ITEM_STATE.DONE || result.queueItemState === QUEUE_ITEM_STATE.ERROR) {
@@ -215,6 +210,12 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // queueItem state not DONE/ERROR/ABORT - loop back to check status
     return check(correlationId, result.queueItemState, true);
+  }
+
+  function getResponseDataForAbort(result) {
+    logger.debug(`Queue item ${result.correlationId}, state ${result.queueItemState} - Timeout!`);
+    const errorMessage = result.errorMessage || 'Request timeout, try again later';
+    throw new HttpError(httpStatus.REQUEST_TIMEOUT, errorMessage);
   }
 
   // async
@@ -228,24 +229,35 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.debug(`Responding for ${correlationId} based on the queueItem`);
     logger.debug(`${result}`);
 
-    // ResponseData for ERRORs
+    // ResponseData for ERRORs (noop & non-noop)
     if (result.queueItemState === QUEUE_ITEM_STATE.ERROR) {
-      logger.debug(`QueueItemState is ERROR, errorStatus: ${result.errorStatus} errorMessage: ${result.errorMessage}`);
-      const errorStatus = result.errorStatus || httpStatus.INTERNAL_SERVER_ERROR;
-      const responsePayload = result.errorMessage || 'unknown error';
-
-      return {status: errorStatus, payload: responsePayload};
+      return getResponseDataForError(result);
     }
 
     // ResponseData for non-ERROR noops
     if (noop) {
-      logger.debug(`QueueItem is noop!`);
-      const noopOperationStatus = result.operation === OPERATIONS.CREATE ? 'CREATED' : 'UPDATED';
-      const noopMessages = result.noopValidationMessages[0].messages;
-      return {status: noopOperationStatus, messages: noopMessages, payload: ''};
+      return getResponseDataForNoop(result);
     }
 
     // ResponseData for non-ERROR non-noops
+    return getResponseDataForDone(result);
+  }
+
+  function getResponseDataForNoop(result) {
+    logger.debug(`QueueItem is noop!`);
+    const noopOperationStatus = result.operation === OPERATIONS.CREATE ? 'CREATED' : 'UPDATED';
+    const noopMessages = result.noopValidationMessages[0].messages;
+    return {status: noopOperationStatus, messages: noopMessages, payload: ''};
+  }
+
+  function getResponseDataForError(result) {
+    logger.debug(`QueueItemState is ERROR, errorStatus: ${result.errorStatus} errorMessage: ${result.errorMessage}`);
+    const errorStatus = result.errorStatus || httpStatus.INTERNAL_SERVER_ERROR;
+    const responsePayload = result.errorMessage || 'unknown error';
+    return {status: errorStatus, payload: responsePayload};
+  }
+
+  function getResponseDataForDone(result) {
     const handledIds = result.handledIds ? result.handledIds : [];
     const rejectedIds = result.rejectedIds ? result.rejectedIds : [];
 

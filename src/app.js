@@ -1,4 +1,3 @@
-/* eslint-disable max-statements */
 import bodyParser from 'body-parser';
 import express from 'express';
 import httpStatus from 'http-status';
@@ -50,7 +49,6 @@ export default async function ({
 
     return app.listen(httpPort, () => logger.info(`Started Melinda REST API in port ${httpPort}`));
 
-    // eslint-disable-next-line max-statements
     function handleError(err, req, res, next) {
       logger.debug(`App/handleError: Error: ${JSON.stringify(err)}`);
       if (err) {

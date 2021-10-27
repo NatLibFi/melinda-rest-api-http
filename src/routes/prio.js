@@ -1,4 +1,3 @@
-/* eslint-disable max-statements */
 /**
 *
 * @licstart  The following is the entire license notice for the JavaScript code in this file.
@@ -61,7 +60,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       return res.type(type).status(httpStatus.OK)
         .send(record);
     } catch (error) {
-      if (error instanceof HttpError) { // eslint-disable-line functional/no-conditional-statement
+      if (error instanceof HttpError) {
         return res.status(error.status).send(error.payload);
       }
       return next(error);
@@ -99,7 +98,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       // Note: noops return OK even if they fail marc-record-validate validations
       res.status(httpStatus.OK).json(messages);
     } catch (error) {
-      if (error instanceof HttpError) { // eslint-disable-line functional/no-conditional-statement
+      if (error instanceof HttpError) {
         logger.debug(`${JSON.stringify(error)}`);
         return res.status(error.status).send(error.payload);
       }
@@ -131,7 +130,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       // Note: noops return OK even if they fail marc-record-validate validations
       return res.status(httpStatus.OK).json(messages);
     } catch (error) {
-      if (error instanceof HttpError) { // eslint-disable-line functional/no-conditional-statement
+      if (error instanceof HttpError) {
         return res.status(error.status).send(error.payload);
       }
       return next(error);
