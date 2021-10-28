@@ -1,6 +1,6 @@
 # Melinda REST API for ILS integration 
-![Version](https://img.shields.io/github/package-json/v/NatLibFi/melinda-rest-api-commons.svg)
-![Node Version](https://img.shields.io/node/v/@natlibfi/melinda-rest-api-commons.svg)
+![Version](https://img.shields.io/github/package-json/v/NatLibFi/melinda-rest-api-http.svg)
+![Node Version](https://img.shields.io/badge/dynamic/json.svg?url=https%3A%2F%2Fraw.githubusercontent.com%2FNatLibFi%2Fmelinda-rest-api-http%2Fmaster%2Fpackage.json&label=node&query=$.engines.node)
 
 Melinda REST API for ILS integration
 
