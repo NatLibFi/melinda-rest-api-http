@@ -34,6 +34,7 @@ import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/bulk';
+import {authorizeKVPOnly} from './routeUtils';
 
 export default async function (mongoUrl) {
   const logger = createLogger();
@@ -54,7 +55,7 @@ export default async function (mongoUrl) {
 
   async function create(req, res, next) {
     try {
-      logger.log('verbose', 'routes/Bulk create');
+      logger.silly('routes/Bulk create');
       const {operation, recordLoadParams} = Service.validateQueryParams(req.query, req.user.id);
       const params = {
         correlationId: uuid(),
@@ -65,14 +66,14 @@ export default async function (mongoUrl) {
         recordLoadParams
       };
 
-      logger.log('verbose', 'Params done');
+      logger.silly('Params done');
       if (params.operation && OPERATION_TYPES.includes(params.operation)) {
         const response = await Service.create(req, params);
         res.json(response);
         return;
       }
 
-      logger.log('verbose', 'Invalid operation');
+      logger.debug('Invalid operation');
       throw new HttpError(httpStatus.BAD_REQUEST, 'Invalid operation');
     } catch (error) {
       if (error instanceof HttpError) {
@@ -85,29 +86,45 @@ export default async function (mongoUrl) {
 
   function checkContentType(req, res, next) {
     if (req.headers['content-type'] === undefined || !CONTENT_TYPES.includes(req.headers['content-type'])) { // eslint-disable-line functional/no-conditional-statement
-      logger.log('verbose', 'Invalid content type');
+      logger.verbose('Invalid content type');
       throw new HttpError(httpStatus.UNSUPPORTED_MEDIA_TYPE, 'Invalid content-type');
     }
 
     return next();
   }
 
-  async function doQuery(req, res) {
-    logger.log('verbose', 'routes/Bulk doQuery');
-    const response = await Service.doQuery({query: req.query});
-    res.json(response);
+  async function doQuery(req, res, next) {
+    try {
+      logger.silly('routes/Bulk doQuery');
+      const response = await Service.doQuery({query: req.query});
+      res.json(response);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        res.status(error.status).send(error.payload);
+        return;
+      }
+      return next(error);
+    }
   }
 
   /* Functions after this are here only to test purposes */
-  async function readContent(req, res) {
-    logger.log('verbose', 'routes/Bulk readContent');
-    const {contentType, readStream} = await Service.readContent(req.params.id);
-    res.set('content-type', contentType);
-    readStream.pipe(res);
+  async function readContent(req, res, next) {
+    try {
+      logger.silly('routes/Bulk readContent');
+      const {contentType, readStream} = await Service.readContent(req.params.id);
+      res.set('content-type', contentType);
+      readStream.pipe(res);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        res.status(error.status).send(error.payload);
+        return;
+      }
+      return next(error);
+    }
   }
 
   async function remove(req, res, next) {
-    logger.log('verbose', 'routes/Bulk remove');
+    logger.silly('routes/Bulk remove');
     try {
       const response = await Service.remove({oCatalogerIn: req.user.id, correlationId: req.query.id});
       res.json({request: req.query, result: response});
@@ -122,7 +139,7 @@ export default async function (mongoUrl) {
   }
 
   async function removeContent(req, res, next) {
-    logger.log('verbose', 'routes/Bulk removeContent');
+    logger.silly('routes/Bulk removeContent');
     try {
       await Service.removeContent({oCatalogerIn: req.user.id, correlationId: req.params.id});
       res.sendStatus(204);
@@ -133,13 +150,5 @@ export default async function (mongoUrl) {
 
       return next(error);
     }
-  }
-
-  function authorizeKVPOnly(req, res, next) {
-    if (req.user.authorization.includes('KVP')) {
-      return next();
-    }
-
-    return res.status(httpStatus.FORBIDDEN).send('User creditianls do not have permission to use this endpoint');
   }
 }

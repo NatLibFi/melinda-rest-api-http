@@ -2,16 +2,20 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Melinda REST API for ILS integration ",
-    "version": "1.0"
+    "version": "1.1"
   },
   "tags": [
     {
       "name": "/v1/bib/",
-      "description": "Operate on bibliographic records"
+      "description": "Operate on single bibliographic records"
     },
     {
       "name": "/v1/bib/bulk/",
-      "description": "Operate on bibliographic records in bulk format"
+      "description": "Operate on bibliographic records in bulk format. Also admin operations for operatiing on bib records in bulk format."
+    },
+    {
+      "name": "/v1/bib/prio/",
+      "description": "Admin operations for operating on single bibliographic records"
     }
   ],
   "paths": {
@@ -486,7 +490,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Array of queue item objects (See #/components/schemas/dbQueueItem-prio & #/components/schemas/dbQueueItem-bulk). Empty list if no resources were found",
+            "description": "Array of queue item objects (See #/components/schemas/dbQueueItem-bulk). Empty list if no resources were found",
             "schema": {
               "type": "array",
               "items": {
@@ -624,6 +628,53 @@
           },
           "404": {
             "description": "Queue item does not exist"
+          }
+        }
+      }
+    },
+    "/v1/bib/prio/": {
+      "get": {
+        "summary": "Retrieve prio queue items",
+        "tags": [
+          "/v1/bib/prio/"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Queue item identifier",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "httpBasic": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of queue item objects (See #/components/schemas/dbQueueItem-prio). Empty list if no resources were found",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/dbQueueItem-prio"
+              }
+            }
+          },
+          "401": {
+            "description": "Credentials are invalid or missing"
+          },
+          "403": {
+            "description": "The credentials are not authorized for this operation"
+          },
+          "404": {
+            "description": "The record does not exist"
           }
         }
       }
@@ -769,6 +820,10 @@
             "type": "string",
             "description": "The identifier of cataloger"
           },
+          "oCatalogerIn": {
+            "type": "string",
+            "description": "The identifier of cataloger used in actually saving the record"
+          },
           "operation": {
             "type": "string",
             "description": "The request operation type",
@@ -776,6 +831,15 @@
               "CREATE",
               "UPDATE"
             ]
+          },
+          "operationSettings": {
+            "type": "object",
+            "properties": {
+              "prio": {
+                "type": "boolean",
+                "description": "The operation is a prio operation"
+              }
+            }
           },
           "contentType": {
             "type": "string",
@@ -793,11 +857,14 @@
             "enum": [
               "DONE",
               "ERROR",
-              "IN_PROCESS",
-              "IN_QUEUE",
-              "PENDING_QUEUING",
-              "QUEUING_IN_PROGRESS",
-              "UPLOADING"
+              "IMPORTER.IN_PROCESS",
+              "IMPORTER.IN_QUEUE",
+              "IMPORTER.IMPORTING",
+              "VALIDATOR.PENDING_QUEUING",
+              "VALIDATOR.QUEUING_IN_PROGRESS",
+              "VALIDATOR.UPLOADING",
+              "VALIDATOR.PENDING_VALIDATION",
+              "VALIDATOR.VALIDATING"
             ]
           },
           "creationTime": {
@@ -814,6 +881,67 @@
               "type": "string",
               "description": "Handled record id"
             }
+          },
+          "rejectedIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Rejected record id"
+            }
+          },
+          "errorStatus": {
+            "type": "string",
+            "description": "httpError status for an errrored job"
+          },
+          "errorMessages": {
+            "type": "string",
+            "description": "Error message for an errrored job"
+          },
+          "loadProcessReports": {
+            "description": "Array of load process reports for job.",
+            "type": "array",
+            "items": {
+              "description": "A load process report. As default only kept for those processes that didn't handle all the records as expected",
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "description": "Http status from load process"
+                },
+                "processId": {
+                  "type": "string",
+                  "description": "Process id of the load process"
+                }
+              },
+              "processedAll": {
+                "type": "boolean",
+                "description": "Did load process process all the records"
+              },
+              "recordAmount": {
+                "type": "number",
+                "description": "Number of records given to the load process"
+              },
+              "processedAmount": {
+                "type": "number",
+                "description": "Number of records processed (handled or rejected) by the load process"
+              },
+              "handledAmount": {
+                "type": "number",
+                "description": "Number of records handled (updated or created) by the load process"
+              },
+              "rejectedAmount": {
+                "type": "number",
+                "description": "Number of records rejected by the load process"
+              },
+              "rejectMessages": {
+                "type": "array",
+                "description": "Reject messages given by the load process for the rejected records",
+                "items": {
+                  "type": "string",
+                  "description": "A reject message given by the load process for a single rejected record"
+                }
+              }
+            }
           }
         }
       },
@@ -828,6 +956,10 @@
             "type": "string",
             "description": "The identifier of cataloger"
           },
+          "oCatalogerIn": {
+            "type": "string",
+            "description": "The identifier of cataloger used in actually saving the record"
+          },
           "operation": {
             "type": "string",
             "description": "The request operation type",
@@ -836,14 +968,34 @@
               "UPDATE"
             ]
           },
+          "operationSettings": {
+            "type": "object",
+            "properties": {
+              "prio": {
+                "type": "boolean",
+                "description": "The operation is a prio operation"
+              },
+              "unique": {
+                "type": "boolean",
+                "description": "Is the create operation a unique operation. If true, it does not create the record if there are duplicates in the datastore."
+              },
+              "noop": {
+                "type": "boolean",
+                "description": "Is the operation a noop operation. If true it will not not actually create or update the record in the datastore."
+              }
+            }
+          },
           "queueItemState": {
             "type": "string",
             "description": "The request queue item state",
             "enum": [
-              "PENDING_VALIDATION",
-              "VALIDATING",
-              "VALIDATED",
-              "IMPORTING",
+              "IMPORTER.IN_PROCESS",
+              "IMPORTER.IN_QUEUE",
+              "IMPORTER.IMPORTING",
+              "VALIDATOR.PENDING_QUEUING",
+              "VALIDATOR.QUEUING_IN_PROGRESS",
+              "VALIDATOR.PENDING_VALIDATION",
+              "VALIDATOR.VALIDATING",
               "DONE",
               "ERROR",
               "ABORT"
@@ -857,14 +1009,81 @@
             "type": "string",
             "description": "Last modification time of the request"
           },
-          "handledId": {
+          "handledIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Handled record id"
+            }
+          },
+          "rejectedIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Rejected record id"
+            }
+          },
+          "errorStatus": {
             "type": "string",
-            "description": "Handled record id",
-            "enum": [
-              "000000000",
-              "",
-              "undefined"
-            ]
+            "description": "httpError status for an errrored job"
+          },
+          "errorMessages": {
+            "type": "string",
+            "description": "Error message for an errrored job"
+          },
+          "loadProcessReports": {
+            "description": "Array of load process reports for job.",
+            "type": "array",
+            "items": {
+              "description": "A load process report. As default only kept for those processes that didn't handle all the records as expected",
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "description": "Http status from load process"
+                },
+                "processId": {
+                  "type": "string",
+                  "description": "Process id of the load process"
+                }
+              },
+              "processedAll": {
+                "type": "boolean",
+                "description": "Did load process process all the records"
+              },
+              "recordAmount": {
+                "type": "number",
+                "description": "Number of records given to the load process"
+              },
+              "processedAmount": {
+                "type": "number",
+                "description": "Number of records processed (handled or rejected) by the load process"
+              },
+              "handledAmount": {
+                "type": "number",
+                "description": "Number of records handled (updated or created) by the load process"
+              },
+              "rejectedAmount": {
+                "type": "number",
+                "description": "Number of records rejected by the load process"
+              },
+              "rejectMessages": {
+                "type": "array",
+                "description": "Reject messages given by the load process for the rejected records",
+                "items": {
+                  "type": "string",
+                  "description": "A reject message given by the load process for a single rejected record"
+                }
+              }
+            }
+          },
+          "noopValidationMessages": {
+            "type": "array",
+            "description": "An array of validation messages given by validation to the record in a noop operation",
+            "items": {
+              "type": "json",
+              "$ref": "#/components/schemas/recordValidationReport"
+            }
           }
         }
       }

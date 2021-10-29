@@ -20,7 +20,7 @@ export default async function ({
 
   // Soft shutdown function
   server.on('close', () => {
-    logger.log('info', 'Initiating soft shutdown of Melinda REST API');
+    logger.info('Initiating soft shutdown of Melinda REST API');
     // Things that need soft shutdown
     // Needs amqp disconnect?
     // Needs mongo disconnect?
@@ -47,23 +47,23 @@ export default async function ({
     app.use('/', await createPrioRouter({sruUrl, amqpUrl, mongoUri, pollWaitTime}));
     app.use(handleError);
 
-    return app.listen(httpPort, () => logger.log('info', `Started Melinda REST API in port ${httpPort}`));
+    return app.listen(httpPort, () => logger.info(`Started Melinda REST API in port ${httpPort}`));
 
     function handleError(err, req, res, next) {
-      logger.log('info', 'App/handleError');
+      logger.debug(`App/handleError: Error: ${JSON.stringify(err)}`);
       if (err) {
         logError(err);
         if (err instanceof ApiError) {
-          logger.log('debug', 'Responding expected');
+          logger.debug('Responding expected');
           return res.status(err.status).send(err.payload);
         }
 
         if (req.aborted) {
-          logger.log('debug', 'Responding timeout');
+          logger.debug('Responding timeout');
           return res.status(httpStatus.REQUEST_TIMEOUT).send(httpStatus['504_MESSAGE']);
         }
 
-        logger.log('debug', 'Responding unexpected');
+        logger.debug('Responding unexpected');
         return res.sendStatus(httpStatus.INTERNAL_SERVER_ERROR);
       }
 

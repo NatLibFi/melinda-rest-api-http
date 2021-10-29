@@ -28,6 +28,7 @@
 
 import {parseBoolean} from '@natlibfi/melinda-commons';
 import {readEnvironmentVariable} from '@natlibfi/melinda-backend-commons';
+import {conversionFormats} from '@natlibfi/melinda-rest-api-commons';
 
 export const httpPort = readEnvironmentVariable('HTTP_PORT', {defaultValue: '8080'});
 export const enableProxy = readEnvironmentVariable('ENABLE_PROXY', {defaultValue: false, format: v => parseBoolean(v)});
@@ -47,3 +48,9 @@ export const amqpUrl = readEnvironmentVariable('AMQP_URL', {defaultValue: 'amqp:
 export const mongoUri = readEnvironmentVariable('MONGO_URI', {defaultValue: 'mongodb://127.0.0.1:27017/db'});
 
 export const pollWaitTime = readEnvironmentVariable('POLL_WAIT_TIME', {defaultValue: 100, format: v => Number(v)});
+
+export const CONTENT_TYPES = {
+  'application/json': conversionFormats.JSON,
+  'application/marc': conversionFormats.ISO2709,
+  'application/xml': conversionFormats.MARCXML
+};

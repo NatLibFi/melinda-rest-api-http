@@ -27,35 +27,31 @@
 */
 
 import {Router} from 'express';
+import {inspect} from 'util';
 import passport from 'passport';
 import {v4 as uuid} from 'uuid';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
-import {conversionFormats} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/prio';
 import httpStatus from 'http-status';
+import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger} from './routeUtils';
+import {CONTENT_TYPES} from '../config';
 
 export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
   const logger = createLogger();
-  const CONTENT_TYPES = {
-    'application/json': conversionFormats.JSON,
-    'application/marc': conversionFormats.ISO2709,
-    'application/xml': conversionFormats.MARCXML
-  };
-
   const Service = await createService({
     sruUrl, amqpUrl, mongoUri, pollWaitTime
   });
 
   return new Router()
     .use(passport.authenticate('melinda', {session: false}))
-    .get('/:id', readResource)
-    .use(checkContentType)
-    .post('/', createResource)
-    .post('/:id', updateResource);
+    .get('/prio/', authorizeKVPOnly, getPrioLogs)
+    .get('/:id', checkAcceptHeader, readResource)
+    .post('/', checkContentType, createResource)
+    .post('/:id', checkContentType, updateResource);
 
   async function readResource(req, res, next) {
-    logger.log('verbose', 'routes/Prio readResource');
+    logger.silly('routes/Prio readResource');
     try {
       const type = req.headers.accept;
       const format = CONTENT_TYPES[type];
@@ -64,7 +60,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       return res.type(type).status(httpStatus.OK)
         .send(record);
     } catch (error) {
-      if (error instanceof HttpError) { // eslint-disable-line functional/no-conditional-statement
+      if (error instanceof HttpError) {
         return res.status(error.status).send(error.payload);
       }
       return next(error);
@@ -72,7 +68,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
   }
 
   async function createResource(req, res, next) {
-    logger.log('verbose', 'routes/Prio createResource');
+    logger.silly('routes/Prio createResource');
     try {
       const type = req.headers['content-type'];
       const format = CONTENT_TYPES[type];
@@ -89,15 +85,21 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         correlationId
       });
 
+      // create returns: {messages:<messages> id:<id>}
+      logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
+      logger.silly(`id: ${inspect(id, {colors: true, maxArrayLength: 3, depth: 1})}`);
+
       if (!noop) {
         res.status(httpStatus.CREATED).set('Record-ID', id)
           .json(messages);
         return;
       }
 
+      // Note: noops return OK even if they fail marc-record-validate validations
       res.status(httpStatus.OK).json(messages);
     } catch (error) {
-      if (error instanceof HttpError) { // eslint-disable-line functional/no-conditional-statement
+      if (error instanceof HttpError) {
+        logger.debug(`${JSON.stringify(error)}`);
         return res.status(error.status).send(error.payload);
       }
       return next(error);
@@ -105,7 +107,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
   }
 
   async function updateResource(req, res, next) {
-    logger.log('verbose', 'routes/Prio updateResource');
+    logger.silly('routes/Prio updateResource');
     try {
       const type = req.headers['content-type'];
       const format = CONTENT_TYPES[type];
@@ -122,35 +124,22 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         correlationId
       });
 
+      // update gets messages as messeages for noop and {status, payload} as messages for non-noop
+      logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
+
+      // Note: noops return OK even if they fail marc-record-validate validations
       return res.status(httpStatus.OK).json(messages);
     } catch (error) {
-      if (error instanceof HttpError) { // eslint-disable-line functional/no-conditional-statement
+      if (error instanceof HttpError) {
         return res.status(error.status).send(error.payload);
       }
       return next(error);
     }
   }
 
-  function checkContentType(req, res, next) {
-    if (req.headers['content-type'] === undefined || !CONTENT_TYPES[req.headers['content-type']]) {
-      logger.log('verbose', 'Invalid content type');
-      return res.status(httpStatus.UNSUPPORTED_MEDIA_TYPE).send('Invalid content-type');
-    }
-
-    return next();
-  }
-
-  function sanitizeCataloger(passportCataloger, queryCataloger) {
-    const {id, authorization} = passportCataloger;
-
-    if (authorization.includes('KVP') && queryCataloger) {
-      return {id: queryCataloger, authorization};
-    }
-
-    if (!authorization.includes('KVP') && queryCataloger !== undefined) { // eslint-disable-line functional/no-conditional-statement
-      throw new HttpError(httpStatus.FORBIDDEN, 'Account has no permission to do this request');
-    }
-
-    return {id, authorization};
+  async function getPrioLogs(req, res) {
+    logger.silly('routes/Bulk doQuery');
+    const response = await Service.doQuery({query: req.query});
+    res.json(response);
   }
 };

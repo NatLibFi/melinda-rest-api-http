@@ -1,4 +1,6 @@
-# Melinda REST API for ILS integration [![Build Status](https://travis-ci.org/NatLibFi/melinda-rest-api-http.svg)](https://travis-ci.org/NatLibFi/melinda-rest-api-http) [![Test Coverage](https://codeclimate.com/github/NatLibFi/melinda-rest-api-http/badges/coverage.svg)](https://codeclimate.com/github/NatLibFi/melinda-rest-api-http/coverage)
+# Melinda REST API for ILS integration 
+![Version](https://img.shields.io/github/package-json/v/NatLibFi/melinda-rest-api-http.svg)
+![Node Version](https://img.shields.io/badge/dynamic/json.svg?url=https%3A%2F%2Fraw.githubusercontent.com%2FNatLibFi%2Fmelinda-rest-api-http%2Fmaster%2Fpackage.json&label=node&query=$.engines.node)
 
 Melinda REST API for ILS integration
 
@@ -8,7 +10,7 @@ Melinda REST API for ILS integration
 | ALEPH_USER_LIBRARY | Yes       |                              |
 | ALEPH_X_SVC_URL    | Yes       |                              |
 | ENABLE_PROXY       | Yes       |                              |
-| OWN_AUTHZ_API_KEY: | Yes       |                              |
+| OWN_AUTHZ_API_KEY  | Yes       |                              |
 | OWN_AUTHZ_URL      | Yes       |                              |
 | SRU_URL_BIB        | Yes       |                              |
 | AMQP_URL           | No        | amqp://127.0.0.1:5672/       |
@@ -22,6 +24,6 @@ https://rest.api.melinda-test.kansalliskirjasto.fi/apidoc/v1/bib/
 
 ## License and copyright
 
-Copyright (c) 2018-2020 **University Of Helsinki (The National Library Of Finland)**
+Copyright (c) 2018-2021 **University Of Helsinki (The National Library Of Finland)**
 
 This project's source code is licensed under the terms of **GNU Affero General Public License Version 3** or any later version.

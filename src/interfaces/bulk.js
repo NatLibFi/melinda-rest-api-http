@@ -7,8 +7,7 @@
 * Copyright (C) 2018-2019 University Of Helsinki (The National Library Of Finland)
 *
 * This file is part of melinda-rest-api-http
-*
-* melinda-rest-api-http program is free software: you can redistribute it and/or modify
+** melinda-rest-api-http program is free software: you can redistribute it and/or modify
 * it under the terms of the GNU Affero General Public License as
 * published by the Free Software Foundation, either version 3 of the
 * License, or (at your option) any later version.
@@ -30,20 +29,22 @@ import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {mongoFactory, QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
 import httpStatus from 'http-status';
+import sanitize from 'mongo-sanitize';
 
 export default async function (mongoUrl) {
   const logger = createLogger();
-  const mongoOperator = await mongoFactory(mongoUrl);
+  const mongoOperator = await mongoFactory(mongoUrl, 'bulk');
 
   return {create, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
 
   async function create(req, {correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams}) {
-    await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream: req});
-    logger.log('verbose', 'Stream uploaded!');
-    return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.PENDING_QUEUING});
+    await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream: req, prio: false});
+    logger.verbose('Stream uploaded!');
+    return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
   }
 
   function readContent(correlationId) {
+    logger.debug(`Reading content for ${correlationId}`);
     if (correlationId) {
       return mongoOperator.readContent(correlationId);
     }
@@ -67,14 +68,19 @@ export default async function (mongoUrl) {
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  function doQuery({query}) {
+  function doQuery(incomingParams) {
     // Query filters oCatalogerIn, correlationId, operation
+    // currently filters only by correlationId
+
+    const {query} = incomingParams;
+    const foundId = Boolean(query.id);
+    const clean = foundId ? sanitize(query.id) : '';
+
     const params = {
-      correlationId: query.id ? query.id : {$ne: null}
+      correlationId: foundId ? clean : {$ne: null}
     };
 
-    logger.log('debug', `Queue items querried`);
-    logger.log('debug', JSON.stringify(params));
+    logger.debug(`Queue items querried with params: ${JSON.stringify(params)}`);
 
     if (params) {
       return mongoOperator.query(params);
@@ -84,8 +90,16 @@ export default async function (mongoUrl) {
   }
 
   function validateQueryParams(queryParams) {
+
+    logger.silly(`bulk/validateQueryParams: queryParams: ${JSON.stringify(queryParams)}`);
     if (queryParams.pOldNew && queryParams.pActiveLibrary) {
       const {pOldNew} = queryParams;
+
+      if (pOldNew !== 'NEW' && pOldNew !== 'OLD') {
+        logger.debug(`bulk/validateQueryParams: invalid pOldNew: ${JSON.stringify(pOldNew)}`);
+        throw new HttpError(httpStatus.BAD_REQUEST, `Invalid pOldNew query parameter '${pOldNew}'. (Valid values: OLD/NEW)`);
+      }
+
       const operation = pOldNew === 'NEW' ? 'CREATE' : 'UPDATE';
       const recordLoadParams = {
         pActiveLibrary: queryParams.pActiveLibrary,
@@ -98,7 +112,8 @@ export default async function (mongoUrl) {
       return {operation, recordLoadParams};
     }
 
-    throw new HttpError(httpStatus.BAD_REQUEST);
+    logger.debug(`bulk/validateQueryParams: mandatory query param missing: pOldNew: ${JSON.stringify(queryParams.pOldNew)}, pActiveLibrary: ${JSON.stringify(queryParams.pActiveLibrary)}`);
+    throw new HttpError(httpStatus.BAD_REQUEST, 'Missing one or more mandatory query parameters. (pActiveLibrary, pOldNew)');
   }
 
   function checkCataloger(id, paramsId) {
