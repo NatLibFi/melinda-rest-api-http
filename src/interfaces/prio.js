@@ -295,7 +295,6 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     return {status: responseStatus, payload: responsePayload || ''};
   }
 
-
   function doQuery({query}) {
     // Query filters oCatalogerIn, correlationId, operation
     // Note currently only id works!
