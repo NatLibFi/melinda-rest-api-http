@@ -83,7 +83,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     // Should handle cases where operation was changed by validator
 
     if (responseData.status === 'CREATED') {
-      //await mongoOperator.remove({correlationId});
+
       if (noop) {
         return {messages: responseData.messages, id: undefined};
       }
@@ -117,7 +117,6 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
     if (responseData.status === 'UPDATED') {
-      //await mongoOperator.remove({correlationId});
 
       if (noop) {
         return responseData.messages;
