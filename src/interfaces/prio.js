@@ -78,12 +78,12 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, unique, prio: true});
     const responseData = await handleRequest({correlationId, headers, data});
     logger.silly(`prio/create response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
+    cleanMongo(correlationId);
 
     // Should handle cases where operation was changed by validator
 
     if (responseData.status === 'CREATED') {
-      // If we want to retain data also for prio in mongo do not remove mongo item here
-      await mongoOperator.remove({correlationId});
+
       if (noop) {
         return {messages: responseData.messages, id: undefined};
       }
@@ -113,10 +113,10 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, prio: true});
     const responseData = await handleRequest({correlationId, headers, data});
     logger.silly(`prio/update response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
+    cleanMongo(correlationId);
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
     if (responseData.status === 'UPDATED') {
-      await mongoOperator.remove({correlationId});
 
       if (noop) {
         return responseData.messages;
@@ -127,6 +127,25 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // Note: if validator changed the operation -> this errors currently
     throw new HttpError(responseData.status, responseData.payload || '');
+  }
+
+  async function cleanMongo(correlationId) {
+    const result = await mongoOperator.queryById(correlationId, true);
+    logger.silly(` ${inspect(result, {colors: true, maxArrayLength: 3, depth: 1})}}`);
+
+    // These could be configurable
+
+    if (result.queueItemState === 'DONE') {
+      logger.debug(`queueItemState: DONE, removing prio queueItem for ${correlationId}`);
+      mongoOperator.remove({correlationId});
+      return;
+    }
+
+    if (result.queueItemState === 'ERROR' && result.errorStatus === httpStatus.CONFLICT) {
+      logger.debug(`queueItemState: ERROR, errorStatus: CONFLICT, removing prio queueItem for ${correlationId}`);
+      mongoOperator.remove({correlationId});
+      return;
+    }
   }
 
   async function handleRequest({correlationId, headers, data}) {
@@ -275,6 +294,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     return {status: responseStatus, payload: responsePayload || ''};
   }
+
 
   function doQuery({query}) {
     // Query filters oCatalogerIn, correlationId, operation
