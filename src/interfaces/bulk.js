@@ -35,12 +35,44 @@ export default async function (mongoUrl) {
   const logger = createLogger();
   const mongoOperator = await mongoFactory(mongoUrl, 'bulk');
 
-  return {create, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
+  return {create, addRecord, getState, updateState, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
 
-  async function create(req, {correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams}) {
-    await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream: req, prio: false});
+  async function create({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream}) {
+    await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, prio: false});
     logger.verbose('Stream uploaded!');
     return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
+  }
+
+  async function addRecord({correlationId, contentType, stream}) {
+    // asses rabbit queue for correlationId
+    if (stream) {
+      logger.debug('Got stream');
+      // Read record from stream using serializer
+      logger.debug(`Using ${contentType} stream reader for parsing record`);
+      logger.debug(`Adding record for ${correlationId}`);
+      await Promise.all([]);
+      return {status: '202', payload: `Record have been added to bulk ${correlationId}`};
+    }
+  }
+
+  async function getState({correlationId}) {
+    logger.debug(`Getting current state of ${correlationId}`);
+    const {queueItemState: state, modificationTime} = await doQuery({query: {id: correlationId}});
+    if (state) {
+      return {status: 200, payload: {correlationId, state, modificationTime}};
+    }
+
+    return {status: 404, payload: `Item not found for id: ${correlationId}`};
+  }
+
+  async function updateState({correlationId, state}) {
+    logger.debug(`Updating current state of ${correlationId}`);
+    const {queueItemState, modificationTime} = await mongoOperator.setState({correlationId, state});
+    if (queueItemState) {
+      return {status: 200, payload: {correlationId, state: queueItemState, modificationTime}};
+    }
+
+    return {status: 404, payload: `Item not found for id: ${correlationId}`};
   }
 
   function readContent(correlationId) {

@@ -50,7 +50,10 @@ export const mongoUri = readEnvironmentVariable('MONGO_URI', {defaultValue: 'mon
 export const pollWaitTime = readEnvironmentVariable('POLL_WAIT_TIME', {defaultValue: 100, format: v => Number(v)});
 
 export const CONTENT_TYPES = {
-  'application/json': conversionFormats.JSON,
-  'application/marc': conversionFormats.ISO2709,
-  'application/xml': conversionFormats.MARCXML
+  'prio': {
+    'application/json': conversionFormats.JSON,
+    'application/marc': conversionFormats.ISO2709,
+    'application/xml': conversionFormats.MARCXML
+  },
+  'bulk': ['application/xml', 'application/marc', 'application/json', 'application/alephseq']
 };

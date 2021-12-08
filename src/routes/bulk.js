@@ -31,44 +31,47 @@ import httpStatus from 'http-status';
 import passport from 'passport';
 import {v4 as uuid} from 'uuid';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
-import {Error as HttpError} from '@natlibfi/melinda-commons';
+import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/bulk';
-import {authorizeKVPOnly} from './routeUtils';
+import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils';
 
 export default async function (mongoUrl) {
   const logger = createLogger();
 
-  const CONTENT_TYPES = ['application/xml', 'application/marc', 'application/json', 'application/alephseq'];
   const OPERATION_TYPES = [OPERATIONS.CREATE, OPERATIONS.UPDATE];
   const Service = await createService(mongoUrl);
 
   return new Router()
     .use(passport.authenticate('melinda', {session: false}))
     .use(authorizeKVPOnly)
-    .get('/:id', readContent)
     .get('/', doQuery)
-    .delete('/:id', removeContent)
-    .delete('/', remove)
-    .use(checkContentType)
-    .post('/', create);
+    .get('/content/:id', checkId, readContent)
+    .get('/state/:id', checkId, getState)
+    .put('/state/:id', checkId, updateState)
+    .delete('/:id', checkId, remove)
+    .delete('/content/:id', checkId, removeContent)
+    .post('/', checkContentType, create)
+    .post('/:id', checkContentType, checkId, addRecordToBulk);
 
   async function create(req, res, next) {
     try {
       logger.silly('routes/Bulk create');
+      const noStream = parseBoolean(req.query.noStream);
       const {operation, recordLoadParams} = Service.validateQueryParams(req.query, req.user.id);
       const params = {
         correlationId: uuid(),
         cataloger: Service.checkCataloger(req.user.id, req.query.pCatalogerIn),
         oCatalogerIn: req.user.id,
-        operation,
         contentType: req.headers['content-type'],
-        recordLoadParams
+        operation,
+        recordLoadParams,
+        stream: noStream ? false : req
       };
 
       logger.silly('Params done');
       if (params.operation && OPERATION_TYPES.includes(params.operation)) {
-        const response = await Service.create(req, params);
+        const response = await Service.create(params);
         res.json(response);
         return;
       }
@@ -84,13 +87,22 @@ export default async function (mongoUrl) {
     }
   }
 
-  function checkContentType(req, res, next) {
-    if (req.headers['content-type'] === undefined || !CONTENT_TYPES.includes(req.headers['content-type'])) { // eslint-disable-line functional/no-conditional-statement
-      logger.verbose('Invalid content type');
-      throw new HttpError(httpStatus.UNSUPPORTED_MEDIA_TYPE, 'Invalid content-type');
-    }
+  async function addRecordToBulk(req, res, next) {
+    logger.silly('routes/Bulk addRecordToBulk');
 
-    return next();
+    try {
+      const contentType = req.headers['content-type'];
+      const response = await Service.addRecord({correlationId: req.params.id, contentType, stream: req});
+
+      res.status(response.status).json(response.payload);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        res.status(error.status).send(error.payload);
+        return;
+      }
+
+      return next(error);
+    }
   }
 
   async function doQuery(req, res, next) {
@@ -98,6 +110,35 @@ export default async function (mongoUrl) {
       logger.silly('routes/Bulk doQuery');
       const response = await Service.doQuery({query: req.query});
       res.json(response);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        res.status(error.status).send(error.payload);
+        return;
+      }
+      return next(error);
+    }
+  }
+
+  async function getState(req, res, next) {
+    try {
+      logger.silly('routes/Bulk getStatus');
+      const response = await Service.getState({correlationId: req.params.id});
+      res.status(response.status).json(response.payload);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        res.status(error.status).send(error.payload);
+        return;
+      }
+      return next(error);
+    }
+  }
+
+  async function updateState(req, res, next) {
+    try {
+      logger.silly('routes/Bulk updateStatus');
+      const {state} = req.query;
+      const response = await Service.updateState({correlationId: req.params.id, state});
+      res.status(response.status).json(response.payload);
     } catch (error) {
       if (error instanceof HttpError) {
         res.status(error.status).send(error.payload);
