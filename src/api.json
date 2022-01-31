@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Melinda REST API for ILS integration ",
-    "version": "1.1"
+    "version": "1.2"
   },
   "tags": [
     {
@@ -120,11 +120,11 @@
             "description": "The request has timed out"
           },
           "409": {
-            "description": "The record has a duplicate in the datastore and **unique** was set to true",
+            "description": "There is conflict that prevents creating/updating the record to the datastore. Either the record has a duplicate in the datastore or there too many possible duplicates in the datastore (and **unique** was set to true) while creating a record -  or the request contains outdated data while updating the record",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/recordDuplicateReport"
+                    "$ref": "#/components/schemas/recordConflictReport"
                 }
               }
             }
@@ -234,7 +234,14 @@
             "description": "The request has timed out"
           },
           "409": {
-            "description": "The request contains out of date record data"
+            "description": "The request contains out of date record data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/recordConflictReport"
+                }
+              }
+            }
           },
           "415": {
             "description": "The request is in a format that is not supported"
@@ -283,6 +290,7 @@
         ],
         "responses": {
           "200": {
+            "description": "Retrieved a record",
             "content": {
               "application/json": {
                 "schema": {
@@ -443,11 +451,11 @@
             "description": "The credentials are not authorized for this operation, i.e. the user does not have the permission to change the owner metadata of the record"
           },
           "409": {
-            "description": "The record has a duplicate in the datastore and **unique** was set to true",
+            "description": "There is conflict that prevents creating/updating the record to the datastore. Either the record has a duplicate in the datastore or there too many possible duplicates in the datastore (and **unique** was set to true) while creating a record -  or the request contains outdated data while updating the record",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/recordDuplicateReport"
+                  "$ref": "#/components/schemas/recordConflictReport"
                 }
               }
             }
@@ -469,9 +477,6 @@
         "tags": [
           "/v1/bib/bulk/"
         ],
-        "produces": [
-          "application/json"
-        ],
         "parameters": [
           {
             "name": "id",
@@ -491,12 +496,16 @@
         "responses": {
           "200": {
             "description": "Array of queue item objects (See #/components/schemas/dbQueueItem-bulk). Empty list if no resources were found",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/dbQueueItem-bulk"
+            "content": {
+              "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/dbQueueItem-bulk"
+                }
               }
             }
+          }
           },
           "401": {
             "description": "Credentials are invalid or missing"
@@ -513,9 +522,6 @@
         "summary": "Remove queue item",
         "tags": [
           "/v1/bib/bulk/"
-        ],
-        "produces": [
-          "application/json"
         ],
         "parameters": [
           {
@@ -536,8 +542,12 @@
         "responses": {
           "200": {
             "description": "Queue item removal report",
-            "schema": {
-              "$ref": "#/components/schemas/queueItemRemoveResponse"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/queueItemRemoveResponse"
+                 }
+               }
             }
           },
           "401": {
@@ -557,9 +567,6 @@
         "summary": "Retrieve queue item content",
         "tags": [
           "/v1/bib/bulk/"
-        ],
-        "produces": [
-          "application/json"
         ],
         "parameters": [
           {
@@ -596,9 +603,6 @@
         "summary": "Remove queue item content",
         "tags": [
           "/v1/bib/bulk/"
-        ],
-        "produces": [
-          "application/json"
         ],
         "parameters": [
           {
@@ -638,9 +642,6 @@
         "tags": [
           "/v1/bib/prio/"
         ],
-        "produces": [
-          "application/json"
-        ],
         "parameters": [
           {
             "name": "id",
@@ -660,10 +661,14 @@
         "responses": {
           "200": {
             "description": "Array of queue item objects (See #/components/schemas/dbQueueItem-prio). Empty list if no resources were found",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/dbQueueItem-prio"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/dbQueueItem-prio"
+                  }
+                }
               }
             }
           },
@@ -688,19 +693,49 @@
       }
     },
     "schemas": {
-      "recordDuplicateReport": {
-        "type": "array",
-        "items": {
-          "type": "string"
-        },
-        "example": [
-          "000001234"
+      "recordConflictReport": {
+        "type": "object",
+        "oneOf": [
+          { "$ref": "#/components/schemas/recordConflictReportWithIds"},
+          { "$ref": "#/components/schemas/recordConflictReportWithoutIds"}
         ]
+      },
+      "recordConflictReportWithIds": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "example": {
+          "message": "Duplicates in database",
+          "ids": [
+            "000001234"
+          ]
+        }
+      },
+      "recordConflictReportWithoutIds": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "example":
+        {
+          "message": "Matcher found too many candidates to check"
+        }
       },
       "recordValidationReport": {
         "type": "array",
         "items": {
-          "type": "json"
+          "type": "object"
         },
         "example": [
           {
@@ -733,50 +768,46 @@
       },
       "marcRecord": {
         "type": "object",
+        "required": ["leader", "fields"],
         "properties": {
           "leader": {
             "type": "string"
           },
           "fields": {
             "type": "array",
-            "required": true,
             "items": {
-              "type": "object",
-              "properties": {
                 "oneOf": [
                   {
                     "type": "object",
+                    "required": ["tag", "value"],
                     "properties": {
                       "tag": {
-                        "type": "string",
-                        "required": true
+                        "type": "string"
                       },
                       "value": {
-                        "type": "string",
-                        "required": true
+                        "type": "string"
                       }
                     }
                   },
                   {
                     "type": "object",
+                    "required": ["tag", "subfields"],
                     "properties": {
+
                       "tag": {
-                        "type": "string",
-                        "required": true
+                        "type": "string"
                       },
                       "subfields": {
                         "type": "array",
-                        "required": true,
                         "items": {
                           "type": "object",
+                          "required": ["code", "value"],
                           "properties": {
                             "code": {
-                              "type": "string",
-                              "required": true
+                              "type": "string"
                             },
                             "value": {
-                              "type": "string",
-                              "required": true
+                              "type": "string"
                             }
                           }
                         }
@@ -786,8 +817,7 @@
                 ]
               }
             }
-          }
-        },
+          },
         "example": {
           "leader": "",
           "fields": [
@@ -911,8 +941,7 @@
                 "processId": {
                   "type": "string",
                   "description": "Process id of the load process"
-                }
-              },
+                },
               "processedAll": {
                 "type": "boolean",
                 "description": "Did load process process all the records"
@@ -944,6 +973,7 @@
             }
           }
         }
+      }
       },
       "dbQueueItem-prio": {
         "type": "object",
@@ -1045,8 +1075,7 @@
                 "processId": {
                   "type": "string",
                   "description": "Process id of the load process"
-                }
-              },
+                },
               "processedAll": {
                 "type": "boolean",
                 "description": "Did load process process all the records"
@@ -1076,6 +1105,7 @@
                 }
               }
             }
+            }
           },
           "noopValidationMessages": {
             "type": "array",
@@ -1089,11 +1119,15 @@
       }
     },
     "examples": {
-      "MARCXML": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><record><leader>00000cam a22003494i 4500</leader><datafield tag=\"245\" ind1=\"0\" ind2=\" \"><subfield code=\"a\">foo</subfield></datafield></record>",
+      "MARCXML": {
+        "value": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><record><leader>00000cam a22003494i 4500</leader><datafield tag=\"245\" ind1=\"0\" ind2=\" \"><subfield code=\"a\">foo</subfield></datafield></record>"
+      },
       "ISO2709": {
         "externalValue": "https://raw.githubusercontent.com/NatLibFi/melinda-rest-api/master/test-fixtures/conversion/iso2709_1"
       },
-      "Alephseq": "000000001 FMT   L BK\n000000001 LDR   L ^^^^^xxx^x00000000x^0000\n000000001 001   L 000000001\n000000001 005   L 20090820094953.0"
+      "Alephseq": {
+        "value": "000000001 FMT   L BK\n000000001 LDR   L ^^^^^xxx^x00000000x^0000\n000000001 001   L 000000001\n000000001 005   L 20090820094953.0"
+      }
     }
   }
 }
