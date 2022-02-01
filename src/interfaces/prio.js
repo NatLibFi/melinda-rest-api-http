@@ -62,7 +62,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     throw new HttpError(httpStatus.NOT_FOUND, 'Record not found');
   }
 
-  async function create({data, format, cataloger, oCatalogerIn, noop, unique, correlationId}) {
+  async function create({data, format, cataloger, oCatalogerIn, noop, unique, merge, correlationId}) {
     logger.info(`Creating CREATE task for a new record ${correlationId}`);
     logger.verbose('Sending a new record to queue');
     const operation = OPERATIONS.CREATE;
@@ -71,17 +71,18 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       format,
       cataloger,
       noop,
+      merge,
       unique
     };
 
     logger.verbose(`Creating Mongo queue item for correlationId ${correlationId}`);
-    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, unique, prio: true});
+    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, unique, merge, prio: true});
     const responseData = await handleRequest({correlationId, headers, data});
     logger.silly(`prio/create response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
     cleanMongo(correlationId);
 
     // Should handle cases where operation was changed by validator
-
+    // ie. merged cases
     if (responseData.status === 'CREATED') {
 
       if (noop) {
@@ -96,7 +97,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
 
-  async function update({id, data, format, cataloger, oCatalogerIn, noop, correlationId}) {
+  async function update({id, data, format, cataloger, oCatalogerIn, noop, merge, correlationId}) {
     validateRequestId(id);
     logger.info(`Creating UPDATE task for record ${id} / ${correlationId}`);
     const operation = OPERATIONS.UPDATE;
@@ -105,12 +106,13 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       id,
       format,
       cataloger,
-      noop
+      noop,
+      merge
     };
 
     logger.verbose(`Creating Mongo queue item for record ${id}`);
 
-    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, prio: true});
+    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, merge, prio: true});
     const responseData = await handleRequest({correlationId, headers, data});
     logger.silly(`prio/update response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
     cleanMongo(correlationId);

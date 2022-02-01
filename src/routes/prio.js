@@ -74,10 +74,12 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       const format = CONTENT_TYPES[type];
       const correlationId = uuid();
       const unique = req.query.unique === undefined ? true : parseBoolean(req.query.unique);
+      const merge = req.query.merge === undefined ? false : parseBoolean(req.query.merge);
       const noop = parseBoolean(req.query.noop);
       const {messages, id} = await Service.create({
         format,
         unique,
+        merge,
         noop,
         data: req.body,
         cataloger: sanitizeCataloger(req.user, req.query.cataloger),
@@ -112,7 +114,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       const type = req.headers['content-type'];
       const format = CONTENT_TYPES[type];
       const correlationId = uuid();
-
+      const merge = req.query.merge === undefined ? false : parseBoolean(req.query.merge);
       const noop = parseBoolean(req.query.noop);
       const messages = await Service.update({
         id: req.params.id,
@@ -120,6 +122,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         format,
         cataloger: sanitizeCataloger(req.user, req.query.cataloger),
         oCatalogerIn: req.user.id,
+        merge,
         noop,
         correlationId
       });
