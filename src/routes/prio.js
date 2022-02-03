@@ -67,6 +67,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
     }
   }
 
+  // eslint-disable-next-line max-statements
   async function createResource(req, res, next) {
     logger.silly('routes/Prio createResource');
     try {
@@ -77,6 +78,11 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       const unique = req.query.unique === undefined ? true : parseBoolean(req.query.unique);
       const merge = req.query.merge === undefined ? false : parseBoolean(req.query.merge);
       const noop = parseBoolean(req.query.noop);
+
+      if (merge && !unique) {
+        throw new HttpError(httpStatus.BAD_REQUEST, `Merge cannot be used with unique set as **false**`);
+      }
+
       const {messages, id} = await Service.create({
         format,
         unique,
@@ -107,6 +113,8 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       }
       return next(error);
     }
+
+
   }
 
   async function updateResource(req, res, next) {

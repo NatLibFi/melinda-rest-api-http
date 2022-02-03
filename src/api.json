@@ -37,7 +37,7 @@
           },
           {
             "name": "unique",
-            "description": "Do not create the record if there are duplicates in the datastore",
+            "description": "Do not create the record as a new record if there are duplicates in the datastore",
             "in": "query",
             "schema": {
               "type": "boolean",
@@ -46,7 +46,7 @@
           },
           {
             "name": "merge",
-            "description": "If there are duplicates in the datastore, merge the record with the best possible duplicate",
+            "description": "If there are duplicates in the datastore, merge the record with the best possible duplicate. Not usable with unique: 'false'",
             "in": "query",
             "schema": {
               "type": "boolean",
