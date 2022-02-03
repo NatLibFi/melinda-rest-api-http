@@ -43,6 +43,15 @@
               "type": "boolean",
               "default": true
             }
+          },
+          {
+            "name": "merge",
+            "description": "If there are duplicates in the datastore, merge the record with the best possible duplicate",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "requestBody": {
