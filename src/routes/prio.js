@@ -73,6 +73,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       const type = req.headers['content-type'];
       const format = CONTENT_TYPES[type];
       const correlationId = uuid();
+
       const unique = req.query.unique === undefined ? true : parseBoolean(req.query.unique);
       const merge = req.query.merge === undefined ? false : parseBoolean(req.query.merge);
       const noop = parseBoolean(req.query.noop);
