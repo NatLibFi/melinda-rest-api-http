@@ -43,6 +43,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   const converter = conversions();
   const amqpOperator = await amqpFactory(amqpUrl);
   const mongoOperator = await mongoFactory(mongoUri, 'prio');
+  const mongoLogOperator = await mongoFactory(mongoUri, 'logPrio');
   const sruClient = createSruClient({url: sruUrl, recordSchema: 'marcxml'});
 
   return {read, create, update, doQuery};
@@ -77,15 +78,15 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     logger.verbose(`Creating Mongo queue item for correlationId ${correlationId}`);
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, unique, merge, prio: true});
+    mongoLogOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, unique, merge, prio: true});
     const responseData = await handleRequest({correlationId, headers, data});
     logger.silly(`prio/create response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
     cleanMongo(correlationId);
 
-    // Should handle cases where operation was changed by validator
-    // ie. merged cases
-    if (responseData.status === 'CREATED') {
+    // eslint-disable-next-line no-extra-parens
+    if (responseData.status === 'CREATED' || (merge && responseData.status === 'MERGED')) {
 
-      if (noop) {
+      if (noop && !merge) {
         return {messages: responseData.messages, id: undefined};
       }
 
@@ -113,12 +114,14 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.verbose(`Creating Mongo queue item for record ${id}`);
 
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, merge, prio: true});
+    mongoLogOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, merge, prio: true});
     const responseData = await handleRequest({correlationId, headers, data});
     logger.silly(`prio/update response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
     cleanMongo(correlationId);
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
-    if (responseData.status === 'UPDATED') {
+    // eslint-disable-next-line no-extra-parens
+    if (responseData.status === 'UPDATED' || (merge && responseData.status === 'MERGED')) {
 
       if (noop) {
         return responseData.messages;
@@ -131,11 +134,13 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     throw new HttpError(responseData.status, responseData.payload || '');
   }
 
+  // cleanMongo cleans the actual MongoCollection ('prio'), logCollection ('logPrio') retains all items
   async function cleanMongo(correlationId) {
     const result = await mongoOperator.queryById(correlationId, true);
     logger.silly(` ${inspect(result, {colors: true, maxArrayLength: 3, depth: 1})}}`);
 
     // These could be configurable
+    // logCollection holds the queueItem -> this could remove also non-409 -ERRORs and ABORTs
 
     if (result.queueItemState === 'DONE') {
       logger.debug(`queueItemState: DONE, removing prio queueItem for ${correlationId}`);
@@ -263,6 +268,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   function getResponseDataForNoop(result) {
     logger.debug(`QueueItem is noop!`);
+    // How do we get merge for noop?
     const noopOperationStatus = result.operation === OPERATIONS.CREATE ? 'CREATED' : 'UPDATED';
     const noopMessages = result.noopValidationMessages[0].messages;
     return {status: noopOperationStatus, messages: noopMessages, payload: ''};
@@ -297,6 +303,8 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     return {status: responseStatus, payload: responsePayload || ''};
   }
 
+  // Queries are from logCollection
+
   function doQuery({query}) {
     // Query filters oCatalogerIn, correlationId, operation
     // Note currently only id works!
@@ -310,7 +318,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.debug(`Queue items querried with params: ${JSON.stringify(params)}`);
 
     if (params) {
-      return mongoOperator.query(params);
+      return mongoLogOperator.query(params);
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
