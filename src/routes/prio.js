@@ -83,7 +83,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         throw new HttpError(httpStatus.BAD_REQUEST, `Merge cannot be used with unique set as **false**`);
       }
 
-      const {messages, id} = await Service.create({
+      const {messages, id, status} = await Service.create({
         format,
         unique,
         merge,
@@ -94,12 +94,14 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         correlationId
       });
 
-      // create returns: {messages:<messages> id:<id>}
+      // create returns: {messages:<messages> id:<id>, status: CREATED/UPDATED}
       logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
       logger.silly(`id: ${inspect(id, {colors: true, maxArrayLength: 3, depth: 1})}`);
+      logger.silly(`status: ${inspect(status, {colors: true, maxArrayLength: 3, depth: 1})}`);
+
 
       if (!noop) {
-        res.status(httpStatus.CREATED).set('Record-ID', id)
+        res.status(httpStatus.OK).set('Record-ID', id)
           .json(messages);
         return;
       }

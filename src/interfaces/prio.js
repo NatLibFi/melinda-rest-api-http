@@ -84,13 +84,13 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     cleanMongo(correlationId);
 
     // eslint-disable-next-line no-extra-parens
-    if (responseData.status === 'CREATED' || (merge && responseData.status === 'MERGED')) {
+    if (responseData.status === 'CREATED' || (merge && responseData.status === 'UPDATED')) {
 
       if (noop && !merge) {
-        return {messages: responseData.messages, id: undefined};
+        return {messages: responseData.messages, id: undefined, status: responseData.status};
       }
 
-      return {messages: responseData.messages, id: responseData.payload};
+      return {messages: responseData.messages, id: responseData.payload, status: responseData.status};
     }
 
     // Currently errors if validator changed the operation (CREATE -> UPDATE)
@@ -121,7 +121,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
     // eslint-disable-next-line no-extra-parens
-    if (responseData.status === 'UPDATED' || (merge && responseData.status === 'MERGED')) {
+    if (responseData.status === 'UPDATED') {
 
       if (noop) {
         return responseData.messages;
@@ -241,6 +241,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     throw new HttpError(httpStatus.REQUEST_TIMEOUT, errorMessage);
   }
 
+  // should we return also correlationId in prio?
   // async
   function getResponseDataForDoneNError(result) {
 
@@ -268,7 +269,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   function getResponseDataForNoop(result) {
     logger.debug(`QueueItem is noop!`);
-    // How do we get merge for noop?
+    // How do we get recordId for CREATE-merge-noops?
     const noopOperationStatus = result.operation === OPERATIONS.CREATE ? 'CREATED' : 'UPDATED';
     const noopMessages = result.noopValidationMessages[0].messages;
     return {status: noopOperationStatus, messages: noopMessages, payload: ''};
@@ -293,12 +294,14 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       return {status: responseStatus, payload: responsePayload};
     }
 
+    // Handle merge here!
+    logger.debug(JSON.stringify(result));
     const operationStatus = result.operation === OPERATIONS.CREATE ? 'CREATED' : 'UPDATED';
     const responseStatus = operationStatus || 'unknown';
-    logger.silly(`responseStatus ${JSON.stringify(responseStatus)}`);
+    logger.debug(`responseStatus ${JSON.stringify(responseStatus)}`);
 
     const responsePayload = handledIds[0] || '';
-    logger.silly(`responsePayload ${JSON.stringify(responsePayload)}`);
+    logger.debug(`responsePayload ${JSON.stringify(responsePayload)}`);
 
     return {status: responseStatus, payload: responsePayload || ''};
   }
@@ -320,6 +323,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     if (params) {
       return mongoLogOperator.query(params);
     }
+    //  return mongoOperator.query(params);
 
     throw new HttpError(httpStatus.BAD_REQUEST);
   }

@@ -40,10 +40,10 @@ export default async function (mongoUrl) {
 
   async function create(req, {correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams}) {
     await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream: req, prio: false});
-    mongoLogOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream: undefined, prio: false});
+    await mongoLogOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream: undefined, prio: false});
     logger.verbose('Stream uploaded!');
     // setState does not do anything with oCatalogerIn or operation
-    mongoLogOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
+    await mongoLogOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
     return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
   }
 
