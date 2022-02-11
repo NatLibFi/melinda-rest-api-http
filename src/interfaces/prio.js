@@ -73,7 +73,8 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       cataloger,
       noop,
       merge,
-      unique
+      unique,
+      prio: true
     };
 
     logger.verbose(`Creating Mongo queue item for correlationId ${correlationId}`);
@@ -108,7 +109,8 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       format,
       cataloger,
       noop,
-      merge
+      merge,
+      prio: true
     };
 
     logger.verbose(`Creating Mongo queue item for record ${id}`);
