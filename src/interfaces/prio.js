@@ -43,7 +43,6 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   const converter = conversions();
   const amqpOperator = await amqpFactory(amqpUrl);
   const mongoOperator = await mongoFactory(mongoUri, 'prio');
-  const mongoLogOperator = await mongoFactory(mongoUri, 'logPrio');
   const sruClient = createSruClient({url: sruUrl, recordSchema: 'marcxml'});
 
   return {read, create, update, doQuery};
@@ -79,7 +78,6 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     logger.verbose(`Creating Mongo queue item for correlationId ${correlationId}`);
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, unique, merge, prio: true});
-    mongoLogOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, unique, merge, prio: true});
     const responseData = await handleRequest({correlationId, headers, data});
     logger.silly(`prio/create response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
     cleanMongo(correlationId);
@@ -116,7 +114,6 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.verbose(`Creating Mongo queue item for record ${id}`);
 
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, merge, prio: true});
-    mongoLogOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, merge, prio: true});
     const responseData = await handleRequest({correlationId, headers, data});
     logger.silly(`prio/update response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
     cleanMongo(correlationId);
@@ -308,8 +305,6 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     return {status: responseStatus, payload: responsePayload || ''};
   }
 
-  // Queries are from logCollection
-
   function doQuery({query}) {
     // Query filters oCatalogerIn, correlationId, operation
     // Note currently only id works!
@@ -323,9 +318,8 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.debug(`Queue items querried with params: ${JSON.stringify(params)}`);
 
     if (params) {
-      return mongoLogOperator.query(params);
+      return mongoOperator.query(params);
     }
-    //  return mongoOperator.query(params);
 
     throw new HttpError(httpStatus.BAD_REQUEST);
   }

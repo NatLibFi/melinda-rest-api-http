@@ -34,16 +34,13 @@ import sanitize from 'mongo-sanitize';
 export default async function (mongoUrl) {
   const logger = createLogger();
   const mongoOperator = await mongoFactory(mongoUrl, 'bulk');
-  const mongoLogOperator = await mongoFactory(mongoUrl, 'logBulk');
 
   return {create, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
 
   async function create(req, {correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams}) {
     await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream: req, prio: false});
-    await mongoLogOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream: undefined, prio: false});
     logger.verbose('Stream uploaded!');
     // setState does not do anything with oCatalogerIn or operation
-    await mongoLogOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
     return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
   }
 
@@ -61,7 +58,6 @@ export default async function (mongoUrl) {
     // eslint-disable-next-line functional/no-conditional-statement
     if (correlationId) {
       const removeResult = mongoOperator.remove({oCatalogerIn, correlationId});
-      mongoLogOperator.setState({correlationId, state: QUEUE_ITEM_STATE.ABORT, errorMessage: `Removed by user`});
       return removeResult;
     }
 
@@ -71,14 +67,11 @@ export default async function (mongoUrl) {
   function removeContent({oCatalogerIn, correlationId}) {
     if (correlationId) {
       const removeContentResult = mongoOperator.removeContent({oCatalogerIn, correlationId});
-      mongoLogOperator.setState({correlationId, state: QUEUE_ITEM_STATE.ABORT, errorMessage: `Content removed by user`});
       return removeContentResult;
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
-
-  // Do query from MongoLogs
 
   function doQuery(incomingParams) {
     // Query filters oCatalogerIn, correlationId, operation
@@ -95,7 +88,7 @@ export default async function (mongoUrl) {
     logger.debug(`Queue items querried with params: ${JSON.stringify(params)}`);
 
     if (params) {
-      return mongoLogOperator.query(params);
+      return mongoOperator.query(params);
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
