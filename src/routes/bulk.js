@@ -57,8 +57,7 @@ export default async function (mongoUrl) {
   async function create(req, res, next) {
     try {
       logger.silly('routes/Bulk create');
-      const noStream = parseBoolean(req.query.noStream);
-      const {operation, recordLoadParams} = Service.validateQueryParams(req.query, req.user.id);
+      const {operation, recordLoadParams, noStream} = Service.validateQueryParams(req.query, req.user.id);
       const params = {
         correlationId: uuid(),
         cataloger: Service.checkCataloger(req.user.id, req.query.pCatalogerIn),
@@ -91,8 +90,7 @@ export default async function (mongoUrl) {
     logger.silly('routes/Bulk addRecordToBulk');
 
     try {
-      const contentType = req.headers['content-type'];
-      const response = await Service.addRecord({correlationId: req.params.id, contentType, stream: req});
+      const response = await Service.addRecord({correlationId: req.params.id, stream: req});
 
       res.status(response.status).json(response.payload);
     } catch (error) {
@@ -136,7 +134,7 @@ export default async function (mongoUrl) {
   async function updateState(req, res, next) {
     try {
       logger.silly('routes/Bulk updateStatus');
-      const {state} = req.query;
+      const {state} = Service.validateQueryParams(req.query);
       const response = await Service.updateState({correlationId: req.params.id, state});
       res.status(response.status).json(response.payload);
     } catch (error) {

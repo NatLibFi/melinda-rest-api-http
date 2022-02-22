@@ -140,12 +140,24 @@ export default async function (mongoUrl) {
         pLogFile: queryParams.pLogFile || null,
         pCatalogerIn: queryParams.pCatalogerIn || null
       };
+
+      const noStream = queryParams.noStream ? parseBoolean(queryParams.noStream) : false;
       // Req.params.operation.toUpperCase()
-      return {operation, recordLoadParams};
+      return {operation, recordLoadParams, noStream};
+    }
+
+    if (queryParams.state) {
+      const validStates = ['PENDING_QUEUING', 'DONE', 'ABORT']
+
+      if (validStates.includes(queryParams.state)) {
+        return {state: queryParams.state};
+      }
+
+      throw new HttpError(httpStatus.BAD_REQUEST, 'Missing one or more mandatory query parameters. (pActiveLibrary, pOldNew)');
     }
 
     logger.debug(`bulk/validateQueryParams: mandatory query param missing: pOldNew: ${JSON.stringify(queryParams.pOldNew)}, pActiveLibrary: ${JSON.stringify(queryParams.pActiveLibrary)}`);
-    throw new HttpError(httpStatus.BAD_REQUEST, 'Missing one or more mandatory query parameters. (pActiveLibrary, pOldNew)');
+    throw new HttpError(httpStatus.BAD_REQUEST, 'Missing one or more mandatory query parameters. (pActiveLibrary, pOldNew or state)');
   }
 
   function checkCataloger(id, paramsId) {
