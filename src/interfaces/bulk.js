@@ -39,6 +39,10 @@ export default async function (mongoUrl) {
 
   async function create({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream}) {
     await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, prio: false});
+    if (!stream) {
+      logger.verbose('NoStream bulk ready!');
+      return mongoOperator.getState({correlationId});
+    }
     logger.verbose('Stream uploaded!');
     return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
   }
@@ -57,9 +61,9 @@ export default async function (mongoUrl) {
 
   async function getState({correlationId}) {
     logger.debug(`Getting current state of ${correlationId}`);
-    const {queueItemState: state, modificationTime} = await doQuery({query: {id: correlationId}});
+    const {queueItemState, modificationTime} = await doQuery({query: {id: correlationId}});
     if (state) {
-      return {status: 200, payload: {correlationId, state, modificationTime}};
+      return {status: 200, payload: {correlationId, queueItemState, modificationTime}};
     }
 
     return {status: 404, payload: `Item not found for id: ${correlationId}`};
@@ -69,7 +73,7 @@ export default async function (mongoUrl) {
     logger.debug(`Updating current state of ${correlationId}`);
     const {queueItemState, modificationTime} = await mongoOperator.setState({correlationId, state});
     if (queueItemState) {
-      return {status: 200, payload: {correlationId, state: queueItemState, modificationTime}};
+      return {status: 200, payload: {correlationId, queueItemState, modificationTime}};
     }
 
     return {status: 404, payload: `Item not found for id: ${correlationId}`};
