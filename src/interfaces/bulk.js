@@ -54,6 +54,8 @@ export default async function (mongoUrl) {
       // Read record from stream using serializer
       logger.debug(`Using ${contentType} stream reader for parsing record`);
       logger.debug(`Adding record for ${correlationId}`);
+      const record = await stream;
+      logger.debug(`Record: ${record}`);
       await Promise.all([]);
       return {status: '202', payload: `Record have been added to bulk ${correlationId}`};
     }
