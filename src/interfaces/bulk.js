@@ -26,7 +26,7 @@
 */
 
 import {createLogger} from '@natlibfi/melinda-backend-commons';
-import {Error as HttpError} from '@natlibfi/melinda-commons';
+import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {mongoFactory, QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
 import httpStatus from 'http-status';
 import sanitize from 'mongo-sanitize';
@@ -61,7 +61,7 @@ export default async function (mongoUrl) {
 
   async function getState({correlationId}) {
     logger.debug(`Getting current state of ${correlationId}`);
-    const {queueItemState, modificationTime} = await doQuery({query: {id: correlationId}});
+    const {queueItemState, modificationTime, state} = await doQuery({query: {id: correlationId}});
     if (state) {
       return {status: 200, payload: {correlationId, queueItemState, modificationTime}};
     }
@@ -151,7 +151,7 @@ export default async function (mongoUrl) {
     }
 
     if (queryParams.state) {
-      const validStates = ['PENDING_QUEUING', 'DONE', 'ABORT']
+      const validStates = ['PENDING_QUEUING', 'DONE', 'ABORT'];
 
       if (validStates.includes(queryParams.state)) {
         return {state: queryParams.state};
