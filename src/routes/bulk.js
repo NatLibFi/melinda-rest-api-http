@@ -31,7 +31,7 @@ import httpStatus from 'http-status';
 import passport from 'passport';
 import {v4 as uuid} from 'uuid';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
-import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
+import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/bulk';
 import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils';
