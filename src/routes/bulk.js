@@ -52,7 +52,7 @@ export default async function (mongoUrl) {
     .delete('/:id', checkId, remove)
     .delete('/content/:id', checkId, removeContent)
     .post('/', checkContentType, create)
-    .post('/:id', checkContentType, checkId, addRecordToBulk);
+    .post('/record/:id', checkContentType, checkId, addRecordToBulk);
 
   async function create(req, res, next) {
     try {
