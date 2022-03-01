@@ -54,7 +54,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
     logger.silly('routes/Prio readResource');
     try {
       const type = req.headers.accept;
-      const format = CONTENT_TYPES[type];
+      const format = CONTENT_TYPES.prio[type];
       const {record} = await Service.read({id: req.params.id, format});
 
       return res.type(type).status(httpStatus.OK)
