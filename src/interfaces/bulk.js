@@ -41,7 +41,7 @@ export default async function (mongoUrl) {
     await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, prio: false});
     if (!stream) {
       logger.verbose('NoStream bulk ready!');
-      return mongoOperator.getState({correlationId});
+      return getState({correlationId});
     }
     logger.verbose('Stream uploaded!');
     return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
