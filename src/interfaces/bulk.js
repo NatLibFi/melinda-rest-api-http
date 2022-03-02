@@ -38,10 +38,10 @@ export default async function (mongoUrl) {
   return {create, addRecord, getState, updateState, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
 
   async function create({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream}) {
-    await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, prio: false});
+    const result = await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, prio: false});
     if (!stream) {
       logger.verbose('NoStream bulk ready!');
-      return {correlationId};
+      return result;
     }
 
     logger.verbose('Stream uploaded!');
