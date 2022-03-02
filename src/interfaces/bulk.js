@@ -43,6 +43,7 @@ export default async function (mongoUrl) {
       logger.verbose('NoStream bulk ready!');
       return {correlationId};
     }
+
     logger.verbose('Stream uploaded!');
     return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
   }
@@ -61,9 +62,9 @@ export default async function (mongoUrl) {
     }
   }
 
-  async function getState({correlationId}) {
+  async function getState(params) {
     logger.debug(`Getting current state of ${correlationId}`);
-    const {queueItemState, modificationTime, state} = await doQuery({query: {id: correlationId}});
+    const {queueItemState, modificationTime, state} = mongoOperator.query(params);
     if (state) {
       return {status: 200, payload: {correlationId, queueItemState, modificationTime}};
     }
