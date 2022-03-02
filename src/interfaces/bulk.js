@@ -69,7 +69,7 @@ export default async function (mongoUrl) {
     logger.debug(`Got: ${queueItemState}`);
     logger.debug(`Got: ${modificationTime}`);
     logger.debug(`Got: ${state}`);
-    if (state) {
+    if (queueItemState) {
       return {status: 200, payload: {correlationId, queueItemState, modificationTime}};
     }
 
