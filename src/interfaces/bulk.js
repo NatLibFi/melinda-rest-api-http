@@ -64,13 +64,10 @@ export default async function (mongoUrl) {
 
   async function getState(params) {
     logger.debug(`Getting current state of ${params.correlationId}`);
-    const {correlationId, queueItemState, modificationTime, state} = await mongoOperator.query(params);
-    logger.debug(`Got: ${correlationId}`);
-    logger.debug(`Got: ${queueItemState}`);
-    logger.debug(`Got: ${modificationTime}`);
-    logger.debug(`Got: ${state}`);
-    if (queueItemState) {
-      return {status: 200, payload: {correlationId, queueItemState, modificationTime}};
+    const result = await mongoOperator.query(params);
+    logger.debug(`Got: ${result}`);
+    if (result.queueItemState) {
+      return {status: 200, payload: result};
     }
 
     return {status: 404, payload: `Item not found for id: ${params.correlationId}`};
