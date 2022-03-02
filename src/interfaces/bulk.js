@@ -65,7 +65,7 @@ export default async function (mongoUrl) {
   async function getState(params) {
     logger.debug(`Getting current state of ${params.correlationId}`);
     const result = await mongoOperator.query(params);
-    logger.debug(`Got: ${result}`);
+    logger.debug(`Got: ${JSON.stringify(result)}`);
     if (result.queueItemState) {
       return {status: 200, payload: result};
     }
