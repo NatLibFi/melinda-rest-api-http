@@ -74,9 +74,9 @@ export default async function (mongoUrl) {
 
   async function updateState({correlationId, state}) {
     logger.debug(`Updating current state of ${correlationId} to ${state}`);
-    const {queueItemState, modificationTime} = await mongoOperator.setState({correlationId, state});
-    if (queueItemState) {
-      return {status: 200, payload: {correlationId, queueItemState, modificationTime}};
+    const result = await mongoOperator.setState({correlationId, state});
+    if (result) {
+      return {status: 200, payload: result};
     }
 
     return {status: 404, payload: `Item not found for id: ${correlationId}`};
