@@ -138,6 +138,7 @@ export default async function (mongoUrl) {
       const response = await Service.updateState({correlationId: req.params.id, state});
       res.status(response.status).json(response.payload);
     } catch (error) {
+      logger.silly('routes/Bulk updateStatus - error');
       if (error instanceof HttpError) {
         res.status(error.status).send(error.payload);
         return;
