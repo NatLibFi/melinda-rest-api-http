@@ -73,7 +73,7 @@ export default async function (mongoUrl) {
   }
 
   async function updateState({correlationId, state}) {
-    logger.debug(`Updating current state of ${correlationId}`);
+    logger.debug(`Updating current state of ${correlationId} to ${state}`);
     const {queueItemState, modificationTime} = await mongoOperator.setState({correlationId, state});
     if (queueItemState) {
       return {status: 200, payload: {correlationId, queueItemState, modificationTime}};
