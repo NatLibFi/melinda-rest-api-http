@@ -132,13 +132,13 @@ export default async function (mongoUrl) {
   }
 
   async function updateState(req, res, next) {
+    logger.debug('routes/Bulk updateStatus');
     try {
-      logger.silly('routes/Bulk updateStatus');
       const {state} = Service.validateQueryParams(req.query);
       const response = await Service.updateState({correlationId: req.params.id, state});
       res.status(response.status).json(response.payload);
     } catch (error) {
-      logger.silly('routes/Bulk updateStatus - error');
+      logger.debug('routes/Bulk updateStatus - error');
       if (error instanceof HttpError) {
         res.status(error.status).send(error.payload);
         return;

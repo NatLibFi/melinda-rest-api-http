@@ -154,13 +154,13 @@ export default async function (mongoUrl) {
     }
 
     if (queryParams.status) {
-      const validStates = ['PENDING_QUEUING', 'DONE', 'ABORT'];
+      const validStates = ['PENDING_VALIDATION', 'DONE', 'ABORT'];
 
       if (validStates.includes(queryParams.status)) {
         return {state: queryParams.status};
       }
 
-      throw new HttpError(httpStatus.BAD_REQUEST, 'Missing one or more mandatory query parameters. (pActiveLibrary, pOldNew)');
+      throw new HttpError(httpStatus.BAD_REQUEST, 'Invalid status query parameter!');
     }
 
     logger.debug(`bulk/validateQueryParams: mandatory query param missing: pOldNew: ${JSON.stringify(queryParams.pOldNew)}, pActiveLibrary: ${JSON.stringify(queryParams.pActiveLibrary)}`);
