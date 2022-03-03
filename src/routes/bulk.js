@@ -90,7 +90,7 @@ export default async function (mongoUrl) {
     logger.silly('routes/Bulk addRecordToBulk');
 
     try {
-      const response = await Service.addRecord({correlationId: req.params.id, stream: req});
+      const response = await Service.addRecord({correlationId: req.params.id, record: req.body});
 
       res.status(response.status).json(response.payload);
     } catch (error) {

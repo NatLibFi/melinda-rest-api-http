@@ -48,15 +48,14 @@ export default async function (mongoUrl) {
     return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
   }
 
-  async function addRecord({correlationId, contentType, stream}) {
+  async function addRecord({correlationId, contentType, record}) {
     // asses rabbit queue for correlationId
     if (stream) {
       logger.debug('Got stream');
       // Read record from stream using serializer
+      logger.debug(`Record: ${JSON.stringify(record)}`);
       logger.debug(`Using ${contentType} stream reader for parsing record.`);
       logger.debug(`Adding record for ${correlationId}`);
-      const record = await stream;
-      logger.debug(`Record: ${JSON.stringify(record)}`);
       await Promise.all([]);
       return {status: '202', payload: `Record have been added to bulk ${correlationId}`};
     }
