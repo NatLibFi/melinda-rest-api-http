@@ -153,11 +153,11 @@ export default async function (mongoUrl) {
       return {operation, recordLoadParams, noStream};
     }
 
-    if (queryParams.state) {
+    if (queryParams.status) {
       const validStates = ['PENDING_QUEUING', 'DONE', 'ABORT'];
 
-      if (validStates.includes(queryParams.state)) {
-        return {state: queryParams.state};
+      if (validStates.includes(queryParams.status)) {
+        return {state: queryParams.status};
       }
 
       throw new HttpError(httpStatus.BAD_REQUEST, 'Missing one or more mandatory query parameters. (pActiveLibrary, pOldNew)');
