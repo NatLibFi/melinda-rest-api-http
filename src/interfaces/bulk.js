@@ -50,7 +50,7 @@ export default async function (mongoUrl) {
 
   async function addRecord({correlationId, contentType, record}) {
     // asses rabbit queue for correlationId
-    if (stream) {
+    if (record) {
       logger.debug('Got stream');
       // Read record from stream using serializer
       logger.debug(`Record: ${JSON.stringify(record)}`);
@@ -59,6 +59,8 @@ export default async function (mongoUrl) {
       await Promise.all([]);
       return {status: '202', payload: `Record have been added to bulk ${correlationId}`};
     }
+
+    return {status: '400', payload: 'No record'};
   }
 
   async function getState(params) {
