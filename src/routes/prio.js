@@ -71,7 +71,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
     logger.silly('routes/Prio createResource');
     try {
       const type = req.headers['content-type'];
-      const format = CONTENT_TYPES[type];
+      const format = CONTENT_TYPES.prio[type];
       const correlationId = uuid();
       const unique = req.query.unique === undefined ? true : parseBoolean(req.query.unique);
       const noop = parseBoolean(req.query.noop);
@@ -110,7 +110,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
     logger.silly('routes/Prio updateResource');
     try {
       const type = req.headers['content-type'];
-      const format = CONTENT_TYPES[type];
+      const format = CONTENT_TYPES.prio[type];
       const correlationId = uuid();
 
       const noop = parseBoolean(req.query.noop);
