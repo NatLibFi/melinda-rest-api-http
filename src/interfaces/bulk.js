@@ -53,7 +53,7 @@ export default async function (mongoUrl) {
     if (stream) {
       logger.debug('Got stream');
       // Read record from stream using serializer
-      logger.debug(`Using ${contentType} stream reader for parsing record`);
+      logger.debug(`Using ${contentType} stream reader for parsing record.`);
       logger.debug(`Adding record for ${correlationId}`);
       const record = await stream;
       logger.debug(`Record: ${record}`);
