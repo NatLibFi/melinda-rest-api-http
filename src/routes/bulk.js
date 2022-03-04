@@ -51,8 +51,8 @@ export default async function (mongoUrl) {
     .put('/state/:id', checkId, updateState)
     .delete('/:id', checkId, remove)
     .delete('/content/:id', checkId, removeContent)
-    .post('/', checkContentType, create)
-    .post('/record/:id', checkContentType, checkId, addRecordToBulk);
+    .post('/record/:id', checkContentType, checkId, addRecordToBulk)
+    .post('/', checkContentType, create);
 
   async function create(req, res, next) {
     try {
