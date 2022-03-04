@@ -51,11 +51,14 @@ export default async function (mongoUrl) {
   async function addRecord({correlationId, contentType, record}) {
     // asses rabbit queue for correlationId
     if (record) {
-      logger.debug('Got stream');
+      const headers = {format: CONTENT_TYPES.prio[contentType]};
+      logger.debug('Got record');
       // Read record from stream using serializer
       logger.debug(`Record: ${JSON.stringify(record)}`);
       logger.debug(`Using ${contentType} stream reader for parsing record.`);
       logger.debug(`Adding record for ${correlationId}`);
+      await amqpOperator.sendToQueue({queue: `${QUEUE_ITEM_STATE.VALIDATOR.PENDING_VALIDATION}.${correlationId}`, correlationId, headers, data: record});
+
       await Promise.all([]);
       return {status: '202', payload: `Record have been added to bulk ${correlationId}`};
     }

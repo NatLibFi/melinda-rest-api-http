@@ -94,9 +94,6 @@ export default async function (mongoUrl) {
       const correlationId = req.params.id;
       const contentType = req.headers['content-type'];
       const record = req.body;
-      logger.debug(`correlationId: ${correlationId}`);
-      logger.debug(`contentType: ${contentType}`);
-      logger.debug(`record: ${JSON.stringify(record)}`);
       const response = await Service.addRecord({correlationId, contentType, record});
 
       res.status(response.status).json(response.payload);
