@@ -27,6 +27,7 @@
 */
 
 import {Router} from 'express';
+import bodyParser from 'body-parser';
 import httpStatus from 'http-status';
 import passport from 'passport';
 import {v4 as uuid} from 'uuid';
@@ -51,7 +52,7 @@ export default async function (mongoUrl) {
     .put('/state/:id', checkId, updateState)
     .delete('/:id', checkId, remove)
     .delete('/content/:id', checkId, removeContent)
-    .post('/record/:id', checkContentType, checkId, addRecordToBulk)
+    .post('/record/:id', checkContentType, checkId, bodyParser.text({limit: '5MB', type: '*/*'}), addRecordToBulk)
     .post('/', checkContentType, create);
 
   async function create(req, res, next) {
