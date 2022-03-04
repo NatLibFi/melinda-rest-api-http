@@ -90,10 +90,18 @@ export default async function (mongoUrl) {
     logger.debug('routes/Bulk addRecordToBulk');
 
     try {
-      const response = await Service.addRecord({correlationId: req.params.id, record: req.body});
+      const correlationId = req.params.id;
+      const contentType = req.headers['content-type'];
+      const record = req.body;
+      logger.debug(`correlationId: ${correlationId}`);
+      logger.debug(`contentType: ${contentType}`);
+      logger.debug(`record: ${JSON.stringify(record)}`);
+      const response = await Service.addRecord({correlationId, contentType, record});
 
       res.status(response.status).json(response.payload);
     } catch (error) {
+      logger.debug('routes/Bulk addRecordToBulk - error');
+
       if (error instanceof HttpError) {
         res.status(error.status).send(error.payload);
         return;
