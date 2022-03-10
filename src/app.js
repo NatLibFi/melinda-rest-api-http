@@ -41,7 +41,7 @@ export default async function ({
     }));
 
     app.use(passport.initialize());
-    app.use('/bulk', await createBulkRouter(mongoUri)); // Must be here to avoid bodyparser
+    app.use('/bulk', await createBulkRouter({mongoUri, amqpUrl})); // Must be here to avoid bodyparser
     app.use(bodyParser.text({limit: '5MB', type: '*/*'}));
     app.use('/apidoc', createApiDocRouter());
     app.use('/', await createPrioRouter({sruUrl, amqpUrl, mongoUri, pollWaitTime}));

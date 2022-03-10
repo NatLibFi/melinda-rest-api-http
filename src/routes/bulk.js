@@ -37,11 +37,11 @@ import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/bulk';
 import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils';
 
-export default async function (mongoUrl) {
+export default async function ({mongoUri, amqpUrl}) {
   const logger = createLogger();
 
   const OPERATION_TYPES = [OPERATIONS.CREATE, OPERATIONS.UPDATE];
-  const Service = await createService(mongoUrl);
+  const Service = await createService({mongoUri, amqpUrl});
 
   return new Router()
     .use(passport.authenticate('melinda', {session: false}))

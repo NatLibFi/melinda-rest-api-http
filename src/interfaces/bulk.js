@@ -27,13 +27,14 @@
 
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
-import {mongoFactory, QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
+import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, CONTENT_TYPES} from '@natlibfi/melinda-rest-api-commons';
 import httpStatus from 'http-status';
 import sanitize from 'mongo-sanitize';
 
-export default async function (mongoUrl) {
+export default async function ({mongoUri, amqpUrl}) {
   const logger = createLogger();
-  const mongoOperator = await mongoFactory(mongoUrl, 'bulk');
+  const mongoOperator = await mongoFactory(mongoUri, 'bulk');
+  const amqpOperator = await amqpFactory(amqpUrl);
 
   return {create, addRecord, getState, updateState, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
 
