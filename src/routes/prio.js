@@ -67,17 +67,26 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
     }
   }
 
+  // eslint-disable-next-line max-statements
   async function createResource(req, res, next) {
     logger.silly('routes/Prio createResource');
     try {
       const type = req.headers['content-type'];
       const format = CONTENT_TYPES.prio[type];
       const correlationId = uuid();
+
       const unique = req.query.unique === undefined ? true : parseBoolean(req.query.unique);
+      const merge = req.query.merge === undefined ? false : parseBoolean(req.query.merge);
       const noop = parseBoolean(req.query.noop);
-      const {messages, id} = await Service.create({
+
+      if (merge && !unique) {
+        throw new HttpError(httpStatus.BAD_REQUEST, `Merge cannot be used with unique set as **false**`);
+      }
+
+      const {messages, id, status} = await Service.create({
         format,
         unique,
+        merge,
         noop,
         data: req.body,
         cataloger: sanitizeCataloger(req.user, req.query.cataloger),
@@ -85,12 +94,14 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         correlationId
       });
 
-      // create returns: {messages:<messages> id:<id>}
+      // create returns: {messages:<messages> id:<id>, status: CREATED/UPDATED}
       logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
       logger.silly(`id: ${inspect(id, {colors: true, maxArrayLength: 3, depth: 1})}`);
+      logger.silly(`status: ${inspect(status, {colors: true, maxArrayLength: 3, depth: 1})}`);
+
 
       if (!noop) {
-        res.status(httpStatus.CREATED).set('Record-ID', id)
+        res.status(httpStatus.OK).set('Record-ID', id)
           .json(messages);
         return;
       }
@@ -104,6 +115,8 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       }
       return next(error);
     }
+
+
   }
 
   async function updateResource(req, res, next) {
@@ -112,7 +125,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       const type = req.headers['content-type'];
       const format = CONTENT_TYPES.prio[type];
       const correlationId = uuid();
-
+      const merge = req.query.merge === undefined ? false : parseBoolean(req.query.merge);
       const noop = parseBoolean(req.query.noop);
       const messages = await Service.update({
         id: req.params.id,
@@ -120,6 +133,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         format,
         cataloger: sanitizeCataloger(req.user, req.query.cataloger),
         oCatalogerIn: req.user.id,
+        merge,
         noop,
         correlationId
       });

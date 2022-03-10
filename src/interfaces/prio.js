@@ -62,7 +62,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     throw new HttpError(httpStatus.NOT_FOUND, 'Record not found');
   }
 
-  async function create({data, format, cataloger, oCatalogerIn, noop, unique, correlationId}) {
+  async function create({data, format, cataloger, oCatalogerIn, noop, unique, merge, correlationId}) {
     logger.info(`Creating CREATE task for a new record ${correlationId}`);
     logger.verbose('Sending a new record to queue');
     const operation = OPERATIONS.CREATE;
@@ -71,24 +71,25 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       format,
       cataloger,
       noop,
-      unique
+      merge,
+      unique,
+      prio: true
     };
 
     logger.verbose(`Creating Mongo queue item for correlationId ${correlationId}`);
-    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, unique, prio: true});
+    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, unique, merge, prio: true});
     const responseData = await handleRequest({correlationId, headers, data});
     logger.silly(`prio/create response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
     cleanMongo(correlationId);
 
-    // Should handle cases where operation was changed by validator
+    // eslint-disable-next-line no-extra-parens
+    if (responseData.status === 'CREATED' || (merge && responseData.status === 'UPDATED')) {
 
-    if (responseData.status === 'CREATED') {
-
-      if (noop) {
-        return {messages: responseData.messages, id: undefined};
+      if (noop && !merge) {
+        return {messages: responseData.messages, id: undefined, status: responseData.status};
       }
 
-      return {messages: responseData.messages, id: responseData.payload};
+      return {messages: responseData.messages, id: responseData.payload, status: responseData.status};
     }
 
     // Currently errors if validator changed the operation (CREATE -> UPDATE)
@@ -96,7 +97,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
 
-  async function update({id, data, format, cataloger, oCatalogerIn, noop, correlationId}) {
+  async function update({id, data, format, cataloger, oCatalogerIn, noop, merge, correlationId}) {
     validateRequestId(id);
     logger.info(`Creating UPDATE task for record ${id} / ${correlationId}`);
     const operation = OPERATIONS.UPDATE;
@@ -105,17 +106,20 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       id,
       format,
       cataloger,
-      noop
+      noop,
+      merge,
+      prio: true
     };
 
     logger.verbose(`Creating Mongo queue item for record ${id}`);
 
-    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, prio: true});
+    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, merge, prio: true});
     const responseData = await handleRequest({correlationId, headers, data});
     logger.silly(`prio/update response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
     cleanMongo(correlationId);
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
+    // eslint-disable-next-line no-extra-parens
     if (responseData.status === 'UPDATED') {
 
       if (noop) {
@@ -129,11 +133,13 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     throw new HttpError(responseData.status, responseData.payload || '');
   }
 
+  // cleanMongo cleans the actual MongoCollection ('prio'), logCollection ('logPrio') retains all items
   async function cleanMongo(correlationId) {
     const result = await mongoOperator.queryById({correlationId, checkModTime: true});
     logger.silly(` ${inspect(result, {colors: true, maxArrayLength: 3, depth: 1})}}`);
 
     // These could be configurable
+    // logCollection holds the queueItem -> this could remove also non-409 -ERRORs and ABORTs
 
     if (result.queueItemState === 'DONE') {
       logger.debug(`queueItemState: DONE, removing prio queueItem for ${correlationId}`);
@@ -234,6 +240,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     throw new HttpError(httpStatus.REQUEST_TIMEOUT, errorMessage);
   }
 
+  // should we return also correlationId in prio?
   // async
   function getResponseDataForDoneNError(result) {
 
@@ -261,6 +268,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   function getResponseDataForNoop(result) {
     logger.debug(`QueueItem is noop!`);
+    // How do we get recordId for CREATE-merge-noops?
     const noopOperationStatus = result.operation === OPERATIONS.CREATE ? 'CREATED' : 'UPDATED';
     const noopMessages = result.noopValidationMessages[0].messages;
     return {status: noopOperationStatus, messages: noopMessages, payload: ''};
@@ -285,12 +293,14 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       return {status: responseStatus, payload: responsePayload};
     }
 
+    // Handle merge here!
+    logger.debug(JSON.stringify(result));
     const operationStatus = result.operation === OPERATIONS.CREATE ? 'CREATED' : 'UPDATED';
     const responseStatus = operationStatus || 'unknown';
-    logger.silly(`responseStatus ${JSON.stringify(responseStatus)}`);
+    logger.debug(`responseStatus ${JSON.stringify(responseStatus)}`);
 
     const responsePayload = handledIds[0] || '';
-    logger.silly(`responsePayload ${JSON.stringify(responsePayload)}`);
+    logger.debug(`responsePayload ${JSON.stringify(responsePayload)}`);
 
     return {status: responseStatus, payload: responsePayload || ''};
   }

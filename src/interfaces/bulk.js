@@ -46,6 +46,7 @@ export default async function ({mongoUri, amqpUrl}) {
     }
 
     logger.verbose('Stream uploaded!');
+    // setState does not do anything with oCatalogerIn or operation
     return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
   }
 
@@ -98,8 +99,11 @@ export default async function ({mongoUri, amqpUrl}) {
   }
 
   function remove({oCatalogerIn, correlationId}) {
+
+    // eslint-disable-next-line functional/no-conditional-statement
     if (correlationId) {
-      return mongoOperator.remove({oCatalogerIn, correlationId});
+      const removeResult = mongoOperator.remove({oCatalogerIn, correlationId});
+      return removeResult;
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
@@ -107,7 +111,8 @@ export default async function ({mongoUri, amqpUrl}) {
 
   function removeContent({oCatalogerIn, correlationId}) {
     if (correlationId) {
-      return mongoOperator.removeContent({oCatalogerIn, correlationId});
+      const removeContentResult = mongoOperator.removeContent({oCatalogerIn, correlationId});
+      return removeContentResult;
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
