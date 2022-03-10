@@ -135,7 +135,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   // cleanMongo cleans the actual MongoCollection ('prio'), logCollection ('logPrio') retains all items
   async function cleanMongo(correlationId) {
-    const result = await mongoOperator.queryById(correlationId, true);
+    const result = await mongoOperator.queryById({correlationId, checkModTime: true});
     logger.silly(` ${inspect(result, {colors: true, maxArrayLength: 3, depth: 1})}}`);
 
     // These could be configurable
@@ -215,7 +215,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // Check status and and also if process has timeouted
     // Note: there can be timeout result and the create/update to Melinda can still be done, if timeout happens when while job is being imported
-    const result = await mongoOperator.queryById(correlationId, true);
+    const result = await mongoOperator.queryById({correlationId, checkModTime: true});
 
     if (queueItemState !== result.queueItemState) { // eslint-disable-line functional/no-conditional-statement
       logger.debug(`Queue item ${correlationId}, state ${result.queueItemState}`);
