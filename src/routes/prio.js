@@ -75,23 +75,28 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       const format = CONTENT_TYPES.prio[type];
       const correlationId = uuid();
 
-      const unique = req.query.unique === undefined ? true : parseBoolean(req.query.unique);
-      const merge = req.query.merge === undefined ? false : parseBoolean(req.query.merge);
-      const noop = parseBoolean(req.query.noop);
+      const operationSettings = {
+        unique: req.query.unique === undefined ? true : parseBoolean(req.query.unique),
+        merge: req.query.merge === undefined ? false : parseBoolean(req.query.merge),
+        noop: parseBoolean(req.query.noop),
+        // Prio always validates
+        validate: true,
+        // failOnError is n/a for prio single record jobs
+        failOnError: null,
+        prio: true
+      };
 
-      if (merge && !unique) {
+      if (operationSettings.merge && !operationSettings.unique) {
         throw new HttpError(httpStatus.BAD_REQUEST, `Merge cannot be used with unique set as **false**`);
       }
 
       const {messages, id, status} = await Service.create({
         format,
-        unique,
-        merge,
-        noop,
-        data: req.body,
         cataloger: sanitizeCataloger(req.user, req.query.cataloger),
         oCatalogerIn: req.user.id,
-        correlationId
+        correlationId,
+        operationSettings,
+        data: req.body
       });
 
       // create returns: {messages:<messages> id:<id>, status: CREATED/UPDATED}
@@ -100,7 +105,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       logger.silly(`status: ${inspect(status, {colors: true, maxArrayLength: 3, depth: 1})}`);
 
 
-      if (!noop) {
+      if (!operationSettings.noop) {
         res.status(httpStatus.OK).set('Record-ID', id)
           .json(messages);
         return;
@@ -125,17 +130,27 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       const type = req.headers['content-type'];
       const format = CONTENT_TYPES.prio[type];
       const correlationId = uuid();
-      const merge = req.query.merge === undefined ? false : parseBoolean(req.query.merge);
-      const noop = parseBoolean(req.query.noop);
+
+      const operationSettings = {
+        // unique is n/a for updates
+        unique: null,
+        merge: req.query.merge === undefined ? false : parseBoolean(req.query.merge),
+        noop: parseBoolean(req.query.noop),
+        // Prio always validates
+        validate: true,
+        // failOnError is n/a for prio single record jobs
+        failOnError: null,
+        prio: true
+      };
+
       const messages = await Service.update({
         id: req.params.id,
-        data: req.body,
         format,
         cataloger: sanitizeCataloger(req.user, req.query.cataloger),
         oCatalogerIn: req.user.id,
-        merge,
-        noop,
-        correlationId
+        operationSettings,
+        correlationId,
+        data: req.body
       });
 
       // update gets messages as messeages for noop and {status, payload} as messages for non-noop

@@ -27,7 +27,8 @@
 
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
-import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, CONTENT_TYPES} from '@natlibfi/melinda-rest-api-commons';
+import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
+import {CONTENT_TYPES} from '../config';
 import httpStatus from 'http-status';
 import sanitize from 'mongo-sanitize';
 
@@ -38,8 +39,8 @@ export default async function ({mongoUri, amqpUrl}) {
 
   return {create, addRecord, getState, updateState, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
 
-  async function create({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream}) {
-    const result = await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, prio: false});
+  async function create({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, operationSettings, stream}) {
+    const result = await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, operationSettings, prio: false});
     if (!stream) {
       logger.verbose('NoStream bulk ready!');
       return result;
@@ -53,14 +54,17 @@ export default async function ({mongoUri, amqpUrl}) {
   async function addRecord({correlationId, contentType, record}) {
     // asses rabbit queue for correlationId
     if (record) {
-      const headers = {format: CONTENT_TYPES.prio[contentType]};
       logger.debug('Got record');
+      logger.debug(CONTENT_TYPES);
+      // what other headers do we need? should we fetch operationSettings stuff from queueItem to headers?
+      const headers = {format: CONTENT_TYPES.prio[contentType]};
       // Read record from stream using serializer
-      logger.debug(`Record: ${JSON.stringify(record)}`);
-      logger.debug(`Using ${contentType} stream reader for parsing record.`);
+      logger.silly(`Record: ${JSON.stringify(record)}`);
+      logger.debug(`Using ${contentType} stream reader in validator for parsing the record.`);
       logger.debug(`Adding record for ${correlationId}`);
       await amqpOperator.sendToQueue({queue: `${QUEUE_ITEM_STATE.VALIDATOR.PENDING_VALIDATION}.${correlationId}`, correlationId, headers, data: record});
 
+      // what promises we're waiting here?
       await Promise.all([]);
       return {status: '202', payload: `Record have been added to bulk ${correlationId}`};
     }
@@ -150,7 +154,8 @@ export default async function ({mongoUri, amqpUrl}) {
         throw new HttpError(httpStatus.BAD_REQUEST, `Invalid pOldNew query parameter '${pOldNew}'. (Valid values: OLD/NEW)`);
       }
 
-      const operation = pOldNew === 'NEW' ? 'CREATE' : 'UPDATE';
+      const operation = pOldNew === 'NEW' ? OPERATIONS.CREATE : OPERATIONS.UPDATE;
+
       const recordLoadParams = {
         pActiveLibrary: queryParams.pActiveLibrary,
         pOldNew,
@@ -160,8 +165,12 @@ export default async function ({mongoUri, amqpUrl}) {
       };
 
       const noStream = queryParams.noStream ? parseBoolean(queryParams.noStream) : false;
-      // Req.params.operation.toUpperCase()
-      return {operation, recordLoadParams, noStream};
+
+      const operationSettings = validateAndGetOperationSettings(queryParams, noStream);
+      logger.debug(JSON.stringify(`noStream: ${noStream}, operationSetggings: ${JSON.stringify(operationSettings)}`));
+      logger.debug(JSON.stringify(operationSettings));
+
+      return {operation, recordLoadParams, noStream, operationSettings};
     }
 
     if (queryParams.status) {
@@ -176,6 +185,36 @@ export default async function ({mongoUri, amqpUrl}) {
 
     logger.debug(`bulk/validateQueryParams: mandatory query param missing: pOldNew: ${JSON.stringify(queryParams.pOldNew)}, pActiveLibrary: ${JSON.stringify(queryParams.pActiveLibrary)}`);
     throw new HttpError(httpStatus.BAD_REQUEST, 'Missing one or more mandatory query parameters. (pActiveLibrary, pOldNew or status)');
+  }
+
+  function validateAndGetOperationSettings(queryParams, noStream) {
+
+    // validate: false + unique/merge/failOnError: true are not sane combinations
+    // unique: false + merge: true is not a sane vcombination
+
+    logger.debug(JSON.stringify(queryParams));
+
+    const operationSettingsForBatchBulk = {
+      noStream,
+      noop: queryParams.noop ? parseBoolean(queryParams.noop) : false,
+      unique: queryParams.unique ? parseBoolean(queryParams.unique) : true,
+      merge: queryParams.merge ? parseBoolean(queryParams.merge) : false,
+      validate: queryParams.validate ? parseBoolean(queryParams.validate) : true,
+      failOnError: queryParams.failOnError ? parseBoolean(queryParams.failOnError) : false,
+      prio: false
+    };
+
+    const operationSettingsForStreamBulk = {
+      noStream,
+      noop: queryParams.noop ? parseBoolean(queryParams.noop) : false,
+      unique: queryParams.unique ? parseBoolean(queryParams.unique) : false,
+      merge: queryParams.merge ? parseBoolean(queryParams.merge) : false,
+      validate: queryParams.validate ? parseBoolean(queryParams.validate) : false,
+      failOnError: queryParams.failOnError ? parseBoolean(queryParams.failOnError) : false,
+      prio: false
+    };
+
+    return noStream ? operationSettingsForBatchBulk : operationSettingsForStreamBulk;
   }
 
   function checkCataloger(id, paramsId) {

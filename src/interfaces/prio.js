@@ -62,7 +62,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     throw new HttpError(httpStatus.NOT_FOUND, 'Record not found');
   }
 
-  async function create({data, format, cataloger, oCatalogerIn, noop, unique, merge, correlationId}) {
+  async function create({data, format, cataloger, oCatalogerIn, operationSettings, correlationId}) {
     logger.info(`Creating CREATE task for a new record ${correlationId}`);
     logger.verbose('Sending a new record to queue');
     const operation = OPERATIONS.CREATE;
@@ -70,22 +70,19 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       operation,
       format,
       cataloger,
-      noop,
-      merge,
-      unique,
-      prio: true
+      operationSettings
     };
 
     logger.verbose(`Creating Mongo queue item for correlationId ${correlationId}`);
-    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, unique, merge, prio: true});
+    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, operationSettings});
     const responseData = await handleRequest({correlationId, headers, data});
     logger.silly(`prio/create response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
     cleanMongo(correlationId);
 
     // eslint-disable-next-line no-extra-parens
-    if (responseData.status === 'CREATED' || (merge && responseData.status === 'UPDATED')) {
+    if (responseData.status === 'CREATED' || (operationSettings.merge && responseData.status === 'UPDATED')) {
 
-      if (noop && !merge) {
+      if (operationSettings.noop && !operationSettings.merge) {
         return {messages: responseData.messages, id: undefined, status: responseData.status};
       }
 
@@ -97,7 +94,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
 
-  async function update({id, data, format, cataloger, oCatalogerIn, noop, merge, correlationId}) {
+  async function update({id, data, format, cataloger, oCatalogerIn, operationSettings, correlationId}) {
     validateRequestId(id);
     logger.info(`Creating UPDATE task for record ${id} / ${correlationId}`);
     const operation = OPERATIONS.UPDATE;
@@ -106,14 +103,12 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       id,
       format,
       cataloger,
-      noop,
-      merge,
-      prio: true
+      operationSettings
     };
 
     logger.verbose(`Creating Mongo queue item for record ${id}`);
 
-    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, merge, prio: true});
+    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, operationSettings});
     const responseData = await handleRequest({correlationId, headers, data});
     logger.silly(`prio/update response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
     cleanMongo(correlationId);
@@ -122,7 +117,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     // eslint-disable-next-line no-extra-parens
     if (responseData.status === 'UPDATED') {
 
-      if (noop) {
+      if (operationSettings.noop) {
         return responseData.messages;
       }
 

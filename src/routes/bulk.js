@@ -58,7 +58,8 @@ export default async function ({mongoUri, amqpUrl}) {
   async function create(req, res, next) {
     try {
       logger.silly('routes/Bulk create');
-      const {operation, recordLoadParams, noStream} = Service.validateQueryParams(req.query, req.user.id);
+      const {operation, recordLoadParams, noStream, operationSettings} = Service.validateQueryParams(req.query, req.user.id);
+
       const params = {
         correlationId: uuid(),
         cataloger: Service.checkCataloger(req.user.id, req.query.pCatalogerIn),
@@ -66,6 +67,7 @@ export default async function ({mongoUri, amqpUrl}) {
         contentType: req.headers['content-type'],
         operation,
         recordLoadParams,
+        operationSettings,
         stream: noStream ? false : req
       };
 
