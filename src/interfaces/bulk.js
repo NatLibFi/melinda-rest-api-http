@@ -28,7 +28,6 @@
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
-import {CONTENT_TYPES} from '../config';
 import httpStatus from 'http-status';
 import sanitize from 'mongo-sanitize';
 
