@@ -51,16 +51,12 @@ export default async function ({mongoUri, amqpUrl}) {
     return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
   }
 
-  async function addRecord({correlationId, contentType, record}) {
+  async function addRecord({correlationId, headers, record}) {
     // asses rabbit queue for correlationId
     if (record) {
       logger.debug('Got record');
-      logger.debug(CONTENT_TYPES);
       // what other headers do we need? should we fetch operationSettings stuff from queueItem to headers?
-      const headers = {format: CONTENT_TYPES.prio[contentType]};
       // Read record from stream using serializer
-      logger.silly(`Record: ${JSON.stringify(record)}`);
-      logger.debug(`Using ${contentType} stream reader in validator for parsing the record.`);
       logger.debug(`Adding record for ${correlationId}`);
       await amqpOperator.sendToQueue({queue: `${QUEUE_ITEM_STATE.VALIDATOR.PENDING_VALIDATION}.${correlationId}`, correlationId, headers, data: record});
 

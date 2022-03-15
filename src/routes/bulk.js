@@ -96,7 +96,8 @@ export default async function ({mongoUri, amqpUrl}) {
       const correlationId = req.params.id;
       const contentType = req.headers['content-type'];
       const record = req.body;
-      const response = await Service.addRecord({correlationId, contentType, record});
+      const headers = {format: CONTENT_TYPES.prio[contentType]};
+      const response = await Service.addRecord({correlationId, headers, record});
 
       res.status(response.status).json(response.payload);
     } catch (error) {
