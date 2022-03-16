@@ -30,6 +30,7 @@ import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import httpStatus from 'http-status';
 import sanitize from 'mongo-sanitize';
+import {CONTENT_TYPES} from '../config';
 
 export default async function ({mongoUri, amqpUrl}) {
   const logger = createLogger();
@@ -50,31 +51,47 @@ export default async function ({mongoUri, amqpUrl}) {
     return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
   }
 
-  async function addRecord({correlationId, headers, record}) {
+  async function addRecord({correlationId, contentType, data}) {
     // asses rabbit queue for correlationId
-    if (record) {
-      logger.debug('Got record');
-      // what other headers do we need? should we fetch operationSettings stuff from queueItem to headers?
-      // Read record from stream using serializer
-      logger.debug(`Adding record for ${correlationId}`);
-      await amqpOperator.sendToQueue({queue: `${QUEUE_ITEM_STATE.VALIDATOR.PENDING_VALIDATION}.${correlationId}`, correlationId, headers, data: record});
 
-      // what promises we're waiting here?
-      await Promise.all([]);
-      return {status: '202', payload: `Record have been added to bulk ${correlationId}`};
+    // check that there is a queue item, and queueItemState = VALIDATOR.WAITING_FOR_RECORDS
+    // get headers
+    const queueItem = await mongoOperator.queryById({correlationId});
+
+    if (!queueItem) {
+      throw new HttpError(httpStatus.NOT_FOUND, `Invalid queueItem ${correlationId}`);
     }
 
-    return {status: '400', payload: 'No record'};
+    if (queueItem.queueItemState !== QUEUE_ITEM_STATE.VALIDATOR.WAITING_FOR_RECORDS) {
+      throw new HttpError(httpStatus.BAD_REQUEST, `Invalid state (${queueItem.queueItemState} for adding records in queueItem ${correlationId}`);
+    }
+
+    if (data) {
+
+      // contentType from the request - we can have different contentTypes in one job?
+      const format = CONTENT_TYPES.prio[contentType];
+      const {operation, cataloger, operationSettings} = queueItem;
+      const headers = {operation, format, cataloger, operationSettings};
+
+      logger.debug('Got record');
+      logger.debug(`Adding record for ${correlationId}`);
+      await amqpOperator.sendToQueue({queue: `${QUEUE_ITEM_STATE.VALIDATOR.PENDING_VALIDATION}.${correlationId}`, correlationId, headers, data});
+
+      return {status: httpStatus.CREATED, payload: `Record has been added to bulk ${correlationId}`};
+    }
+
+    throw new HttpError(httpStatus.BAD_REQUEST, 'No record.');
   }
 
   async function getState(params) {
     logger.debug(`Getting current state of ${params.correlationId}`);
     const [{correlationId, queueItemState, modificationTime}] = await mongoOperator.query(params);
+
     if (queueItemState) {
-      return {status: 200, payload: {correlationId, queueItemState, modificationTime}};
+      return {status: httpStatus.OK, payload: {correlationId, queueItemState, modificationTime}};
     }
 
-    return {status: 404, payload: `Item not found for id: ${params.correlationId}`};
+    throw new HttpError(httpStatus.NOT_FOUND, `Item not found for id: ${params.correlationId}`);
   }
 
   async function updateState({correlationId, state}) {
@@ -82,10 +99,10 @@ export default async function ({mongoUri, amqpUrl}) {
     const {value} = await mongoOperator.setState({correlationId, state});
     if (value) {
       const {queueItemState, modificationTime} = value;
-      return {status: 200, payload: {correlationId, queueItemState, modificationTime}};
+      return {status: httpStatus.OK, payload: {correlationId, queueItemState, modificationTime}};
     }
 
-    return {status: 404, payload: `Item not found for id: ${correlationId}`};
+    throw new HttpError(httpStatus.NOT_FOUND, `Item not found for id: ${correlationId}`);
   }
 
   function readContent(correlationId) {
@@ -162,8 +179,7 @@ export default async function ({mongoUri, amqpUrl}) {
       const noStream = queryParams.noStream ? parseBoolean(queryParams.noStream) : false;
 
       const operationSettings = validateAndGetOperationSettings(queryParams, noStream);
-      logger.debug(JSON.stringify(`noStream: ${noStream}, operationSetggings: ${JSON.stringify(operationSettings)}`));
-      logger.debug(JSON.stringify(operationSettings));
+      logger.debug(`noStream: ${noStream}, operationSettings: ${JSON.stringify(operationSettings)}`);
 
       return {operation, recordLoadParams, noStream, operationSettings};
     }
@@ -185,7 +201,9 @@ export default async function ({mongoUri, amqpUrl}) {
   function validateAndGetOperationSettings(queryParams, noStream) {
 
     // validate: false + unique/merge/failOnError: true are not sane combinations
-    // unique: false + merge: true is not a sane vcombination
+    // unique: false + merge: true is not a sane combination
+
+    // should these be in config.js ?
 
     logger.debug(JSON.stringify(queryParams));
 

@@ -34,7 +34,6 @@ import {v4 as uuid} from 'uuid';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
-import {CONTENT_TYPES} from '../config';
 import createService from '../interfaces/bulk';
 import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils';
 
@@ -96,9 +95,8 @@ export default async function ({mongoUri, amqpUrl}) {
     try {
       const correlationId = req.params.id;
       const contentType = req.headers['content-type'];
-      const record = req.body;
-      const headers = {format: CONTENT_TYPES.prio[contentType]};
-      const response = await Service.addRecord({correlationId, headers, record});
+      const data = req.body;
+      const response = await Service.addRecord({correlationId, contentType, data});
 
       res.status(response.status).json(response.payload);
     } catch (error) {
