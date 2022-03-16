@@ -57,3 +57,11 @@ export const CONTENT_TYPES = {
   },
   'bulk': ['application/xml', 'application/marc', 'application/json', 'application/alephseq']
 };
+
+export const CONTENT_TYPES2 = [
+  {contentType: 'application/json', conversionType: conversionFormats.JSON, allowPrio: true, allowBulk: true},
+  {contentType: 'application/marc', conversionType: conversionFormats.ISO2709, allowPrio: true, allowBulk: true},
+  {contentType: 'application/xml', conversionType: conversionFormats.MARCXML, allowPrio: true, allowBulk: true},
+  {contentType: 'application/alephseq', conversionType: conversionFormats.ALEPHSEQ, allowPrio: false, allowBulk: true}
+];
+
