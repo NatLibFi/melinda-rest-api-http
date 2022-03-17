@@ -54,8 +54,8 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
     logger.silly('routes/Prio readResource');
     try {
       const type = req.headers.accept;
-      const format = CONTENT_TYPES.prio[type];
-      const {record} = await Service.read({id: req.params.id, format});
+      const {conversionFormat} = CONTENT_TYPES.find(({contentType}) => contentType === type);
+      const {record} = await Service.read({id: req.params.id, format: conversionFormat});
 
       return res.type(type).status(httpStatus.OK)
         .send(record);
@@ -72,7 +72,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
     logger.silly('routes/Prio createResource');
     try {
       const type = req.headers['content-type'];
-      const format = CONTENT_TYPES.prio[type];
+      const {conversionFormat} = CONTENT_TYPES.find(({contentType}) => contentType === type);
       const correlationId = uuid();
 
       const operationSettings = {
@@ -91,7 +91,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       }
 
       const {messages, id, status} = await Service.create({
-        format,
+        format: conversionFormat,
         cataloger: sanitizeCataloger(req.user, req.query.cataloger),
         oCatalogerIn: req.user.id,
         correlationId,
@@ -128,7 +128,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
     logger.silly('routes/Prio updateResource');
     try {
       const type = req.headers['content-type'];
-      const format = CONTENT_TYPES.prio[type];
+      const {conversionFormat} = CONTENT_TYPES.find(({contentType}) => contentType === type);
       const correlationId = uuid();
 
       const operationSettings = {
@@ -145,7 +145,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
 
       const messages = await Service.update({
         id: req.params.id,
-        format,
+        format: conversionFormat,
         cataloger: sanitizeCataloger(req.user, req.query.cataloger),
         oCatalogerIn: req.user.id,
         operationSettings,

@@ -1,6 +1,6 @@
 import httpStatus from 'http-status';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
-import {CONTENT_TYPES2} from '../config';
+import {CONTENT_TYPES} from '../config';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {version as uuidVersion, validate as uuidValidate} from 'uuid';
 
@@ -31,7 +31,7 @@ export function sanitizeCataloger(passportCataloger, queryCataloger) {
 // Note: checkAcceptHeader currently works only for prio
 export function checkAcceptHeader(req, res, next) {
   logger.debug(`routesUtils:checkAcceptHeader: accept: ${req.headers.accept}`);
-  if (req.headers.accept === undefined || !CONTENT_TYPES2.find(({contentType, allowPrio}) => contentType === req.headers.accept && allowPrio === true)) {
+  if (req.headers.accept === undefined || !CONTENT_TYPES.find(({contentType, allowPrio}) => contentType === req.headers.accept && allowPrio === true)) {
     return res.status(httpStatus.UNSUPPORTED_MEDIA_TYPE).send('Invalid Accept header');
   }
 
@@ -50,7 +50,7 @@ export function checkId(req, res, next) {
 export function checkContentType(req, res, next) {
   logger.debug(`routesUtils:checkContentType: content-type: ${req.headers['content-type']}`);
 
-  const result = req.headers['content-type'] === undefined ? undefined : CONTENT_TYPES2.find(({contentType}) => contentType === req.headers['content-type']);
+  const result = req.headers['content-type'] === undefined ? undefined : CONTENT_TYPES.find(({contentType}) => contentType === req.headers['content-type']);
   logger.debug(`routesUtils:checkContentType: Found defined contentType: ${JSON.stringify(result)}`);
 
   if ((/^\/bulk[/?]/u).test(req.originalUrl)) {

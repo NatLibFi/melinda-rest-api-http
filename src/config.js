@@ -49,19 +49,10 @@ export const mongoUri = readEnvironmentVariable('MONGO_URI', {defaultValue: 'mon
 
 export const pollWaitTime = readEnvironmentVariable('POLL_WAIT_TIME', {defaultValue: 100, format: v => Number(v)});
 
-export const CONTENT_TYPES = {
-  'prio': {
-    'application/json': conversionFormats.JSON,
-    'application/marc': conversionFormats.ISO2709,
-    'application/xml': conversionFormats.MARCXML
-  },
-  'bulk': ['application/xml', 'application/marc', 'application/json', 'application/alephseq']
-};
-
-export const CONTENT_TYPES2 = [
-  {contentType: 'application/json', conversionType: conversionFormats.JSON, allowPrio: true, allowBulk: true},
-  {contentType: 'application/marc', conversionType: conversionFormats.ISO2709, allowPrio: true, allowBulk: true},
-  {contentType: 'application/xml', conversionType: conversionFormats.MARCXML, allowPrio: true, allowBulk: true},
-  {contentType: 'application/alephseq', conversionType: conversionFormats.ALEPHSEQ, allowPrio: false, allowBulk: true}
+export const CONTENT_TYPES = [
+  {contentType: 'application/json', conversionFormat: conversionFormats.JSON, allowPrio: true, allowBulk: true},
+  {contentType: 'application/marc', conversionFormat: conversionFormats.ISO2709, allowPrio: true, allowBulk: true},
+  {contentType: 'application/xml', conversionFormat: conversionFormats.MARCXML, allowPrio: true, allowBulk: true},
+  {contentType: 'application/alephseq', conversionFormat: conversionFormats.ALEPHSEQ, allowPrio: false, allowBulk: true}
 ];
 

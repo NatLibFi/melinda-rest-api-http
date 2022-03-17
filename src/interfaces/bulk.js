@@ -68,10 +68,15 @@ export default async function ({mongoUri, amqpUrl}) {
 
     if (data) {
 
-      // contentType from the request - we can have different contentTypes in one job?
-      const format = CONTENT_TYPES.prio[contentType];
+      const type = contentType;
+      const {conversionFormat} = CONTENT_TYPES.find(({contentType, allowBulk}) => contentType === type && allowBulk === true);
+
+      if (!conversionFormat) {
+        throw new HttpError(httpStatus.UNSUPPORTED_MEDIA_TYPE, `Invalid content-type`);
+      }
+
       const {operation, cataloger, operationSettings} = queueItem;
-      const headers = {operation, format, cataloger, operationSettings};
+      const headers = {operation, format: conversionFormat, cataloger, operationSettings};
 
       logger.debug('Got record');
       logger.debug(`Adding record for ${correlationId}`);
