@@ -174,7 +174,7 @@ export default async function ({mongoUri, amqpUrl}) {
   async function remove(req, res, next) {
     logger.silly('routes/Bulk remove');
     try {
-      const response = await Service.remove({oCatalogerIn: req.user.id, correlationId: req.query.id});
+      const response = await Service.remove({oCatalogerIn: req.user.id, correlationId: req.params.id});
       res.json({request: req.query, result: response});
     } catch (error) {
       if (error instanceof HttpError) {
