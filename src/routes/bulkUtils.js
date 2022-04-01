@@ -28,5 +28,5 @@ export function checkQueryParams(req, res, next) {
   }
 
   logger.error(`Failed query params: ${failedParams}`);
-  return res.status(httpStatus.BAD_REQUEST).send(`BAD query params: ${failedParams}`);
+  return res.status(httpStatus.BAD_REQUEST).json({error: 'BAD query params', failedParams});
 }
