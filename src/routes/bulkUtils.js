@@ -9,7 +9,7 @@ export function checkQueryParams(req, res, next) {
   logger.debug(`Checking query params: ${JSON.stringify(queryParams)}`);
   const failedParams = [
     {name: 'id', value: queryParams.id ? uuidValidate(req.params.id) && uuidVersion(req.params.id) === 4 : true},
-    {name: 'pOldNew', value: queryParams.pOldNew ? (/^NEW|OLD$/u).test(queryParams.pActiveLibrary) : true},
+    {name: 'pOldNew', value: queryParams.pOldNew ? (/^(?<pOldNew>NEW|OLD)$/u).test(queryParams.pActiveLibrary) : true},
     {name: 'pActiveLibrary', value: queryParams.pActiveLibrary ? (/^FIN\d\d$/u).test(queryParams.pActiveLibrary) : true},
     {name: 'noStream', value: queryParams.noStream ? (/^0|1$/u).test(queryParams.noop) : true},
     {name: 'noop', value: queryParams.noop ? (/^0|1$/u).test(queryParams.noop) : true},
