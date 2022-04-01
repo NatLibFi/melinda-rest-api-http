@@ -36,6 +36,7 @@ import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/bulk';
 import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils';
+import {checkQueryParams} from './bulkUtils';
 
 export default async function ({mongoUri, amqpUrl}) {
   const logger = createLogger();
@@ -46,6 +47,7 @@ export default async function ({mongoUri, amqpUrl}) {
   return new Router()
     .use(passport.authenticate('melinda', {session: false}))
     .use(authorizeKVPOnly)
+    .use(checkQueryParams)
     .get('/', doQuery)
     .get('/content/:id', checkId, readContent)
     .get('/state/:id', checkId, getState)

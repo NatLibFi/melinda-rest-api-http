@@ -1,39 +1,32 @@
 import httpStatus from 'http-status';
-import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
+import {version as uuidVersion, validate as uuidValidate} from 'uuid';
 
 const logger = createLogger();
 
-export function authorizeKVPOnly(req, res, next) {
-    const queryParams = req.query
-    queryParams.pOldNew ? /^(NEW|OLD)$/u.test(queryParams.pActiveLibrary)
-    queryParams.pActiveLibrary ? /^FIN\d\d$/u.test(queryParams.pActiveLibrary) : false
-    queryParams.noop ? parseBoolean(queryParams.noop) : false,
-    queryParams.unique ? parseBoolean(queryParams.unique) : false,
-    queryParams.merge ? parseBoolean(queryParams.merge) : false,
-    queryParams.validate ? parseBoolean(queryParams.validate) : false,
-    queryParams.failOnError ? parseBoolean(queryParams.failOnError) : false,
-    queryParams.pActiveLibrary,
-    queryParams.pRejectFile || null,
-    queryParams.pLogFile || null,
-    queryParams.pCatalogerIn || null
+export function checkQueryParams(req, res, next) {
+    const queryParams = req.query;
+    logger.debug(`Checking query params: ${JSON.stringify(queryParams)}`);
+    const failedParams = [
+        id = queryParams.id ? uuidValidate(req.params.id) && uuidVersion(req.params.id) === 4 : true,
+        pOldNew = queryParams.pOldNew ? /^NEW|OLD$/u.test(queryParams.pActiveLibrary) : true,
+        pActiveLibrary = queryParams.pActiveLibrary ? /^FIN\d\d$/u.test(queryParams.pActiveLibrary) : true,
+        noStream = queryParams.noStream ? /^0|1$/u.test(queryParams.noop) : true,
+        noop = queryParams.noop ? /^0|1$/u.test(queryParams.noop) : true,
+        unique = queryParams.unique ? /^0|1$/u.test(queryParams.unique) : true,
+        merge = queryParams.merge ? /^0|1$/u.test(queryParams.merge) : true,
+        validate = queryParams.validate ? /^0|1$/u.test(queryParams.validate) : true,
+        failOnError = queryParams.failOnError ? /^0|1$/u.test(queryParams.failOnError) : true,
+        pRejectFile = queryParams.pRejectFile ? /^[a-z|A-Z|0-9|/|\-|.]{0,50}$/u.test(queryParams.pCatalogerIn) : true,
+        pLogFile = queryParams.pLogFile ? /^[a-z|A-Z|0-9|/|\-|.]{0,50}$/u.test(queryParams.pCatalogerIn) : true,
+        pCatalogerIn = queryParams.pCatalogerIn ? /^[A-Z|0-9|_|\-]{0,10}$/u.test(queryParams.pCatalogerIn) : true
+    ].filter(param => !param);
 
-    req.query
-    noStream,
-  };
+    if (failedParams.length === 0) {
+        logger.debug('Query params OK');
+        return next();
+    }
 
-  const noStream = queryParams.noStream ? parseBoolean(queryParams.noStream) : false;
-
-      req.user.id,
-      req.query.pCatalogerIn
-
-
-
-
-
-  if (req.user.authorization.includes('KVP')) {
-    return next();
-  }
-
-  return res.status(httpStatus.FORBIDDEN).send('User credentials do not have permission to use this endpoint');
+    logger.error(`Failed query params: ${failedParams}`);
+    return res.status(httpStatus.BAD_REQUEST).send(`BAD query params: ${failedParams}`);
 }
