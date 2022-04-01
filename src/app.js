@@ -31,6 +31,7 @@ export default async function ({
   async function initExpress() {
     const app = express();
 
+    app.disable('x-powered-by'); // Security
     app.enable('trust proxy', Boolean(enableProxy));
 
     app.use(createExpressLogger());
