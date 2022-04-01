@@ -9,16 +9,16 @@ export function checkQueryParams(req, res, next) {
   logger.debug(`Checking query params: ${JSON.stringify(queryParams)}`);
   const failedParams = [
     {name: 'id', value: queryParams.id ? uuidValidate(req.params.id) && uuidVersion(req.params.id) === 4 : true},
-    {name: 'pOldNew', value: queryParams.pOldNew ? (/^(?<pOldNew>NEW|OLD)$/u).test(queryParams.pActiveLibrary) : true},
+    {name: 'pOldNew', value: queryParams.pOldNew ? (/^(?<pOldNew>NEW|OLD)$/u).test(queryParams.pOldNew) : true},
     {name: 'pActiveLibrary', value: queryParams.pActiveLibrary ? (/^FIN\d\d$/u).test(queryParams.pActiveLibrary) : true},
-    {name: 'noStream', value: queryParams.noStream ? (/^0|1$/u).test(queryParams.noop) : true},
+    {name: 'noStream', value: queryParams.noStream ? (/^0|1$/u).test(queryParams.noStream) : true},
     {name: 'noop', value: queryParams.noop ? (/^0|1$/u).test(queryParams.noop) : true},
     {name: 'unique', value: queryParams.unique ? (/^0|1$/u).test(queryParams.unique) : true},
     {name: 'merge', value: queryParams.merge ? (/^0|1$/u).test(queryParams.merge) : true},
     {name: 'validate', value: queryParams.validate ? (/^0|1$/u).test(queryParams.validate) : true},
     {name: 'failOnError', value: queryParams.failOnError ? (/^0|1$/u).test(queryParams.failOnError) : true},
-    {name: 'pRejectFile', value: queryParams.pRejectFile ? (/^[a-z|A-Z|0-9|/|\-|.]{0,50}$/u).test(queryParams.pCatalogerIn) : true},
-    {name: 'pLogFile', value: queryParams.pLogFile ? (/^[a-z|A-Z|0-9|/|\-|.]{0,50}$/u).test(queryParams.pCatalogerIn) : true},
+    {name: 'pRejectFile', value: queryParams.pRejectFile ? (/^[a-z|A-Z|0-9|/|\-|.]{0,50}$/u).test(queryParams.pRejectFile) : true},
+    {name: 'pLogFile', value: queryParams.pLogFile ? (/^[a-z|A-Z|0-9|/|\-|.]{0,50}$/u).test(queryParams.pLogFile) : true},
     {name: 'pCatalogerIn', value: queryParams.pCatalogerIn ? (/^[A-Z|0-9|_|-]{0,10}$/u).test(queryParams.pCatalogerIn) : true}
   ].filter(param => !param.value).map(param => param.name);
 
