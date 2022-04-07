@@ -51,19 +51,22 @@ export default async function ({mongoUri, amqpUrl}) {
     return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
   }
 
+  // eslint-disable-next-line max-statements
   async function addRecord({correlationId, contentType, data}) {
     // asses rabbit queue for correlationId
 
-    // check that there is a queue item, and queueItemState = VALIDATOR.WAITING_FOR_RECORDS
-    // get headers
-    const queueItem = await mongoOperator.queryById({correlationId});
+    // addBlobSize increases blobSize by 1 and returns the queueItem if there's a queueItem in state WAITING_FOR_RECORDS for correlationId
+    const addBlobSizeResult = await mongoOperator.addBlobSize({correlationId});
+    logger.silly(`addBlobSizeResult: ${JSON.stringify(addBlobSizeResult)}`);
+    const queueItem = addBlobSizeResult.value;
 
     if (!queueItem) {
-      throw new HttpError(httpStatus.NOT_FOUND, `Invalid queueItem ${correlationId}`);
+      throw new HttpError(httpStatus.NOT_FOUND, `Invalid queueItem ${correlationId} for adding records`);
     }
 
+    // addBlobSize already checked the queueItemState, so this should not happen ever
     if (queueItem.queueItemState !== QUEUE_ITEM_STATE.VALIDATOR.WAITING_FOR_RECORDS) {
-      throw new HttpError(httpStatus.BAD_REQUEST, `Invalid state (${queueItem.queueItemState} for adding records in queueItem ${correlationId}`);
+      throw new HttpError(httpStatus.BAD_REQUEST, `Invalid state (${queueItem.queueItemState}) for adding records in queueItem ${correlationId}`);
     }
 
     if (data) {
@@ -75,14 +78,16 @@ export default async function ({mongoUri, amqpUrl}) {
         throw new HttpError(httpStatus.UNSUPPORTED_MEDIA_TYPE, `Invalid content-type`);
       }
 
-      const {operation, cataloger, operationSettings} = queueItem;
-      const headers = {operation, format: conversionFormat, cataloger, operationSettings};
+      const {operation, cataloger, operationSettings, blobSize} = queueItem;
+      const currentSequence = blobSize + 1;
+      const headers = {operation, format: conversionFormat, cataloger, operationSettings, recordMetadata: {blobSequence: currentSequence}};
 
-      logger.debug('Got record');
-      logger.debug(`Adding record for ${correlationId}`);
-      await amqpOperator.sendToQueue({queue: `${QUEUE_ITEM_STATE.VALIDATOR.PENDING_VALIDATION}.${correlationId}`, correlationId, headers, data});
+      logger.debug(`Adding record ${currentSequence} for ${correlationId}`);
 
-      return {status: httpStatus.CREATED, payload: `Record has been added to bulk ${correlationId}`};
+      const queue = `${QUEUE_ITEM_STATE.VALIDATOR.PENDING_VALIDATION}.${correlationId}`;
+      await amqpOperator.sendToQueue({queue, correlationId, headers, data});
+
+      return {status: httpStatus.CREATED, payload: `Record has been added to bulk ${correlationId} that has currently ${currentSequence} records`};
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST, 'No record.');
