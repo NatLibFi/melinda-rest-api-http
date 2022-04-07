@@ -90,7 +90,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         throw new HttpError(httpStatus.BAD_REQUEST, `Merge cannot be used with unique set as **false**`);
       }
 
-      const {messages, id} = await Service.create({
+      const {messages, id, status} = await Service.create({
         format: conversionFormat,
         cataloger: sanitizeCataloger(req.user, req.query.cataloger),
         oCatalogerIn: req.user.id,
@@ -103,14 +103,21 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       // logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
       // logger.silly(`id: ${inspect(id, {colors: true, maxArrayLength: 3, depth: 1})}`);
 
+      // CREATED + id for non-noop creates
+      if (status === 'CREATED' && !operationSettings.noop) {
+        res.status(httpStatus.CREATED).set('Record-ID', id)
+          .json(messages);
+        return;
+      }
 
-      if (!operationSettings.noop) {
+      // OK + id for merged cases (noop & non-noop)
+      if (status === 'UPDATED') {
         res.status(httpStatus.OK).set('Record-ID', id)
           .json(messages);
         return;
       }
 
-      // Note: noops return OK even if they fail marc-record-validate validations
+      // just OK for noop creates
       res.status(httpStatus.OK).json(messages);
     } catch (error) {
       if (error instanceof HttpError) {
@@ -152,7 +159,6 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         data: req.body
       });
 
-      // update gets messages as messeages for noop and {status, payload} as messages for non-noop
       logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
 
       // Note: noops return OK even if they fail marc-record-validate validations
