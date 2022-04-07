@@ -263,7 +263,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     logger.debug(`QueueItemState is ERROR, errorStatus: ${result.errorStatus} errorMessage: ${result.errorMessage}`);
     const errorStatus = result.errorStatus || httpStatus.INTERNAL_SERVER_ERROR;
-    const responsePayload = result.errorMessage || 'unknown error';
+    const responsePayload = {message: result.errorMessage} || {message: 'unknown error'};
     const responsePayloadAndStatus = {...responsePayload, status: errorStatus};
     return {status: errorStatus, payload: firstRecordResponse || responsePayloadAndStatus};
   }
