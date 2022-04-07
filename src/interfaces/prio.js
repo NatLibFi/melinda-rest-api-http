@@ -75,22 +75,23 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     logger.verbose(`Creating Mongo queue item for correlationId ${correlationId}`);
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, operationSettings});
+
+    // handleRequest returns recordResponseItem as respenseData
+
     const responseData = await handleRequest({correlationId, headers, data});
+    const {status, payload} = responseData;
+
     logger.silly(`prio/create response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
+    logger.debug(`status: ${status}, ${payload.melindaId}, ${JSON.stringify(payload)}`);
+
     cleanMongo(correlationId);
 
     // eslint-disable-next-line no-extra-parens
-    if (responseData.status === 'CREATED' || (operationSettings.merge && responseData.status === 'UPDATED')) {
-
-      if (operationSettings.noop && !operationSettings.merge) {
-        return {messages: responseData.messages, id: undefined, status: responseData.status};
-      }
-
-      return {messages: responseData.messages, id: responseData.payload, status: responseData.status};
+    if (status === 'CREATED' || (operationSettings.merge && status === 'UPDATED')) {
+      return {messages: payload, id: payload.melindaId, status};
     }
 
-    // Currently errors if validator changed the operation (CREATE -> UPDATE)
-    throw new HttpError(responseData.status, responseData.payload || '');
+    throw new HttpError(status, payload || '');
   }
 
 
@@ -110,22 +111,21 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, operationSettings});
     const responseData = await handleRequest({correlationId, headers, data});
+    const {status, payload} = responseData;
+
     logger.silly(`prio/update response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
+    logger.debug(`status: ${status}, ${payload}`);
+
     cleanMongo(correlationId);
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
     // eslint-disable-next-line no-extra-parens
-    if (responseData.status === 'UPDATED') {
-
-      if (operationSettings.noop) {
-        return responseData.messages;
-      }
-
-      return responseData;
+    if (status === 'UPDATED') {
+      return {messages: payload, id: payload.melindaId, status};
     }
 
     // Note: if validator changed the operation -> this errors currently
-    throw new HttpError(responseData.status, responseData.payload || '');
+    throw new HttpError(status, payload || '');
   }
 
   // cleanMongo cleans the actual MongoCollection ('prio'), logCollection ('logPrio') retains all items
@@ -157,7 +157,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.verbose(`interfaces/prio/create/handleRequest: Waiting response to id: ${correlationId}`);
     const responseData = await check(correlationId);
 
-    // We get responseData from check
+    // We get responseData (recordResponseItem of ??? for errors) from check
 
     logger.verbose(`Got response to id: ${correlationId}, status: ${responseData.status}, payload: ${responseData.payload}, messages: ${responseData.messages}`);
     logger.silly(`interfaces/prio/create/handleRequest: Response data: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}`);
@@ -241,9 +241,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     logger.debug(`Mongo Result: ${JSON.stringify(result)}`);
     const correlationId = result.correlationId || '';
-    const {noop} = result.operationSettings;
 
-    // Create responseData for those errors that didn't sendErrorResponse through queue
     logger.debug(`Responding for ${correlationId} based on the queueItem`);
     logger.debug(`${result}`);
 
@@ -252,52 +250,33 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       return getResponseDataForError(result);
     }
 
-    // ResponseData for non-ERROR noops
-    if (noop) {
-      return getResponseDataForNoop(result);
-    }
-
     // ResponseData for non-ERROR non-noops
     return getResponseDataForDone(result);
   }
 
-  function getResponseDataForNoop(result) {
-    logger.debug(`QueueItem is noop!`);
-    // How do we get recordId for CREATE-merge-noops?
-    const noopOperationStatus = result.operation === OPERATIONS.CREATE ? 'CREATED' : 'UPDATED';
-    const noopMessages = result.noopValidationMessages[0].messages;
-    return {status: noopOperationStatus, messages: noopMessages, payload: ''};
-  }
-
   function getResponseDataForError(result) {
+
+    const recordResponses = result.records ? result.records : [];
+    const [firstRecordResponse] = recordResponses;
+    logger.debug(`We have recordResponses (${recordResponses.length}): ${inspect(recordResponses)}`);
+    logger.silly(`First recordResponse: ${firstRecordResponse}`);
+
     logger.debug(`QueueItemState is ERROR, errorStatus: ${result.errorStatus} errorMessage: ${result.errorMessage}`);
     const errorStatus = result.errorStatus || httpStatus.INTERNAL_SERVER_ERROR;
     const responsePayload = result.errorMessage || 'unknown error';
-    return {status: errorStatus, payload: responsePayload};
+    const responsePayloadAndStatus = {...responsePayload, status: errorStatus};
+    return {status: errorStatus, payload: firstRecordResponse || responsePayloadAndStatus};
   }
 
   function getResponseDataForDone(result) {
-    const handledIds = result.handledIds ? result.handledIds : [];
-    const rejectedIds = result.rejectedIds ? result.rejectedIds : [];
 
-    if (handledIds.length < 1) {
-      logger.debug(`Got 0 valid ids and rejected ${rejectedIds.length} ids: ${rejectedIds}`);
+    const recordResponses = result.records ? result.records : [];
+    const [firstRecordResponse] = recordResponses;
+    logger.debug(`We have recordResponses (${recordResponses.length}): ${inspect(recordResponses)}`);
+    logger.silly(`First recordResponse: ${firstRecordResponse}`);
+    const {status} = firstRecordResponse;
 
-      const responseStatus = httpStatus.UNPROCESSABLE_ENTITY;
-      const responsePayload = rejectedIds[0] || '';
-      return {status: responseStatus, payload: responsePayload};
-    }
-
-    // Handle merge here!
-    logger.debug(JSON.stringify(result));
-    const operationStatus = result.operation === OPERATIONS.CREATE ? 'CREATED' : 'UPDATED';
-    const responseStatus = operationStatus || 'unknown';
-    logger.debug(`responseStatus ${JSON.stringify(responseStatus)}`);
-
-    const responsePayload = handledIds[0] || '';
-    logger.debug(`responsePayload ${JSON.stringify(responsePayload)}`);
-
-    return {status: responseStatus, payload: responsePayload || ''};
+    return {status, payload: firstRecordResponse};
   }
 
   function doQuery({query}) {

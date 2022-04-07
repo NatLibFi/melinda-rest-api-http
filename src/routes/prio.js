@@ -90,7 +90,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         throw new HttpError(httpStatus.BAD_REQUEST, `Merge cannot be used with unique set as **false**`);
       }
 
-      const {messages, id, status} = await Service.create({
+      const {messages, id} = await Service.create({
         format: conversionFormat,
         cataloger: sanitizeCataloger(req.user, req.query.cataloger),
         oCatalogerIn: req.user.id,
@@ -100,9 +100,8 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       });
 
       // create returns: {messages:<messages> id:<id>, status: CREATED/UPDATED}
-      logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
-      logger.silly(`id: ${inspect(id, {colors: true, maxArrayLength: 3, depth: 1})}`);
-      logger.silly(`status: ${inspect(status, {colors: true, maxArrayLength: 3, depth: 1})}`);
+      // logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
+      // logger.silly(`id: ${inspect(id, {colors: true, maxArrayLength: 3, depth: 1})}`);
 
 
       if (!operationSettings.noop) {
@@ -143,7 +142,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         prio: true
       };
 
-      const messages = await Service.update({
+      const {messages, id} = await Service.update({
         id: req.params.id,
         format: conversionFormat,
         cataloger: sanitizeCataloger(req.user, req.query.cataloger),
@@ -157,7 +156,8 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
 
       // Note: noops return OK even if they fail marc-record-validate validations
-      return res.status(httpStatus.OK).json(messages);
+      return res.status(httpStatus.OK).set('Record-ID', id)
+        .json(messages);
     } catch (error) {
       if (error instanceof HttpError) {
         return res.status(error.status).send(error.payload);
