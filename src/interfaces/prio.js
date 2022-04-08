@@ -82,13 +82,13 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     const {status, payload} = responseData;
 
     logger.silly(`prio/create response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
-    logger.debug(`status: ${status}, ${payload.melindaId}, ${JSON.stringify(payload)}`);
+    logger.debug(`status: ${status}, ${payload.databaseId}, ${JSON.stringify(payload)}`);
 
     cleanMongo(correlationId);
 
     // eslint-disable-next-line no-extra-parens
     if (status === 'CREATED' || (operationSettings.merge && status === 'UPDATED')) {
-      return {messages: payload, id: payload.melindaId, status};
+      return {messages: payload, id: payload.databaseId, status};
     }
 
     throw new HttpError(status, payload || '');
@@ -121,7 +121,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
     // eslint-disable-next-line no-extra-parens
     if (status === 'UPDATED') {
-      return {messages: payload, id: payload.melindaId, status};
+      return {messages: payload, id: payload.databaseId, status};
     }
 
     // Note: if validator changed the operation -> this errors currently
