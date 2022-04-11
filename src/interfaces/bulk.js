@@ -210,19 +210,32 @@ export default async function ({mongoUri, amqpUrl}) {
 
   function validateAndGetOperationSettings(queryParams, noStream) {
 
-    // validate: false + unique/merge/failOnError: true are not sane combinations
-    // unique: false + merge: true is not a sane combination
-
+    // NOTE: failOnError currently works on for splitting streamBulk stream to records, not for other validations
     // should these be in config.js ?
 
     logger.debug(JSON.stringify(queryParams));
 
+    const paramValidate = queryParams.validate ? parseBoolean(queryParams.validate) : undefined;
+    const paramUnique = queryParams.unique ? parseBoolean(queryParams.unique) : undefined;
+    const paramMerge = queryParams.merge ? parseBoolean(queryParams.merge) : undefined;
+
+    if (paramValidate === false && (paramUnique || paramMerge)) {
+      logger.debug(`Query parameter validate=0 is not valid with query parameters unique=1 and/or merge=1`);
+      throw new HttpError(httpStatus.BAD_REQUEST, `Query parameter validate=0 is not valid with query parameters unique=1 and/or merge=1`);
+    }
+
+    if (paramUnique === false && paramMerge) {
+      logger.debug(`Query parameter unique=0 is not valid with query parameter merge=1`);
+      throw new HttpError(httpStatus.BAD_REQUEST, `Query parameter unique=0 is not valid with query parameter merge=1`);
+    }
+
+
     const operationSettingsForBatchBulk = {
       noStream,
       noop: queryParams.noop ? parseBoolean(queryParams.noop) : false,
-      unique: queryParams.unique ? parseBoolean(queryParams.unique) : true,
-      merge: queryParams.merge ? parseBoolean(queryParams.merge) : false,
-      validate: queryParams.validate ? parseBoolean(queryParams.validate) : true,
+      unique: paramValidate ? paramValidate : true,
+      merge: paramMerge ? paramMerge : false,
+      validate: paramValidate ? paramValidate : true,
       failOnError: queryParams.failOnError ? parseBoolean(queryParams.failOnError) : false,
       prio: false
     };
@@ -230,9 +243,9 @@ export default async function ({mongoUri, amqpUrl}) {
     const operationSettingsForStreamBulk = {
       noStream,
       noop: queryParams.noop ? parseBoolean(queryParams.noop) : false,
-      unique: queryParams.unique ? parseBoolean(queryParams.unique) : false,
-      merge: queryParams.merge ? parseBoolean(queryParams.merge) : false,
-      validate: queryParams.validate ? parseBoolean(queryParams.validate) : false,
+      unique: paramValidate ? paramValidate : false,
+      merge: paramMerge ? paramMerge : false,
+      validate: paramValidate ? paramValidate : false,
       failOnError: queryParams.failOnError ? parseBoolean(queryParams.failOnError) : false,
       prio: false
     };
