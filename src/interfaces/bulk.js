@@ -167,27 +167,29 @@ export default async function ({mongoUri, amqpUrl}) {
       }
 
       if (queueItemState) { // eslint-disable-line functional/no-conditional-statement
-        doc.queueItemState = {$in: queueItemState}; // eslint-disable-line functional/immutable-data
+        doc.queueItemState = queueItemState; // eslint-disable-line functional/immutable-data
       }
 
       if (creationTime) {
+        const timestampArray = JSON.parse(creationTime);
         if (creationTime.length === 1) { // eslint-disable-line functional/no-conditional-statement
-          doc.creationTime = formatTime(creationTime[0]); // eslint-disable-line functional/immutable-data
+          doc.creationTime = formatTime(timestampArray[0]); // eslint-disable-line functional/immutable-data
         } else { // eslint-disable-line functional/no-conditional-statement
           doc.$and = [ // eslint-disable-line functional/immutable-data
-            {creationTime: {$gte: formatTime(creationTime[0])}},
-            {creationTime: {$lte: formatTime(creationTime[1])}}
+            {creationTime: {$gte: formatTime(timestampArray[0])}},
+            {creationTime: {$lte: formatTime(timestampArray[1])}}
           ];
         }
       }
 
       if (modificationTime) {
+        const timestampArray = JSON.parse(modificationTime);
         if (modificationTime.length === 1) { // eslint-disable-line functional/no-conditional-statement
-          doc.modificationTime = formatTime(modificationTime[0]); // eslint-disable-line functional/immutable-data
+          doc.modificationTime = formatTime(timestampArray[0]); // eslint-disable-line functional/immutable-data
         } else { // eslint-disable-line functional/no-conditional-statement
           doc.$and = [ // eslint-disable-line functional/immutable-data
-            {modificationTime: {$gte: formatTime(modificationTime[0])}},
-            {modificationTime: {$lte: formatTime(modificationTime[1])}}
+            {modificationTime: {$gte: formatTime(timestampArray[0])}},
+            {modificationTime: {$lte: formatTime(timestampArray[1])}}
           ];
         }
       }
@@ -195,7 +197,7 @@ export default async function ({mongoUri, amqpUrl}) {
       return doc;
 
       function formatTime(timestamp) {
-        logger.debug(timestamp);
+        logger.debug(`Timestamp: ${timestamp}`);
 
         if ((/^\d{4}-[01]{1}\d{1}-[0-3]{1}\d{1}$/u).test(timestamp)) {
           const time = moment(timestamp).utc();
