@@ -195,6 +195,11 @@ export default async function ({mongoUri, amqpUrl}) {
       return doc;
 
       function formatTime(timestamp) {
+        if ((/^\d{4}-[01]{1}\d{1}-[0-3]{1}\d{1}$/u).test(timestamp)) {
+          const time = moment(timestamp).utc()
+          return time.toDate();
+        }
+
         // Ditch the timezone
         const time = moment.utc(timestamp);
         return time.toDate();
