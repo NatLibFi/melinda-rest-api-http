@@ -25,11 +25,12 @@
 *
 */
 
+import httpStatus from 'http-status';
+import moment from 'moment';
+import sanitize from 'mongo-sanitize';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
-import httpStatus from 'http-status';
-import sanitize from 'mongo-sanitize';
 import {CONTENT_TYPES} from '../config';
 
 export default async function ({mongoUri, amqpUrl}) {
@@ -148,13 +149,7 @@ export default async function ({mongoUri, amqpUrl}) {
     // Query filters oCatalogerIn, correlationId, operation
     // currently filters only by correlationId
 
-    const {query} = incomingParams;
-    const foundId = Boolean(query.id);
-    const clean = foundId ? sanitize(query.id) : '';
-
-    const params = {
-      correlationId: foundId ? clean : {$ne: null}
-    };
+    const params = generateQuery(incomingParams);
 
     logger.debug(`Queue items querried with params: ${JSON.stringify(params)}`);
 
@@ -163,6 +158,48 @@ export default async function ({mongoUri, amqpUrl}) {
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
+
+    function generateQuery({id, queueItemState, creationTime, modificationTime}) {
+      const doc = {};
+
+      if (id) { // eslint-disable-line functional/no-conditional-statement
+        doc.correlationId = sanitize(id); // eslint-disable-line functional/immutable-data
+      }
+
+      if (queueItemState) { // eslint-disable-line functional/no-conditional-statement
+        doc.queueItemState = {$in: queueItemState}; // eslint-disable-line functional/immutable-data
+      }
+
+      if (creationTime) {
+        if (creationTime.length === 1) { // eslint-disable-line functional/no-conditional-statement
+          doc.creationTime = formatTime(creationTime[0]); // eslint-disable-line functional/immutable-data
+        } else { // eslint-disable-line functional/no-conditional-statement
+          doc.$and = [ // eslint-disable-line functional/immutable-data
+            {creationTime: {$gte: formatTime(creationTime[0])}},
+            {creationTime: {$lte: formatTime(creationTime[1])}}
+          ];
+        }
+      }
+
+      if (modificationTime) {
+        if (modificationTime.length === 1) { // eslint-disable-line functional/no-conditional-statement
+          doc.modificationTime = formatTime(modificationTime[0]); // eslint-disable-line functional/immutable-data
+        } else { // eslint-disable-line functional/no-conditional-statement
+          doc.$and = [ // eslint-disable-line functional/immutable-data
+            {modificationTime: {$gte: formatTime(modificationTime[0])}},
+            {modificationTime: {$lte: formatTime(modificationTime[1])}}
+          ];
+        }
+      }
+
+      return doc;
+
+      function formatTime(timestamp) {
+        // Ditch the timezone
+        const time = moment.utc(timestamp);
+        return time.toDate();
+      }
+    }
   }
 
   function validateQueryParams(queryParams) {
@@ -229,28 +266,17 @@ export default async function ({mongoUri, amqpUrl}) {
       throw new HttpError(httpStatus.BAD_REQUEST, `Query parameter unique=0 is not valid with query parameter merge=1`);
     }
 
-
-    const operationSettingsForBatchBulk = {
+    const operationSettings = {
       noStream,
       noop: queryParams.noop ? parseBoolean(queryParams.noop) : false,
-      unique: paramValidate ? paramValidate : true,
+      unique: paramValidate ? paramValidate : noStream,
       merge: paramMerge ? paramMerge : false,
-      validate: paramValidate ? paramValidate : true,
+      validate: paramValidate ? paramValidate : noStream,
       failOnError: queryParams.failOnError ? parseBoolean(queryParams.failOnError) : false,
       prio: false
     };
 
-    const operationSettingsForStreamBulk = {
-      noStream,
-      noop: queryParams.noop ? parseBoolean(queryParams.noop) : false,
-      unique: paramValidate ? paramValidate : false,
-      merge: paramMerge ? paramMerge : false,
-      validate: paramValidate ? paramValidate : false,
-      failOnError: queryParams.failOnError ? parseBoolean(queryParams.failOnError) : false,
-      prio: false
-    };
-
-    return noStream ? operationSettingsForBatchBulk : operationSettingsForStreamBulk;
+    return operationSettings;
   }
 
   function checkCataloger(id, paramsId) {

@@ -117,7 +117,7 @@ export default async function ({mongoUri, amqpUrl}) {
   async function doQuery(req, res, next) {
     try {
       logger.silly('routes/Bulk doQuery');
-      const response = await Service.doQuery({query: req.query});
+      const response = await Service.doQuery(req.query);
       res.json(response);
     } catch (error) {
       if (error instanceof HttpError) {
@@ -130,7 +130,7 @@ export default async function ({mongoUri, amqpUrl}) {
 
   async function getState(req, res, next) {
     try {
-      logger.silly('routes/Bulk getStatus');
+      logger.silly('routes/Bulk getState');
       const response = await Service.getState({correlationId: req.params.id});
       res.status(response.status).json(response.payload);
     } catch (error) {
