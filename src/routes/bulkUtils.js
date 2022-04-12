@@ -62,7 +62,7 @@ export function checkQueryParams(req, res, next) {
   }
 
   function checkQueueItemState(queueItemState) {
-    
+
     const states = {
       ...QUEUE_ITEM_STATE.VALIDATOR,
       ...QUEUE_ITEM_STATE.IMPORTER,
