@@ -42,19 +42,19 @@ export function checkQueryParams(req, res, next) {
     }
 
     const timestampArray = JSON.parse(timestampArrayString);
-    timestampArray.filter(timestamp => {
+    const invalidTimestamps = timestampArray.some(timestamp => {
       if ((/^\d{4}-[01]{1}\d{1}-[0-3]{1}\d{1}T[0-2]{1}\d{1}:[0-6]{1}\d{1}:[0-6]{1}\d{1}\.\d{3}Z/u).test(timestamp)) {
-        return true;
+        return false;
       }
 
       if ((/^\d{4}-[01]{1}\d{1}-[0-3]{1}\d{1}$/u).test(timestamp)) {
-        return true;
+        return false;
       }
 
-      return false;
+      return true;
     });
 
-    if (timestampArray.length < 1 || timestampArray.length > 2) {
+    if (invalidTimestamps) {
       return false;
     }
 
