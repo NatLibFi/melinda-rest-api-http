@@ -47,7 +47,7 @@ export function checkQueryParams(req, res, next) {
         return true;
       }
 
-      if ((/^\d{4}-[01]{1}\d{1}-[0-3]{1}\d{1}$)$/u).test(timestamp)) {
+      if ((/^\d{4}-[01]{1}\d{1}-[0-3]{1}\d{1}$/u).test(timestamp)) {
         return true;
       }
 
