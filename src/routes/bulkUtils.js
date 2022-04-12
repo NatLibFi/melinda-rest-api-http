@@ -62,13 +62,14 @@ export function checkQueryParams(req, res, next) {
   }
 
   function checkQueueItemState(queueItemState) {
-    const states = [
+    
+    const states = {
       ...QUEUE_ITEM_STATE.VALIDATOR,
       ...QUEUE_ITEM_STATE.IMPORTER,
-      QUEUE_ITEM_STATE.DONE,
-      QUEUE_ITEM_STATE.ERROR,
-      QUEUE_ITEM_STATE.ABORT
-    ];
-    return states.includes(queueItemState);
+      DONE: QUEUE_ITEM_STATE.DONE,
+      ERROR: QUEUE_ITEM_STATE.ERROR,
+      ABORT: QUEUE_ITEM_STATE.ABORT
+    };
+    return states[queueItemState];
   }
 }
