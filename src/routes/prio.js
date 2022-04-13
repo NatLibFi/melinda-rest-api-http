@@ -176,7 +176,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
 
   async function getPrioLogs(req, res) {
     logger.silly('routes/Bulk doQuery');
-    const response = await Service.doQuery({query: req.query});
+    const response = await Service.doQuery(req.query);
     res.json(response);
   }
 };
