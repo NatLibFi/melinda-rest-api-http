@@ -159,8 +159,16 @@ export default async function ({mongoUri, amqpUrl}) {
 
     throw new HttpError(httpStatus.BAD_REQUEST);
 
-    function generateQuery({id, queueItemState, creationTime, modificationTime}) {
+    function generateQuery({id, queueItemState, creationTime, modificationTime, skip, limit}) {
       const doc = {};
+
+      if (skip) { // eslint-disable-line functional/no-conditional-statement
+        doc.skip = skip; // eslint-disable-line functional/immutable-data
+      }
+
+      if (limit) { // eslint-disable-line functional/no-conditional-statement
+        doc.limit = limit; // eslint-disable-line functional/immutable-data
+      }
 
       if (id) { // eslint-disable-line functional/no-conditional-statement
         doc.correlationId = sanitize(id); // eslint-disable-line functional/immutable-data
@@ -198,13 +206,6 @@ export default async function ({mongoUri, amqpUrl}) {
 
       function formatTime(timestamp) {
         logger.debug(`Timestamp: ${timestamp}`);
-
-        if ((/^\d{4}-[01]{1}\d{1}-[0-3]{1}\d{1}$/u).test(timestamp)) {
-          const time = moment(timestamp).utc();
-          logger.debug(time);
-          return time.toDate();
-        }
-
         // Ditch the timezone
         const time = moment.utc(timestamp);
         logger.debug(time);
