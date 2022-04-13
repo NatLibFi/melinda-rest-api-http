@@ -36,6 +36,7 @@ import createService from '../interfaces/prio';
 import httpStatus from 'http-status';
 import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger} from './routeUtils';
 import {CONTENT_TYPES} from '../config';
+import {checkQueryParams} from './queryUtils';
 
 export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
   const logger = createLogger();
@@ -45,6 +46,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
 
   return new Router()
     .use(passport.authenticate('melinda', {session: false}))
+    .use(checkQueryParams)
     .get('/prio/', authorizeKVPOnly, getPrioLogs)
     .get('/:id', checkAcceptHeader, readResource)
     .post('/', checkContentType, createResource)

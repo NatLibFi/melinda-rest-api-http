@@ -36,7 +36,7 @@ import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/bulk';
 import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils';
-import {checkQueryParams} from './bulkUtils';
+import {checkQueryParams} from './queryUtils';
 
 export default async function ({mongoUri, amqpUrl}) {
   const logger = createLogger();

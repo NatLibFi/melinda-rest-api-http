@@ -26,12 +26,11 @@
 */
 
 import httpStatus from 'http-status';
-import moment from 'moment';
-import sanitize from 'mongo-sanitize';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import {CONTENT_TYPES} from '../config';
+import {generateQuery} from './utils';
 
 export default async function ({mongoUri, amqpUrl}) {
   const logger = createLogger();
@@ -146,9 +145,6 @@ export default async function ({mongoUri, amqpUrl}) {
   }
 
   function doQuery(incomingParams) {
-    // Query filters oCatalogerIn, correlationId, operation
-    // currently filters only by correlationId
-
     const params = generateQuery(incomingParams);
 
     logger.debug(`Queue items querried with params: ${JSON.stringify(params)}`);
@@ -158,60 +154,6 @@ export default async function ({mongoUri, amqpUrl}) {
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
-
-    function generateQuery({id, queueItemState, creationTime, modificationTime, skip, limit}) {
-      const doc = {};
-
-      if (skip) { // eslint-disable-line functional/no-conditional-statement
-        doc.skip = skip; // eslint-disable-line functional/immutable-data
-      }
-
-      if (limit) { // eslint-disable-line functional/no-conditional-statement
-        doc.limit = limit; // eslint-disable-line functional/immutable-data
-      }
-
-      if (id) { // eslint-disable-line functional/no-conditional-statement
-        doc.correlationId = sanitize(id); // eslint-disable-line functional/immutable-data
-      }
-
-      if (queueItemState) { // eslint-disable-line functional/no-conditional-statement
-        doc.queueItemState = queueItemState; // eslint-disable-line functional/immutable-data
-      }
-
-      if (creationTime) {
-        const timestampArray = JSON.parse(creationTime);
-        if (creationTime.length === 1) { // eslint-disable-line functional/no-conditional-statement
-          doc.creationTime = formatTime(timestampArray[0]); // eslint-disable-line functional/immutable-data
-        } else { // eslint-disable-line functional/no-conditional-statement
-          doc.$and = [ // eslint-disable-line functional/immutable-data
-            {creationTime: {$gte: formatTime(timestampArray[0])}},
-            {creationTime: {$lte: formatTime(timestampArray[1])}}
-          ];
-        }
-      }
-
-      if (modificationTime) {
-        const timestampArray = JSON.parse(modificationTime);
-        if (modificationTime.length === 1) { // eslint-disable-line functional/no-conditional-statement
-          doc.modificationTime = formatTime(timestampArray[0]); // eslint-disable-line functional/immutable-data
-        } else { // eslint-disable-line functional/no-conditional-statement
-          doc.$and = [ // eslint-disable-line functional/immutable-data
-            {modificationTime: {$gte: formatTime(timestampArray[0])}},
-            {modificationTime: {$lte: formatTime(timestampArray[1])}}
-          ];
-        }
-      }
-
-      return doc;
-
-      function formatTime(timestamp) {
-        logger.debug(`Timestamp: ${timestamp}`);
-        // Ditch the timezone
-        const time = moment.utc(timestamp);
-        logger.debug(time);
-        return time.toDate();
-      }
-    }
   }
 
   function validateQueryParams(queryParams) {
