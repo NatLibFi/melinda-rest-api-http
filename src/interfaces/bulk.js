@@ -221,13 +221,16 @@ export default async function ({mongoUri, amqpUrl}) {
       throw new HttpError(httpStatus.BAD_REQUEST, `Query parameter unique=0 is not valid with query parameter merge=1`);
     }
 
+    // noStream == batchBulk:   validate & unique are as default true
+    // !noStream == streamBulk: validate & unique are as default false
+
     const operationSettings = {
       noStream,
-      noop: queryParams.noop ? parseBoolean(queryParams.noop) : false,
-      unique: paramValidate ? paramValidate : noStream,
-      merge: paramMerge ? paramMerge : false,
-      validate: paramValidate ? paramValidate : noStream,
-      failOnError: queryParams.failOnError ? parseBoolean(queryParams.failOnError) : false,
+      noop: queryParams.noop === undefined ? false : parseBoolean(queryParams.noop),
+      unique: paramUnique === undefined ? noStream : paramUnique,
+      merge: paramMerge === undefined ? false : paramMerge,
+      validate: paramValidate === undefined ? noStream : paramValidate,
+      failOnError: queryParams.failOnError === undefined ? false : parseBoolean(queryParams.failOnError),
       prio: false
     };
 
