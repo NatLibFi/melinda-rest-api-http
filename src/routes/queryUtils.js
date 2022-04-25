@@ -25,7 +25,12 @@ export function checkQueryParams(req, res, next) {
     {name: 'modificationTime', value: queryParams.modificationTime ? checkTimeFormat(queryParams.modificationTime) : true},
     {name: 'queueItemState', value: queryParams.queueItemState ? checkQueueItemState(queryParams.queueItemState) : true},
     {name: 'skip', value: queryParams.skip ? (/^\d{1,7}$/u).test(queryParams.skip) : true},
-    {name: 'limit', value: queryParams.limit ? (/^\d{1,7}$/u).test(queryParams.limit) : true}
+    {name: 'limit', value: queryParams.limit ? (/^\d{1,7}$/u).test(queryParams.limit) : true},
+    {name: 'showAll', value: queryParams.showAll ? (/^0|1$/u).test(queryParams.showAll) : true},
+    {name: 'showOperations', value: queryParams.showOperations ? (/^0|1$/u).test(queryParams.showOperations) : true},
+    {name: 'showOperationSettings', value: queryParams.showOperationSettings ? (/^0|1$/u).test(queryParams.showOperationSettings) : true},
+    {name: 'showRecordLoadParams', value: queryParams.showRecordLoadParams ? (/^0|1$/u).test(queryParams.showRecordLoadParams) : true},
+    {name: 'showImportJobState', value: queryParams.showImportJobState ? (/^0|1$/u).test(queryParams.showImportJobState) : true}
   ].filter(param => !param.value).map(param => param.name);
 
   if (failedParams.length === 0) {

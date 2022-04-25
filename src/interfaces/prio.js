@@ -33,7 +33,7 @@ import {amqpFactory, conversions, OPERATIONS, mongoFactory, QUEUE_ITEM_STATE} fr
 import {MARCXML} from '@natlibfi/marc-record-serializers';
 import createSruClient from '@natlibfi/sru-client';
 import httpStatus from 'http-status';
-import {generateQuery} from './utils';
+import {generateQuery, generateShowParams} from './utils';
 
 const setTimeoutPromise = promisify(setTimeout);
 
@@ -281,11 +281,12 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   function doQuery(incomingParams) {
     const params = generateQuery(incomingParams);
+    const showParams = generateShowParams(incomingParams);
 
     logger.debug(`Queue items querried with params: ${JSON.stringify(params)}`);
 
     if (params) {
-      return mongoOperator.query(params);
+      return mongoOperator.query(params, showParams);
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);

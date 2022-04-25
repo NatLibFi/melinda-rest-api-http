@@ -30,7 +30,7 @@ import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import {CONTENT_TYPES} from '../config';
-import {generateQuery} from './utils';
+import {generateQuery, generateShowParams} from './utils';
 
 export default async function ({mongoUri, amqpUrl}) {
   const logger = createLogger();
@@ -146,19 +146,20 @@ export default async function ({mongoUri, amqpUrl}) {
 
   function doQuery(incomingParams) {
     const params = generateQuery(incomingParams);
+    const showParams = generateShowParams(incomingParams);
 
     logger.debug(`Queue items querried with params: ${JSON.stringify(params)}`);
 
     if (params) {
-      return mongoOperator.query(params);
+      return mongoOperator.query(params, showParams);
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
   function validateQueryParams(queryParams) {
-
     logger.silly(`bulk/validateQueryParams: queryParams: ${JSON.stringify(queryParams)}`);
+
     if (queryParams.pOldNew && queryParams.pActiveLibrary) {
       const {pOldNew} = queryParams;
 
