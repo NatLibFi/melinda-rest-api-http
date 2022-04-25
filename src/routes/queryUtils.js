@@ -24,13 +24,8 @@ export function checkQueryParams(req, res, next) {
     {name: 'creationTime', value: queryParams.creationTime ? checkTimeFormat(queryParams.creationTime) : true},
     {name: 'modificationTime', value: queryParams.modificationTime ? checkTimeFormat(queryParams.modificationTime) : true},
     {name: 'queueItemState', value: queryParams.queueItemState ? checkQueueItemState(queryParams.queueItemState) : true},
-    {name: 'skip', value: queryParams.skip ? (/^\d{1,7}$/u).test(queryParams.skip) : true},
-    {name: 'limit', value: queryParams.limit ? (/^\d{1,7}$/u).test(queryParams.limit) : true},
-    {name: 'showAll', value: queryParams.showAll ? (/^0|1$/u).test(queryParams.showAll) : true},
-    {name: 'showOperations', value: queryParams.showOperations ? (/^0|1$/u).test(queryParams.showOperations) : true},
-    {name: 'showOperationSettings', value: queryParams.showOperationSettings ? (/^0|1$/u).test(queryParams.showOperationSettings) : true},
-    {name: 'showRecordLoadParams', value: queryParams.showRecordLoadParams ? (/^0|1$/u).test(queryParams.showRecordLoadParams) : true},
-    {name: 'showImportJobState', value: queryParams.showImportJobState ? (/^0|1$/u).test(queryParams.showImportJobState) : true}
+    ...checkLimitAndSkip(queryParams),
+    ...checkShowParams(queryParams)
   ].filter(param => !param.value).map(param => param.name);
 
   if (failedParams.length === 0) {
@@ -40,6 +35,13 @@ export function checkQueryParams(req, res, next) {
 
   logger.error(`Failed query params: ${failedParams}`);
   return res.status(httpStatus.BAD_REQUEST).json({error: 'BAD query params', failedParams});
+
+  function checkLimitAndSkip(queryParams) {
+    return [
+      {name: 'skip', value: queryParams.skip ? (/^\d{1,7}$/u).test(queryParams.skip) : true},
+      {name: 'limit', value: queryParams.limit ? (/^\d{1,7}$/u).test(queryParams.limit) : true}
+    ];
+  }
 
   function checkTimeFormat(timestampArrayString) {
     if (!(/^\[.*\]$/u).test(timestampArrayString)) {
@@ -76,5 +78,15 @@ export function checkQueryParams(req, res, next) {
       ABORT: QUEUE_ITEM_STATE.ABORT
     };
     return states[queueItemState];
+  }
+
+  function checkShowParams(queryParams) {
+    return [
+      {name: 'showAll', value: queryParams.showAll ? (/^0|1$/u).test(queryParams.showAll) : true},
+      {name: 'showOperations', value: queryParams.showOperations ? (/^0|1$/u).test(queryParams.showOperations) : true},
+      {name: 'showOperationSettings', value: queryParams.showOperationSettings ? (/^0|1$/u).test(queryParams.showOperationSettings) : true},
+      {name: 'showRecordLoadParams', value: queryParams.showRecordLoadParams ? (/^0|1$/u).test(queryParams.showRecordLoadParams) : true},
+      {name: 'showImportJobState', value: queryParams.showImportJobState ? (/^0|1$/u).test(queryParams.showImportJobState) : true}
+    ];
   }
 }
