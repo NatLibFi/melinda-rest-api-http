@@ -13,6 +13,7 @@ const logger = createLogger();
 // creationTime stringified array of utc timestamps 1 specific or 2 for range
 // modificationTime stringified array of utc timestamps 1 specific or 2 for range
 
+// eslint-disable-next-line max-statements
 export function generateQuery({id, queueItemState, creationTime, modificationTime, skip, limit}) {
   const doc = {};
 
@@ -28,6 +29,7 @@ export function generateQuery({id, queueItemState, creationTime, modificationTim
     doc.correlationId = sanitize(id); // eslint-disable-line functional/immutable-data
   }
 
+  // we could have here also final: ABORT, DONE, ERROR, active: !final
   if (queueItemState) { // eslint-disable-line functional/no-conditional-statement
     doc.queueItemState = queueItemState; // eslint-disable-line functional/immutable-data
   }
