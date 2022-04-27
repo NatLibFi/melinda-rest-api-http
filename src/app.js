@@ -54,9 +54,21 @@ export default async function ({
       logger.debug(`App/handleError: Error: ${JSON.stringify(err)}`);
       if (err) {
         logError(err);
+
+        // why does instanceof not work?
         if (err instanceof ApiError) {
           logger.debug('Responding expected');
           return res.status(err.status).send(err.payload);
+        }
+
+        if (err.status && err.payload) {
+          logger.debug('We have an error with status and payload');
+          return res.status(err.status).send(err.payload);
+        }
+
+        if (err.status) {
+          logger.debug('We have an error with status');
+          return res.sendStatus(err.status);
         }
 
         if (req.aborted) {

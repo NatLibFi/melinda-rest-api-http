@@ -37,6 +37,7 @@ import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/bulk';
 import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils';
 import {checkQueryParams} from './queryUtils';
+import {inspect} from 'util';
 
 export default async function ({mongoUri, amqpUrl}) {
   const logger = createLogger();
@@ -74,6 +75,7 @@ export default async function ({mongoUri, amqpUrl}) {
       };
 
       logger.silly('Params done');
+      logger.silly(`Params: ${inspect(params)}`);
       if (params.operation && OPERATION_TYPES.includes(params.operation)) {
         const response = await Service.create(params);
         res.json(response);
