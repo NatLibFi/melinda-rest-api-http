@@ -95,9 +95,17 @@ export default async function ({mongoUri, amqpUrl}) {
 
   async function getState(params) {
     logger.debug(`Getting current state of ${params.correlationId}`);
-    const [{correlationId, queueItemState, modificationTime}] = await mongoOperator.query(params);
 
-    if (queueItemState) {
+    const result = await mongoOperator.query(params);
+    logger.silly(`Result from query: ${JSON.stringify(result)}`);
+
+    if (!result || result.length < 1) {
+      throw new HttpError(httpStatus.NOT_FOUND, `Item not found for id: ${params.correlationId}`);
+    }
+
+    const [{correlationId, queueItemState, modificationTime}] = result;
+
+    if (queueItemState && correlationId && modificationTime) {
       return {status: httpStatus.OK, payload: {correlationId, queueItemState, modificationTime}};
     }
 

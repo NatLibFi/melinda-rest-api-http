@@ -131,8 +131,10 @@ export default async function ({mongoUri, amqpUrl}) {
   }
 
   async function getState(req, res, next) {
+    logger.debug('routes/Bulk getState');
     try {
       logger.silly('routes/Bulk getState');
+      logger.silly(`We have a correlationId: ${req.params.id}`);
       const response = await Service.getState({correlationId: req.params.id});
       res.status(response.status).json(response.payload);
     } catch (error) {
