@@ -28,16 +28,17 @@
 import httpStatus from 'http-status';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
-import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
+import {mongoFactory, mongoLogFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import {CONTENT_TYPES} from '../config';
 import {generateQuery, generateShowParams} from './utils';
 
 export default async function ({mongoUri, amqpUrl}) {
   const logger = createLogger();
   const mongoOperator = await mongoFactory(mongoUri, 'bulk');
+  const mongoLogOperator = await mongoLogFactory(mongoUri);
   const amqpOperator = await amqpFactory(amqpUrl);
 
-  return {create, addRecord, getState, updateState, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
+  return {create, addRecord, getState, updateState, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger, doLogsQuery, getLogs};
 
   async function create({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, operationSettings, stream}) {
     const result = await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, operationSettings, prio: false});
@@ -80,7 +81,7 @@ export default async function ({mongoUri, amqpUrl}) {
 
       const {operation, cataloger, operationSettings, blobSize} = queueItem;
       const currentSequence = blobSize + 1;
-      const headers = {operation, format: conversionFormat, cataloger, operationSettings, recordMetadata: {blobSequence: currentSequence}};
+      const headers = {correlationId, operation, format: conversionFormat, cataloger, operationSettings, recordMetadata: {blobSequence: currentSequence}};
 
       logger.debug(`Adding record ${currentSequence} for ${correlationId}`);
 
@@ -112,6 +113,37 @@ export default async function ({mongoUri, amqpUrl}) {
     throw new HttpError(httpStatus.NOT_FOUND, `Item not found for id: ${params.correlationId}`);
   }
 
+  async function getLogs(params) {
+    logger.debug(`getLogs: params: ${JSON.stringify(params)}`);
+    logger.debug(`Getting action logs for ${params.correlationId}`);
+
+    const result = await mongoLogOperator.queryById(params.correlationId);
+    logger.silly(`Result from query: ${JSON.stringify(result)}`);
+
+    if (!result || result.length < 1) {
+      throw new HttpError(httpStatus.NOT_FOUND, `Item not found for id: ${params.correlationId}`);
+    }
+
+    return {status: httpStatus.OK, payload: result};
+  }
+
+  function doLogsQuery(incomingParams) {
+    const result = mongoLogOperator.query(incomingParams);
+    return result;
+  }
+
+  /*
+  function removeLogs(correlationId) {
+
+    if (correlationId) {
+      const removeResult = mongoLogOperator.remove(correlationId);
+      return removeResult;
+    }
+
+    throw new HttpError(httpStatus.BAD_REQUEST);
+  }
+*/
+
   async function updateState({correlationId, state}) {
     logger.debug(`Updating current state of ${correlationId} to ${state}`);
     const {value} = await mongoOperator.setState({correlationId, state});
@@ -134,7 +166,6 @@ export default async function ({mongoUri, amqpUrl}) {
 
   function remove({oCatalogerIn, correlationId}) {
 
-    // eslint-disable-next-line functional/no-conditional-statement
     if (correlationId) {
       const removeResult = mongoOperator.remove({oCatalogerIn, correlationId});
       return removeResult;

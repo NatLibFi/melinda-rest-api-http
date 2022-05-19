@@ -67,6 +67,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.verbose('Sending a new record to queue');
     const operation = OPERATIONS.CREATE;
     const headers = {
+      correlationId,
       operation,
       format,
       cataloger,
@@ -100,6 +101,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.info(`Creating UPDATE task for record ${id} / ${correlationId}`);
     const operation = OPERATIONS.UPDATE;
     const headers = {
+      correlationId,
       operation,
       id,
       format,

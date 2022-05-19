@@ -69,6 +69,23 @@ export function generateQuery({id, queueItemState, creationTime, modificationTim
   }
 }
 
+export function generateShowParams({showAll = 0, showOperations = undefined, showOperationSettings = undefined, showRecordLoadParams = undefined, showImportJobState = undefined}) {
+  if (parseBoolean(showAll)) {
+    return {_id: 0};
+  }
+
+  const paramsArray = [
+    {showOperations: showOperations ? showOperations : false},
+    {showOperationSettings: showOperationSettings ? showOperationSettings : false},
+    {showRecordLoadParams: showRecordLoadParams ? showRecordLoadParams : false},
+    {showImportJobState: showImportJobState ? showImportJobState : false}
+  ].filter(param => param);
+
+  return Object.assign({_id: 0}, ...paramsArray);
+}
+
+
+/*
 export function generateShowParams({showAll = 0, showOperations = 0, showOperationSettings = 0, showRecordLoadParams = 0, showImportJobState = 0}) {
   if (parseBoolean(showAll)) {
     return {showOperations: 1, showOperationSettings: 1, showRecordLoadParams: 1, showImportJobState: 1};
@@ -76,3 +93,4 @@ export function generateShowParams({showAll = 0, showOperations = 0, showOperati
 
   return {showOperations, showOperationSettings, showRecordLoadParams, showImportJobState};
 }
+*/

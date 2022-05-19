@@ -52,6 +52,8 @@ export default async function ({mongoUri, amqpUrl}) {
     .get('/', doQuery)
     .get('/content/:id', checkId, readContent)
     .get('/state/:id', checkId, getState)
+    .get('/logs/:id', checkId, getLogs)
+    .get('/logs/', doLogsQuery)
     .put('/state/:id', checkId, updateState)
     .delete('/:id', checkId, remove)
     .delete('/content/:id', checkId, removeContent)
@@ -130,12 +132,43 @@ export default async function ({mongoUri, amqpUrl}) {
     }
   }
 
+  async function doLogsQuery(req, res, next) {
+    try {
+      logger.silly('routes/Bulk doLogsQuery');
+      const response = await Service.doLogsQuery(req.query);
+      res.json(response);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        res.status(error.status).send(error.payload);
+        return;
+      }
+      return next(error);
+    }
+  }
+
+
   async function getState(req, res, next) {
     logger.debug('routes/Bulk getState');
     try {
       logger.silly('routes/Bulk getState');
       logger.silly(`We have a correlationId: ${req.params.id}`);
       const response = await Service.getState({correlationId: req.params.id});
+      res.status(response.status).json(response.payload);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        res.status(error.status).send(error.payload);
+        return;
+      }
+      return next(error);
+    }
+  }
+
+  async function getLogs(req, res, next) {
+    logger.debug('routes/Bulk getLogs');
+    try {
+      logger.silly('routes/Bulk getLogs');
+      logger.silly(`We have a correlationId: ${req.params.id}`);
+      const response = await Service.getLogs({correlationId: req.params.id});
       res.status(response.status).json(response.payload);
     } catch (error) {
       if (error instanceof HttpError) {
