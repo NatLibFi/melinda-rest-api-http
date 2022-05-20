@@ -31,6 +31,7 @@ import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {mongoFactory, mongoLogFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import {CONTENT_TYPES} from '../config';
 import {generateQuery, generateShowParams} from './utils';
+import {inspect} from 'util';
 
 export default async function ({mongoUri, amqpUrl}) {
   const logger = createLogger();
@@ -128,7 +129,10 @@ export default async function ({mongoUri, amqpUrl}) {
   }
 
   function doLogsQuery(incomingParams) {
-    const result = mongoLogOperator.query(incomingParams);
+    const params = generateLogQuery(incomingParams);
+    logger.debug(`Params (JSON): ${JSON.stringify(params)}`);
+    logger.debug(`Params (inspect): ${inspect(params)}`);
+    const result = mongoLogOperator.query(params);
     return result;
   }
 
@@ -237,6 +241,26 @@ export default async function ({mongoUri, amqpUrl}) {
 
     logger.debug(`bulk/validateQueryParams: mandatory query param missing: pOldNew: ${JSON.stringify(queryParams.pOldNew)}, pActiveLibrary: ${JSON.stringify(queryParams.pActiveLibrary)}`);
     throw new HttpError(httpStatus.BAD_REQUEST, 'Missing one or more mandatory query parameters. (pActiveLibrary, pOldNew or status)');
+  }
+
+  function generateLogQuery(queryParams) {
+    const {blobSequenceStart: queryBlobSequenceStart, blobSequenceEnd: queryBlobSequenceEnd, blobSequence: queryBlobSequence, ...rest} = queryParams;
+
+    // Format blobSequence* parameters from strings to numbers
+    // Create blobSequenceStart and blobSequenceEnd from blobSequence
+
+    const blobSequenceStartObj = queryBlobSequenceStart ? {blobSequenceStart: Number(queryBlobSequenceStart)} : {};
+    const blobSequenceEndObj = queryBlobSequenceEnd ? {blobSequenceEnd: Number(queryBlobSequenceEnd)} : {};
+    const blobSequenceObj = queryBlobSequence ? {blobSequenceStart: Number(queryBlobSequence), blobSequenceEnd: Number(queryBlobSequence)} : {};
+
+    const newParams = {
+      ...blobSequenceStartObj,
+      ...blobSequenceEndObj,
+      ...blobSequenceObj,
+      ...rest
+    };
+
+    return newParams;
   }
 
   function validateAndGetOperationSettings(queryParams, noStream) {
