@@ -187,17 +187,61 @@ export default async function ({mongoUri, amqpUrl}) {
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  function doQuery(incomingParams) {
+  async function doQuery(incomingParams) {
     const params = generateQuery(incomingParams);
     const showParams = generateShowParams(incomingParams);
+    const {recordsAsReport} = incomingParams;
+    const report = recordsAsReport === undefined ? false : parseBoolean(recordsAsReport);
 
     logger.debug(`Queue items querried with params: ${JSON.stringify(params)}`);
 
     if (params) {
-      return mongoOperator.query(params, showParams);
+      const result = await mongoOperator.query(params, showParams);
+      if (report) {
+        logger.debug(`Reducing recordItems to recordReport`);
+        return result.map(createRecordReport);
+      }
+      return result;
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
+  }
+
+  function createRecordReport(queueItem) {
+    const {records, ...rest} = queueItem;
+    logger.debug(`We have ${records.length} records to report`);
+
+    return {
+      ...rest,
+      recordReport: {
+        recordAmount: records.length,
+        recordStatuses: reportRecordStatuses(records)
+      }
+    };
+  }
+
+  function reportRecordStatuses(records) {
+    const recordStatuses = records.reduce((allStatuses, record) => {
+      logger.silly(`Handling record: ${JSON.stringify(record)}`);
+      logger.silly(`Current allStatuses: ${JSON.stringify(allStatuses)}`);
+
+      if (record.status in allStatuses) {
+        logger.silly(`We have an existing status: ${record.status}`);
+        return {
+          ...allStatuses,
+          [record.status]: allStatuses[record.status] + 1
+        };
+      }
+
+      logger.silly(`We have a new status: ${record.status}`);
+      return {
+        ...allStatuses,
+        [record.status]: 1
+      };
+    }, {});
+
+    logger.debug(JSON.stringify(recordStatuses));
+    return recordStatuses;
   }
 
   function validateQueryParams(queryParams) {
