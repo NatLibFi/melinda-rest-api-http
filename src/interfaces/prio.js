@@ -196,8 +196,8 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   function validateRequestId(id) {
     logger.debug(`Validating requestId ${id}`);
-    // This should also check that id has only numbers
-    if (id.length === 9) {
+
+    if (id.length === 9 && (/^\d+$/u).test(id)) {
       return;
     }
     throw new HttpError(httpStatus.BAD_REQUEST, `Invalid request id ${id}`);
