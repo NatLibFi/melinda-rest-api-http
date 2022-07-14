@@ -109,7 +109,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       operationSettings
     };
 
-    logger.verbose(`Creating Mongo queue item for record ${id}`);
+    logger.verbose(`Creating Mongo queue item for record ${id} / ${correlationId}`);
 
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, operationSettings});
     const responseData = await handleRequest({correlationId, headers, data});

@@ -44,11 +44,11 @@ export default async function ({mongoUri, amqpUrl}) {
   async function create({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, operationSettings, stream}) {
     const result = await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, operationSettings, prio: false});
     if (!stream) {
-      logger.verbose('NoStream bulk ready!');
+      logger.verbose(`NoStream bulk ready to receive records ${correlationId}!`);
       return result;
     }
 
-    logger.verbose('Stream uploaded!');
+    logger.verbose(`Stream uploaded for ${correlationId}!`);
     // setState does not do anything with oCatalogerIn or operation
     return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
   }
