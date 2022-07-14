@@ -11,7 +11,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [12.x, 14.x, 16.x]
+        node-version: [12.x, 14.x, 16.x, 18x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
@@ -29,6 +29,16 @@ jobs:
     - run: npm ci
     - run: npm test
     - run: npm run build --if-present
+
+  license-scan:
+    name: License compliance check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: mikaelvesavuori/license-compliance-action@v1.0.0
+        with:
+          exclude_pattern: /^@natlibfi/
 
   njsscan:
     name: Njsscan check
