@@ -190,9 +190,10 @@ export default async function ({mongoUri, amqpUrl}) {
   async function doQuery(incomingParams) {
     const params = generateQuery(incomingParams);
     const showParams = generateShowParams(incomingParams);
-    const {recordsAsReport, noRecords} = incomingParams;
+    const {recordsAsReport, noRecords, noIds} = incomingParams;
     const report = recordsAsReport === undefined ? false : parseBoolean(recordsAsReport);
     const removeRecords = noRecords === undefined ? false : parseBoolean(noRecords);
+    const removeIds = noIds === undefined ? false : parseBoolean(noIds);
 
     logger.debug(`Queue items querried with params: ${JSON.stringify(params)}`);
 
@@ -200,7 +201,7 @@ export default async function ({mongoUri, amqpUrl}) {
       const result = await mongoOperator.query(params, showParams);
       if (report) {
         logger.debug(`Reducing recordItems to recordReport`);
-        return result.map(queueItem => createRecordReport({queueItem, report, removeRecords}));
+        return result.map(queueItem => createRecordReport({queueItem, report, removeRecords, removeIds}));
       }
       return result;
     }
@@ -208,29 +209,62 @@ export default async function ({mongoUri, amqpUrl}) {
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  function createRecordReport({queueItem, report = true, removeRecords = true}) {
+  // eslint-disable-next-line max-statements
+  function createRecordReport({queueItem, report = true, removeRecords = true, removeIds = true}) {
 
-    if (!report && !removeRecords) {
+    if (!report && !removeRecords && !removeIds) {
+      logger.silly(`Returning queueItem as it is`);
       return queueItem;
     }
 
-    const {records, ...rest} = queueItem;
+    const {records, handledIds, rejectedIds, ...rest} = queueItem;
     logger.debug(`We have ${records.length} records to report`);
 
-    if (!report && removeRecords) {
-      return {...rest};
+    if (!report) {
+      if (removeRecords) {
+        if (removeIds) {
+          logger.silly(`Removing records and ids.`);
+          return {...rest};
+        }
+        logger.silly(`Removing records.`);
+        return {...rest, handledIds, rejectedIds};
+      }
+
+      if (!removeRecords) {
+        logger.silly(`Removing ids.`);
+        if (removeIds) {
+          return {...rest, records};
+        }
+        logger.silly(`Returning queueItem as it is`);
+        return queueItem;
+      }
     }
 
-    const recordReport = {
-      recordAmount: records.length,
-      recordStatuses: reportRecordStatuses(records)
-    };
+    if (report) {
+      logger.silly(`Creating record report`);
+      const recordReport = {
+        recordAmount: records.length,
+        recordStatuses: reportRecordStatuses(records)
+      };
 
-    if (removeRecords) {
-      return {...rest, recordReport};
+      if (removeRecords) {
+        if (removeIds) {
+          logger.silly(`Returning report and removing records and ids`);
+          return {...rest, recordReport};
+        }
+        logger.silly(`Returning report and removing records`);
+        return {...rest, recordReport, handledIds, rejectedIds};
+      }
+
+      if (!removeRecords) {
+        if (removeIds) {
+          logger.silly(`Returning report and records, and removing ids`);
+          return {...rest, recordReport, records};
+        }
+        logger.silly(`Returning report and queueItem as it is`);
+        return {queueItem, recordReport};
+      }
     }
-
-    return {queueItem, recordReport};
   }
 
   function reportRecordStatuses(records) {

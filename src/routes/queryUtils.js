@@ -94,7 +94,8 @@ export function checkQueryParams(req, res, next) {
   function checkRecordReportParams(queryParams) {
     return [
       {name: 'recordsAsReport', value: queryParams.recordsAsReport ? (/^0|1$/u).test(queryParams.recordsAsReport) : true},
-      {name: 'noRecords', value: queryParams.noRecords ? (/^0|1$/u).test(queryParams.noRecords) : true}
+      {name: 'noRecords', value: queryParams.noRecords ? (/^0|1$/u).test(queryParams.noRecords) : true},
+      {name: 'noIds', value: queryParams.noIds ? (/^0|1$/u).test(queryParams.noIds) : true}
     ];
   }
 
