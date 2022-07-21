@@ -190,8 +190,9 @@ export default async function ({mongoUri, amqpUrl}) {
   async function doQuery(incomingParams) {
     const params = generateQuery(incomingParams);
     const showParams = generateShowParams(incomingParams);
-    const {recordsAsReport} = incomingParams;
+    const {recordsAsReport, noRecords} = incomingParams;
     const report = recordsAsReport === undefined ? false : parseBoolean(recordsAsReport);
+    const removeRecords = noRecords === undefined ? false : parseBoolean(noRecords);
 
     logger.debug(`Queue items querried with params: ${JSON.stringify(params)}`);
 
@@ -199,7 +200,7 @@ export default async function ({mongoUri, amqpUrl}) {
       const result = await mongoOperator.query(params, showParams);
       if (report) {
         logger.debug(`Reducing recordItems to recordReport`);
-        return result.map(createRecordReport);
+        return result.map(queueItem => createRecordReport({queueItem, report, removeRecords}));
       }
       return result;
     }
@@ -207,17 +208,29 @@ export default async function ({mongoUri, amqpUrl}) {
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  function createRecordReport(queueItem) {
+  function createRecordReport({queueItem, report = true, removeRecords = true}) {
+
+    if (!report && !removeRecords) {
+      return queueItem;
+    }
+
     const {records, ...rest} = queueItem;
     logger.debug(`We have ${records.length} records to report`);
 
-    return {
-      ...rest,
-      recordReport: {
-        recordAmount: records.length,
-        recordStatuses: reportRecordStatuses(records)
-      }
+    if (!report && removeRecords) {
+      return {...rest};
+    }
+
+    const recordReport = {
+      recordAmount: records.length,
+      recordStatuses: reportRecordStatuses(records)
     };
+
+    if (removeRecords) {
+      return {...rest, recordReport};
+    }
+
+    return {queueItem, recordReport};
   }
 
   function reportRecordStatuses(records) {
