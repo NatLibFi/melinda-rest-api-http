@@ -25,7 +25,8 @@ export function checkQueryParams(req, res, next) {
     {name: 'modificationTime', value: queryParams.modificationTime ? checkTimeFormat(queryParams.modificationTime) : true},
     {name: 'queueItemState', value: queryParams.queueItemState ? checkQueueItemState(queryParams.queueItemState) : true},
     ...checkLimitAndSkip(queryParams),
-    ...checkShowParams(queryParams)
+    ...checkShowParams(queryParams),
+    ...checkRecordReportParams(queryParams)
   ].filter(param => !param.value).map(param => param.name);
 
   if (failedParams.length === 0) {
@@ -89,4 +90,12 @@ export function checkQueryParams(req, res, next) {
       {name: 'showImportJobState', value: queryParams.showImportJobState ? (/^0|1$/u).test(queryParams.showImportJobState) : true}
     ];
   }
+
+  function checkRecordReportParams(queryParams) {
+    return [
+      {name: 'recordsAsReport', value: queryParams.recordsAsReport ? (/^0|1$/u).test(queryParams.recordsAsReport) : true},
+      {name: 'noRecords', value: queryParams.noRecords ? (/^0|1$/u).test(queryParams.noRecords) : true}
+    ];
+  }
+
 }
