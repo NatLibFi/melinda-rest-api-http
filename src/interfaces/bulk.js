@@ -335,7 +335,14 @@ export default async function ({mongoUri, amqpUrl}) {
   }
 
   function generateLogQuery(queryParams) {
-    const {blobSequenceStart: queryBlobSequenceStart, blobSequenceEnd: queryBlobSequenceEnd, blobSequence: queryBlobSequence, ...rest} = queryParams;
+    const {
+      blobSequenceStart: queryBlobSequenceStart,
+      blobSequenceEnd: queryBlobSequenceEnd,
+      blobSequence: queryBlobSequence,
+      skip: querySkip,
+      limit: queryLimit,
+      ...rest
+    } = queryParams;
 
     // Format blobSequence* parameters from strings to numbers
     // Create blobSequenceStart and blobSequenceEnd from blobSequence
@@ -343,11 +350,15 @@ export default async function ({mongoUri, amqpUrl}) {
     const blobSequenceStartObj = queryBlobSequenceStart ? {blobSequenceStart: Number(queryBlobSequenceStart)} : {};
     const blobSequenceEndObj = queryBlobSequenceEnd ? {blobSequenceEnd: Number(queryBlobSequenceEnd)} : {};
     const blobSequenceObj = queryBlobSequence ? {blobSequenceStart: Number(queryBlobSequence), blobSequenceEnd: Number(queryBlobSequence)} : {};
+    const skip = querySkip ? {skip: Number(querySkip)} : {};
+    const limit = queryLimit ? {limit: Number(queryLimit)} : {};
 
     const newParams = {
       ...blobSequenceStartObj,
       ...blobSequenceEndObj,
       ...blobSequenceObj,
+      ...skip,
+      ...limit,
       ...rest
     };
 
