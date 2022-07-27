@@ -31,7 +31,7 @@ import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {mongoFactory, mongoLogFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import {CONTENT_TYPES} from '../config';
 import {generateQuery, generateShowParams} from './utils';
-//import {inspect} from 'util';
+import {inspect} from 'util';
 
 export default async function ({mongoUri, amqpUrl}) {
   const logger = createLogger();
