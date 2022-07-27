@@ -130,8 +130,8 @@ export default async function ({mongoUri, amqpUrl}) {
 
   function doLogsQuery(incomingParams) {
     const params = generateLogQuery(incomingParams);
-    //logger.debug(`Params (JSON): ${JSON.stringify(params)}`);
-    //logger.debug(`Params (inspect): ${inspect(params)}`);
+    logger.debug(`Params (JSON): ${JSON.stringify(params)}`);
+    logger.debug(`Params (inspect): ${inspect(params)}`);
     const result = mongoLogOperator.query(params);
     return result;
   }
