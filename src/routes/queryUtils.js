@@ -24,6 +24,7 @@ export function checkQueryParams(req, res, next) {
     {name: 'creationTime', value: queryParams.creationTime ? checkTimeFormat(queryParams.creationTime) : true},
     {name: 'modificationTime', value: queryParams.modificationTime ? checkTimeFormat(queryParams.modificationTime) : true},
     {name: 'queueItemState', value: queryParams.queueItemState ? checkQueueItemState(queryParams.queueItemState) : true},
+    ...checkLogQuerryParams(queryParams),
     ...checkLimitAndSkip(queryParams),
     ...checkShowParams(queryParams),
     ...checkRecordReportParams(queryParams)
@@ -36,6 +37,17 @@ export function checkQueryParams(req, res, next) {
 
   logger.error(`Failed query params: ${failedParams}`);
   return res.status(httpStatus.BAD_REQUEST).json({error: 'BAD query params', failedParams});
+
+  function checkLogQuerryParams(queryParams) {
+    return [
+      {name: 'correlationId', value: queryParams.correlationId ? uuidValidate(queryParams.correlationId) && uuidVersion(queryParams.correlationId) === 4 : true},
+      {name: 'logItemType', value: queryParams.logItemType ? checkLogItemType(queryParams.logItemType) : true},
+      {name: 'blobSequence', value: queryParams.blobSequence ? (/^[0-9]{1,5}$/u).test(queryParams.blobSequence) : true},
+      {name: 'standardIdentifiers', value: queryParams.standardIdentifiers ? (/^[a-z|A-Z|0-9|/|.|_|-]{0,50}$/u).test(queryParams.standardIdentifiers) : true},
+      {name: 'databaseId', value: queryParams.databaseId ? (/^[0-9]{9}$/u).test(queryParams.databaseId) : true},
+      {name: 'sourceIds', value: queryParams.sourceIds ? (/^\([A-Z|0-9|_|-]{0,10}\)[A-Z|0-9|_|-]{0,20}$/u).test(queryParams.sourceIds) : true}
+    ];
+  }
 
   function checkLimitAndSkip(queryParams) {
     return [
@@ -79,6 +91,16 @@ export function checkQueryParams(req, res, next) {
       ABORT: QUEUE_ITEM_STATE.ABORT
     };
     return states[queueItemState];
+  }
+
+  function checkLogItemType(logItemType) {
+    const states = {
+      MERGE_LOG: 'MERGE_LOG',
+      MATCH_VALIDATION_LOG: 'MATCH_VALIDATION_LOG',
+      MATCH_LOG: 'MATCH_LOG'
+    };
+
+    return states[logItemType];
   }
 
   function checkShowParams(queryParams) {
