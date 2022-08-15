@@ -46,8 +46,8 @@ export function checkQueryParams(req, res, next) {
       {name: 'standardIdentifiers', value: queryParams.standardIdentifiers ? (/^[a-z|A-Z|0-9|/|.|_|-]{0,50}$/u).test(queryParams.standardIdentifiers) : true},
       {name: 'databaseId', value: queryParams.databaseId ? (/^[0-9]{9}$/u).test(queryParams.databaseId) : true},
       {name: 'sourceIds', value: queryParams.sourceIds ? (/^\([A-Z|0-9|_|-]{0,10}\)[A-Z|0-9|_|-]{0,20}$/u).test(queryParams.sourceIds) : true},
-      {name: 'force', value: queryParams.force ? (/^0|1$/u).test(queryParams.force) : true},
-  ];
+      {name: 'force', value: queryParams.force ? (/^0|1$/u).test(queryParams.force) : true}
+    ];
   }
 
   function checkLimitAndSkip(queryParams) {

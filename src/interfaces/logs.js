@@ -44,4 +44,43 @@ export default async function ({mongoUri}) {
   function removeLog(correlationId, force = false) {
     return mongoLogOperator.remove(correlationId, force);
   }
+
+  function generateLogQuery(queryParams) {
+    const {
+      correlationId: queryCorrelationId,
+      logItemType: queryLogItemType,
+      blobSequence: queryBlobSequence,
+      standardIdentifiers: queryStandardIdentifiers,
+      databaseId: queryDatabaseId,
+      sourceIds: querySourceIds,
+      skip: querySkip,
+      limit: queryLimit,
+      ...rest
+    } = queryParams;
+
+    // Format blobSequence* parameters from strings to numbers
+    // Create blobSequenceStart and blobSequenceEnd from blobSequence
+    const correlationIdObj = queryCorrelationId ? {correlationId: queryCorrelationId} : {};
+    const logItemTypeObj = queryLogItemType ? {logItemType: queryLogItemType} : {};
+    const blobSequenceObj = queryBlobSequence ? {blobSequence: Number(queryBlobSequence)} : {};
+    const standardIdentifiersObj = queryStandardIdentifiers ? {standardIdentifiers: queryStandardIdentifiers} : {};
+    const databaseIdObj = queryDatabaseId ? {databaseId: queryDatabaseId} : {};
+    const sourceIdsObj = querySourceIds ? {sourceIds: querySourceIds} : {};
+    const skip = querySkip ? {skip: Number(querySkip)} : {};
+    const limit = queryLimit ? {limit: Number(queryLimit)} : {};
+
+    const newParams = {
+      ...correlationIdObj,
+      ...logItemTypeObj,
+      ...blobSequenceObj,
+      ...standardIdentifiersObj,
+      ...databaseIdObj,
+      ...sourceIdsObj,
+      ...skip,
+      ...limit,
+      ...rest
+    };
+
+    return newParams;
+  }
 }

@@ -28,7 +28,7 @@
 import httpStatus from 'http-status';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
-import {mongoFactory, mongoLogFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
+import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import {CONTENT_TYPES} from '../config';
 import {generateQuery, generateShowParams} from './utils';
 // import {inspect} from 'util';
@@ -36,7 +36,6 @@ import {generateQuery, generateShowParams} from './utils';
 export default async function ({mongoUri, amqpUrl}) {
   const logger = createLogger();
   const mongoOperator = await mongoFactory(mongoUri, 'bulk');
-  const mongoLogOperator = await mongoLogFactory(mongoUri);
   const amqpOperator = await amqpFactory(amqpUrl);
 
   return {create, addRecord, getState, updateState, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
@@ -298,45 +297,6 @@ export default async function ({mongoUri, amqpUrl}) {
 
     logger.debug(`bulk/validateQueryParams: mandatory query param missing: pOldNew: ${JSON.stringify(queryParams.pOldNew)}, pActiveLibrary: ${JSON.stringify(queryParams.pActiveLibrary)}`);
     throw new HttpError(httpStatus.BAD_REQUEST, 'Missing one or more mandatory query parameters. (pActiveLibrary, pOldNew or status)');
-  }
-
-  function generateLogQuery(queryParams) {
-    const {
-      correlationId: queryCorrelationId,
-      logItemType: queryLogItemType,
-      blobSequence: queryBlobSequence,
-      standardIdentifiers: queryStandardIdentifiers,
-      databaseId: queryDatabaseId,
-      sourceIds: querySourceIds,
-      skip: querySkip,
-      limit: queryLimit,
-      ...rest
-    } = queryParams;
-
-    // Format blobSequence* parameters from strings to numbers
-    // Create blobSequenceStart and blobSequenceEnd from blobSequence
-    const correlationIdObj = queryCorrelationId ? {correlationId: queryCorrelationId} : {};
-    const logItemTypeObj = queryLogItemType ? {logItemType: queryLogItemType} : {};
-    const blobSequenceObj = queryBlobSequence ? {blobSequence: Number(queryBlobSequence)} : {};
-    const standardIdentifiersObj = queryStandardIdentifiers ? {standardIdentifiers: queryStandardIdentifiers} : {};
-    const databaseIdObj = queryDatabaseId ? {databaseId: queryDatabaseId} : {};
-    const sourceIdsObj = querySourceIds ? {sourceIds: querySourceIds} : {};
-    const skip = querySkip ? {skip: Number(querySkip)} : {};
-    const limit = queryLimit ? {limit: Number(queryLimit)} : {};
-
-    const newParams = {
-      ...correlationIdObj,
-      ...logItemTypeObj,
-      ...blobSequenceObj,
-      ...standardIdentifiersObj,
-      ...databaseIdObj,
-      ...sourceIdsObj,
-      ...skip,
-      ...limit,
-      ...rest
-    };
-
-    return newParams;
   }
 
   function validateAndGetOperationSettings(queryParams, noStream) {

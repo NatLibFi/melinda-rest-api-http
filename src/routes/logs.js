@@ -1,8 +1,10 @@
-import {checkQueryParams} from "./queryUtils";
-import {authorizeKVPOnly, checkId} from "./routeUtils";
-import createService from '../interfaces/logs';
+import {Router} from 'express';
+import passport from 'passport';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
-import {parseBoolean} from "@natlibfi/melinda-commons";
+import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
+import {checkQueryParams} from './queryUtils';
+import {authorizeKVPOnly, checkId} from './routeUtils';
+import createService from '../interfaces/logs';
 
 export default async function ({mongoUri}) {
   const logger = createLogger();
@@ -41,8 +43,9 @@ export default async function ({mongoUri}) {
       res.status(response.status).json(response.payload);
     } catch (error) {
       if (error instanceof HttpError) {
-        return res.status(error.status).send(error.payload);;
+        return res.status(error.status).send(error.payload);
       }
+      return next(error);
     }
   }
 
@@ -50,12 +53,13 @@ export default async function ({mongoUri}) {
     logger.verbose('routes/logs getListOfLogs');
     try {
       const {logItemType} = req.query || 'MERGE_LOG';
-      const response = await Service.getListOfLogs(skip);
+      const response = await Service.getListOfLogs(logItemType);
       res.status(response.status).json(response.payload);
     } catch (error) {
       if (error instanceof HttpError) {
-        return res.status(error.status).send(error.payload);;
+        return res.status(error.status).send(error.payload);
       }
+      return next(error);
     }
   }
 
@@ -68,7 +72,10 @@ export default async function ({mongoUri}) {
       const response = await Service.removeLog(correlationId, blobSequence);
       res.status(response.status).json(response.payload);
     } catch (error) {
-      return res.status(error.status).send(error.payload);
+      if (error instanceof HttpError) {
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
     }
   }
 
@@ -81,7 +88,10 @@ export default async function ({mongoUri}) {
       const response = await Service.removeLog(correlationId, parseBoolean(force));
       res.status(response.status).json(response.payload);
     } catch (error) {
-      return res.status(error.status).send(error.payload);
+      if (error instanceof HttpError) {
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
     }
   }
 }
