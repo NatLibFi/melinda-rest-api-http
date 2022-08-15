@@ -69,7 +69,7 @@ export default async function ({mongoUri}) {
       const correlationId = req.params.id;
       const {blobSequence} = req.query || false;
       logger.debug(`We have a correlationId: ${correlationId}${blobSequence ? `, blobSequence: ${blobSequence}` : ''}`);
-      const response = await Service.removeLog(correlationId, blobSequence);
+      const response = await Service.protectLog(correlationId, blobSequence);
       res.status(response.status).json(response.payload);
     } catch (error) {
       if (error instanceof HttpError) {
