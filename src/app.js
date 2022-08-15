@@ -6,7 +6,7 @@ import {Error as ApiError} from '@natlibfi/melinda-commons';
 import {createLogger, createExpressLogger} from '@natlibfi/melinda-backend-commons';
 import AlephStrategy from '@natlibfi/passport-melinda-aleph';
 import {logError} from '@natlibfi/melinda-rest-api-commons';
-import {createApiDocRouter, createBulkRouter, createPrioRouter} from './routes';
+import {createApiDocRouter, createBulkRouter, createLogsRouter, createPrioRouter} from './routes';
 
 export default async function ({
   httpPort, enableProxy,
@@ -42,9 +42,10 @@ export default async function ({
     }));
 
     app.use(passport.initialize());
-    app.use('/bulk', await createBulkRouter({mongoUri, amqpUrl})); // Must be here to avoid bodyparser
+    app.use('/bulk', passport.authenticate('melinda', {session: false}), await createBulkRouter({mongoUri, amqpUrl})); // Must be here to avoid bodyparser
     app.use(bodyParser.text({limit: '5MB', type: '*/*'}));
     app.use('/apidoc', createApiDocRouter());
+    app.use('/logs', passport.authenticate('melinda', {session: false}), await createLogsRoute({mongoUri}));
     app.use('/', await createPrioRouter({sruUrl, amqpUrl, mongoUri, pollWaitTime}));
     app.use(handleError);
 

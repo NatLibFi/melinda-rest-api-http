@@ -31,7 +31,7 @@ import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {mongoFactory, mongoLogFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import {CONTENT_TYPES} from '../config';
 import {generateQuery, generateShowParams} from './utils';
-import {inspect} from 'util';
+// import {inspect} from 'util';
 
 export default async function ({mongoUri, amqpUrl}) {
   const logger = createLogger();
@@ -39,7 +39,7 @@ export default async function ({mongoUri, amqpUrl}) {
   const mongoLogOperator = await mongoLogFactory(mongoUri);
   const amqpOperator = await amqpFactory(amqpUrl);
 
-  return {create, addRecord, getState, updateState, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger, doLogsQuery, getLogs};
+  return {create, addRecord, getState, updateState, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
 
   async function create({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, operationSettings, stream}) {
     const result = await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, operationSettings, prio: false});
@@ -113,40 +113,6 @@ export default async function ({mongoUri, amqpUrl}) {
 
     throw new HttpError(httpStatus.NOT_FOUND, `Item not found for id: ${params.correlationId}`);
   }
-
-  async function getLogs(params) {
-    logger.debug(`getLogs: params: ${JSON.stringify(params)}`);
-    logger.debug(`Getting action logs for ${params.correlationId}`);
-
-    const result = await mongoLogOperator.queryById(params.correlationId);
-    logger.silly(`Result from query: ${JSON.stringify(result)}`);
-
-    if (!result || result.length < 1) {
-      throw new HttpError(httpStatus.NOT_FOUND, `Item not found for id: ${params.correlationId}`);
-    }
-
-    return {status: httpStatus.OK, payload: result};
-  }
-
-  function doLogsQuery(incomingParams) {
-    const params = generateLogQuery(incomingParams);
-    logger.debug(`Params (JSON): ${JSON.stringify(params)}`);
-    logger.debug(`Params (inspect): ${inspect(params)}`);
-    const result = mongoLogOperator.query(params);
-    return result;
-  }
-
-  /*
-  function removeLogs(correlationId) {
-
-    if (correlationId) {
-      const removeResult = mongoLogOperator.remove(correlationId);
-      return removeResult;
-    }
-
-    throw new HttpError(httpStatus.BAD_REQUEST);
-  }
-*/
 
   async function updateState({correlationId, state}) {
     logger.debug(`Updating current state of ${correlationId} to ${state}`);

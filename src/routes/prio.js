@@ -45,10 +45,10 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
   });
 
   return new Router()
-    .use(passport.authenticate('melinda', {session: false}))
     .use(checkQueryParams)
-    .get('/prio/', authorizeKVPOnly, getPrioLogs)
     .get('/:id', checkAcceptHeader, readResource)
+    .use(passport.authenticate('melinda', {session: false}))
+    .get('/prio/', authorizeKVPOnly, getPrioLogs)
     .post('/', checkContentType, createResource)
     .post('/:id', checkContentType, updateResource);
 
