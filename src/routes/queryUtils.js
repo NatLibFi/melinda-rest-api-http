@@ -18,6 +18,7 @@ export function checkQueryParams(req, res, next) {
     {name: 'merge', value: queryParams.merge ? (/^0|1$/u).test(queryParams.merge) : true},
     {name: 'validate', value: queryParams.validate ? (/^0|1$/u).test(queryParams.validate) : true},
     {name: 'failOnError', value: queryParams.failOnError ? (/^0|1$/u).test(queryParams.failOnError) : true},
+    {name: 'skipNoChangeUpdates', value: queryParams.skipNoChangeUpdates ? (/^0|1$/u).test(queryParams.skipNoChangeUpdates) : true},
     {name: 'pRejectFile', value: queryParams.pRejectFile ? (/^[a-z|A-Z|0-9|/|.|_|-]{0,100}$/u).test(queryParams.pRejectFile) : true},
     {name: 'pLogFile', value: queryParams.pLogFile ? (/^[a-z|A-Z|0-9|/|.|_|-]{0,100}$/u).test(queryParams.pLogFile) : true},
     {name: 'pCatalogerIn', value: queryParams.pCatalogerIn ? (/^[A-Z|0-9|_|-]{0,10}$/u).test(queryParams.pCatalogerIn) : true},

@@ -85,6 +85,8 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         validate: true,
         // failOnError is n/a for prio single record jobs
         failOnError: null,
+        // Prio forces updates as default, even if the update would not make changes to the database record
+        skipNoChangeUpdates: req.query.skipNoChangeUpdates === undefined ? false : parseBoolean(req.query.skipNoChangeUpdates),
         prio: true
       };
 
@@ -148,6 +150,8 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         validate: true,
         // failOnError is n/a for prio single record jobs
         failOnError: null,
+        // Prio forces updates as default, even if the update would not make changes to the database record
+        skipNoChangeUpdates: req.query.skipNoChangeUpdates === undefined ? false : parseBoolean(req.query.skipNoChangeUpdates),
         prio: true
       };
 

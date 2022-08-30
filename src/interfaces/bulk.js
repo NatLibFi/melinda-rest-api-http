@@ -330,6 +330,8 @@ export default async function ({mongoUri, amqpUrl}) {
       merge: paramMerge === undefined ? false : paramMerge,
       validate: paramValidate === undefined ? noStream : paramValidate,
       failOnError: queryParams.failOnError === undefined ? false : parseBoolean(queryParams.failOnError),
+      // bulk skips changes that won't change the database record as default
+      skipNoChangeUpdates: queryParams.skipNoChangeUpdates === undefined ? true : parseBoolean(queryParams.skipNoChangeUpdates),
       prio: false
     };
 
