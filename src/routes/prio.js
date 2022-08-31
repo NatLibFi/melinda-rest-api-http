@@ -115,7 +115,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       }
 
       // OK + id for merged cases (noop & non-noop)
-      if (status === 'UPDATED' || status === 'NO_CHANGES') {
+      if (status === 'UPDATED' || status === 'SKIPPED') {
         res.status(httpStatus.OK).set('Record-ID', id)
           .json(messages);
         return;

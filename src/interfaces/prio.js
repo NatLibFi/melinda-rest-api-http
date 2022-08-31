@@ -88,7 +88,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     cleanMongo(correlationId);
 
     // eslint-disable-next-line no-extra-parens
-    if (status === 'CREATED' || (operationSettings.merge && (status === 'UPDATED' || status === 'NO_CHANGES'))) {
+    if (status === 'CREATED' || (operationSettings.merge && (status === 'UPDATED' || status === 'SKIPPED'))) {
       return {messages: payload, id: payload.databaseId, status};
     }
 
@@ -122,7 +122,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
     // eslint-disable-next-line no-extra-parens
-    if (status === 'UPDATED' || status === 'NO_CHANGES') {
+    if (status === 'UPDATED' || status === 'SKIPPED') {
       return {messages: payload, id: payload.databaseId, status};
     }
 
