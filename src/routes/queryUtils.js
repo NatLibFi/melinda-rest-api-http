@@ -12,12 +12,12 @@ export function checkQueryParams(req, res, next) {
     {name: 'id', value: queryParams.id ? uuidValidate(queryParams.id) && uuidVersion(queryParams.id) === 4 : true},
     {name: 'pOldNew', value: queryParams.pOldNew ? (/^(?<pOldNew>NEW|OLD)$/u).test(queryParams.pOldNew) : true},
     {name: 'pActiveLibrary', value: queryParams.pActiveLibrary ? (/^FIN\d\d$/u).test(queryParams.pActiveLibrary) : true},
-    {name: 'noStream', value: queryParams.noStream ? (/^0|1$/u).test(queryParams.noStream) : true},
-    {name: 'noop', value: queryParams.noop ? (/^0|1$/u).test(queryParams.noop) : true},
-    {name: 'unique', value: queryParams.unique ? (/^0|1$/u).test(queryParams.unique) : true},
-    {name: 'merge', value: queryParams.merge ? (/^0|1$/u).test(queryParams.merge) : true},
-    {name: 'validate', value: queryParams.validate ? (/^0|1$/u).test(queryParams.validate) : true},
-    {name: 'failOnError', value: queryParams.failOnError ? (/^0|1$/u).test(queryParams.failOnError) : true},
+    {name: 'noStream', value: queryParams.noStream ? (/(?:^(?:1|0|true|false)$)/ui).test(queryParams.noStream) : true},
+    {name: 'noop', value: queryParams.noop ? (/(?:^(?:1|0|true|false)$)/ui).test(queryParams.noop) : true},
+    {name: 'unique', value: queryParams.unique ? (/(?:^(?:1|0|true|false)$)/ui).test(queryParams.unique) : true},
+    {name: 'merge', value: queryParams.merge ? (/(?:^(?:1|0|true|false)$)/ui).test(queryParams.merge) : true},
+    {name: 'validate', value: queryParams.validate ? (/(?:^(?:1|0|true|false)$)/ui).test(queryParams.validate) : true},
+    {name: 'failOnError', value: queryParams.failOnError ? (/(?:^(?:1|0|true|false)$)/ui).test(queryParams.failOnError) : true},
     {name: 'pRejectFile', value: queryParams.pRejectFile ? (/^[a-z|A-Z|0-9|/|.|_|-]{0,100}$/u).test(queryParams.pRejectFile) : true},
     {name: 'pLogFile', value: queryParams.pLogFile ? (/^[a-z|A-Z|0-9|/|.|_|-]{0,100}$/u).test(queryParams.pLogFile) : true},
     {name: 'pCatalogerIn', value: queryParams.pCatalogerIn ? (/^[A-Z|0-9|_|-]{0,10}$/u).test(queryParams.pCatalogerIn) : true},
@@ -46,7 +46,7 @@ export function checkQueryParams(req, res, next) {
       {name: 'standardIdentifiers', value: queryParams.standardIdentifiers ? (/^[a-z|A-Z|0-9|/|.|_|-]{0,50}$/u).test(queryParams.standardIdentifiers) : true},
       {name: 'databaseId', value: queryParams.databaseId ? (/^[0-9]{9}$/u).test(queryParams.databaseId) : true},
       {name: 'sourceIds', value: queryParams.sourceIds ? (/^\([A-Z|0-9|_|-]{0,10}\)[A-Z|0-9|_|-]{0,20}$/u).test(queryParams.sourceIds) : true},
-      {name: 'force', value: queryParams.force ? (/^0|1$/u).test(queryParams.force) : true}
+      {name: 'force', value: queryParams.force ? (/(?:^(?:1|0|true|false)$)/ui).test(queryParams.force) : true}
     ];
   }
 
@@ -106,19 +106,19 @@ export function checkQueryParams(req, res, next) {
 
   function checkShowParams(queryParams) {
     return [
-      {name: 'showAll', value: queryParams.showAll ? (/^0|1$/u).test(queryParams.showAll) : true},
-      {name: 'showOperations', value: queryParams.showOperations ? (/^0|1$/u).test(queryParams.showOperations) : true},
-      {name: 'showOperationSettings', value: queryParams.showOperationSettings ? (/^0|1$/u).test(queryParams.showOperationSettings) : true},
-      {name: 'showRecordLoadParams', value: queryParams.showRecordLoadParams ? (/^0|1$/u).test(queryParams.showRecordLoadParams) : true},
-      {name: 'showImportJobState', value: queryParams.showImportJobState ? (/^0|1$/u).test(queryParams.showImportJobState) : true}
+      {name: 'showAll', value: queryParams.showAll ? (/(?:^(?:1|0|true|false)$)/ui).test(queryParams.showAll) : true},
+      {name: 'showOperations', value: queryParams.showOperations ? (/(?:^(?:1|0|true|false)$)/ui).test(queryParams.showOperations) : true},
+      {name: 'showOperationSettings', value: queryParams.showOperationSettings ? (/(?:^(?:1|0|true|false)$)/ui).test(queryParams.showOperationSettings) : true},
+      {name: 'showRecordLoadParams', value: queryParams.showRecordLoadParams ? (/(?:^(?:1|0|true|false)$)/ui).test(queryParams.showRecordLoadParams) : true},
+      {name: 'showImportJobState', value: queryParams.showImportJobState ? (/(?:^(?:1|0|true|false)$)/ui).test(queryParams.showImportJobState) : true}
     ];
   }
 
   function checkRecordReportParams(queryParams) {
     return [
-      {name: 'recordsAsReport', value: queryParams.recordsAsReport ? (/^0|1$/u).test(queryParams.recordsAsReport) : true},
-      {name: 'noRecords', value: queryParams.noRecords ? (/^0|1$/u).test(queryParams.noRecords) : true},
-      {name: 'noIds', value: queryParams.noIds ? (/^0|1$/u).test(queryParams.noIds) : true}
+      {name: 'recordsAsReport', value: queryParams.recordsAsReport ? (/(?:^(?:1|0|true|false)$)/ui).test(queryParams.recordsAsReport) : true},
+      {name: 'noRecords', value: queryParams.noRecords ? (/(?:^(?:1|0|true|false)$)/ui).test(queryParams.noRecords) : true},
+      {name: 'noIds', value: queryParams.noIds ? (/(?:^(?:1|0|true|false)$)/ui).test(queryParams.noIds) : true}
     ];
   }
 
