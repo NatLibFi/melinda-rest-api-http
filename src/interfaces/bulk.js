@@ -237,18 +237,18 @@ export default async function ({mongoUri, amqpUrl}) {
       logger.silly(`Handling record: ${JSON.stringify(record)}`);
       logger.silly(`Current allStatuses: ${JSON.stringify(allStatuses)}`);
 
-      if (record.status in allStatuses) {
-        logger.silly(`We have an existing status: ${record.status}`);
+      if (record.recordStatus in allStatuses) {
+        logger.silly(`We have an existing status: ${record.recordStatus}`);
         return {
           ...allStatuses,
-          [record.status]: allStatuses[record.status] + 1
+          [record.recordStatus]: allStatuses[record.recordStatus] + 1
         };
       }
 
-      logger.silly(`We have a new status: ${record.status}`);
+      logger.silly(`We have a new status: ${record.recordStatus}`);
       return {
         ...allStatuses,
-        [record.status]: 1
+        [record.recordStatus]: 1
       };
     }, {});
 
