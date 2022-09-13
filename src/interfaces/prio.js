@@ -89,9 +89,10 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // eslint-disable-next-line no-extra-parens
     if (status === 'CREATED' || (operationSettings.merge && status === 'UPDATED')) {
-      return {messages: payload, id: payload.databaseId, status};
+      return {status, messages: payload, id: payload.databaseId};
     }
 
+    // This might throw weird errors with status "UPDATED" etc.
     throw new HttpError(status, payload || '');
   }
 
@@ -234,6 +235,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   function getResponseDataForAbort(result) {
     logger.debug(`Queue item ${result.correlationId}, state ${result.queueItemState} - Timeout!`);
     const errorMessage = result.errorMessage || 'Request timeout, try again later';
+    // should we return recordResponseItem also for ABORT
     throw new HttpError(httpStatus.REQUEST_TIMEOUT, errorMessage);
   }
 
@@ -276,7 +278,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     const [firstRecordResponse] = recordResponses;
     logger.debug(`We have recordResponses (${recordResponses.length}): ${inspect(recordResponses)}`);
     logger.silly(`First recordResponse: ${firstRecordResponse}`);
-    const {status} = firstRecordResponse;
+    const {recordStatus: status} = firstRecordResponse;
 
     return {status, payload: firstRecordResponse};
   }
