@@ -123,7 +123,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
     // eslint-disable-next-line no-extra-parens
     if (status === 'UPDATED' || status === 'SKIPPED') {
-      return {messages: payload, id: payload.databaseId, status};
+      return {status, messages: payload, id: payload.databaseId};
     }
 
     // Note: if validator changed the operation -> this errors currently
