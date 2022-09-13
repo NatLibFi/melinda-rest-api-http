@@ -276,9 +276,9 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     const [firstRecordResponse] = recordResponses;
     logger.debug(`We have recordResponses (${recordResponses.length}): ${inspect(recordResponses)}`);
     logger.silly(`First recordResponse: ${firstRecordResponse}`);
-    const {status} = firstRecordResponse;
+    const {recordStatus} = firstRecordResponse;
 
-    return {status, payload: firstRecordResponse};
+    return {status: recordStatus, payload: firstRecordResponse};
   }
 
   function doQuery(incomingParams) {
