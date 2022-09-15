@@ -38,7 +38,7 @@ import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger
 import {CONTENT_TYPES} from '../config';
 import {checkQueryParams} from './queryUtils';
 
-export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
+export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType}) => {
   const logger = createLogger();
   const Service = await createService({
     sruUrl, amqpUrl, mongoUri, pollWaitTime
@@ -89,6 +89,11 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         skipNoChangeUpdates: req.query.skipNoChangeUpdates === undefined ? false : parseBoolean(req.query.skipNoChangeUpdates),
         prio: true
       };
+
+      // We have match and merge settings just for bib records in validator
+      if (recordType !== 'bib' && (operationSettings.unique || operationSettings.merge)) {
+        throw new HttpError(httpStatus.BAD_REQUEST, `Unique and merge can only be used for bib records, use unique=0`);
+      }
 
       if (operationSettings.merge && !operationSettings.unique) {
         throw new HttpError(httpStatus.BAD_REQUEST, `Merge cannot be used with unique set as **false**`);
@@ -154,6 +159,11 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
         skipNoChangeUpdates: req.query.skipNoChangeUpdates === undefined ? false : parseBoolean(req.query.skipNoChangeUpdates),
         prio: true
       };
+
+      // We have match and merge settings just for bib records in validator
+      if (recordType !== 'bib' && (operationSettings.unique || operationSettings.merge)) {
+        throw new HttpError(httpStatus.BAD_REQUEST, `Merge can only be used for bib records`);
+      }
 
       const {messages, id} = await Service.update({
         id: req.params.id,

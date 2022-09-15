@@ -49,6 +49,8 @@ export const mongoUri = readEnvironmentVariable('MONGO_URI', {defaultValue: 'mon
 
 export const pollWaitTime = readEnvironmentVariable('POLL_WAIT_TIME', {defaultValue: 100, format: v => Number(v)});
 
+export const recordType = readEnvironmentVariable('RECORD_TYPE', {defaultValue: 'bib'});
+
 export const CONTENT_TYPES = [
   {contentType: 'application/json', conversionFormat: CONVERSION_FORMATS.JSON, allowPrio: true, allowBulk: true},
   {contentType: 'application/marc', conversionFormat: CONVERSION_FORMATS.ISO2709, allowPrio: true, allowBulk: true},
