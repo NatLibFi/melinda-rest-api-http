@@ -13,7 +13,7 @@ export default async function ({
   xServiceURL, userLibrary,
   ownAuthzURL, ownAuthzApiKey,
   sruUrl, amqpUrl, mongoUri,
-  pollWaitTime
+  pollWaitTime, recordType
 }) {
   const logger = createLogger();
   const server = await initExpress();
@@ -42,14 +42,14 @@ export default async function ({
     }));
 
     app.use(passport.initialize());
-    app.use('/bulk', passport.authenticate('melinda', {session: false}), await createBulkRouter({mongoUri, amqpUrl})); // Must be here to avoid bodyparser
+    app.use('/bulk', passport.authenticate('melinda', {session: false}), await createBulkRouter({mongoUri, amqpUrl, recordType})); // Must be here to avoid bodyparser
     app.use(bodyParser.text({limit: '5MB', type: '*/*'}));
     app.use('/apidoc', createApiDocRouter());
     app.use('/logs', passport.authenticate('melinda', {session: false}), await createLogsRouter({mongoUri}));
-    app.use('/', await createPrioRouter({sruUrl, amqpUrl, mongoUri, pollWaitTime}));
+    app.use('/', await createPrioRouter({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType}));
     app.use(handleError);
 
-    return app.listen(httpPort, () => logger.info(`Started Melinda REST API in port ${httpPort}`));
+    return app.listen(httpPort, () => logger.info(`Started Melinda REST API for ${recordType} records in port ${httpPort}`));
 
     function handleError(err, req, res, next) {
       logger.debug(`App/handleError: Error: ${JSON.stringify(err)}`);

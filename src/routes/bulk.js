@@ -38,7 +38,7 @@ import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils';
 import {checkQueryParams} from './queryUtils';
 import {inspect} from 'util';
 
-export default async function ({mongoUri, amqpUrl}) {
+export default async function ({mongoUri, amqpUrl, recordType}) {
   const logger = createLogger();
 
   const OPERATION_TYPES = [OPERATIONS.CREATE, OPERATIONS.UPDATE];
@@ -60,6 +60,11 @@ export default async function ({mongoUri, amqpUrl}) {
     try {
       logger.silly('routes/Bulk create');
       const {operation, recordLoadParams, noStream, operationSettings} = Service.validateQueryParams(req.query, req.user.id);
+
+      // We have match and merge settings just for bib records in validator
+      if (recordType !== 'bib' && (operationSettings.unique || operationSettings.merge)) {
+        throw new HttpError(httpStatus.BAD_REQUEST, `Unique and merge can only be used for bib records, use unique=0`);
+      }
 
       const params = {
         correlationId: uuid(),

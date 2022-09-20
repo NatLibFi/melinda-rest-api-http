@@ -252,7 +252,7 @@ export default async function ({mongoUri, amqpUrl}) {
       };
     }, {});
 
-    logger.debug(JSON.stringify(recordStatuses));
+    logger.silly(JSON.stringify(recordStatuses));
     return recordStatuses;
   }
 
