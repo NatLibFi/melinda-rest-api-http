@@ -590,7 +590,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/databaseIdNonEmpty"
+              "type": "string"
             }
           }
         ],
