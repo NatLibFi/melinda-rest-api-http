@@ -16,6 +16,10 @@
     {
       "name": "/v1/bib/prio/",
       "description": "Admin operations for operating on single bibliographic records"
+    },
+    {
+      "name": "/v1/bib/bulk/logs/",
+      "description": "Operate on logs for jobs"
     }
   ],
   "paths": {
@@ -355,7 +359,7 @@
     },
     "/v1/bib/bulk/": {
       "post": {
-        "summary": "Create bulk ",
+        "summary": "Create a bulk job for operating on several records",
         "tags": [
           "/v1/bib/bulk/"
         ],
@@ -402,7 +406,7 @@
           }
         ],
         "requestBody": {
-          "description": "Contains an array of records",
+          "description": "Contains an array of records, required for stream-type bulk jobs",
           "required": true,
           "content": {
             "application/json": {
@@ -466,24 +470,10 @@
             "description": "The credentials are not authorized for this operation, i.e. the user does not have the permission to change the owner metadata of the record"
           },
           "409": {
-            "description": "There is conflict that prevents creating/updating the record to the datastore. Either the record has a duplicate in the datastore or there too many possible duplicates in the datastore (and **unique** was set to true) while creating a record -  or the request contains outdated data while updating the record",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/recordConflictReport"
-                }
-              }
-            }
+            "description": "There is conflict that prevents creating/updating the record to the datastore. Either the record has a duplicate in the datastore or there too many possible duplicates in the datastore (and **unique** was set to true) while creating a record -  or the request contains outdated data while updating the record"
           },
           "422": {
-            "description": "The record does not pass validation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/recordValidationReport"
-                }
-              }
-            }
+            "description": "The record does not pass validation"
           }
         }
       },
@@ -495,11 +485,11 @@
         "parameters": [
           {
             "name": "id",
-            "description": "Queue item identifier",
+            "description": "Queue item identifier (correlationId) for job",
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/correlationId"
             }
           }
         ],
@@ -577,22 +567,81 @@
         }
       }
     },
-    "/v1/bib/bulk/{id}": {
+    "/v1/bib/bulk/record/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "description": "Queue item identifier",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/correlationId"
+          }
+        }
+      ],
+      "put": {
+        "summary": "Add a record to a bulk job",
+        "tags": [
+          "/v1/bib/bulk/"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/bib/bulk/state/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "description": "Queue item identifier",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/correlationId"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Retrieve current state of a job",
+        "tags": [
+          "/v1/bib/bulk/"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update state of a job",
+        "tags": [
+          "/v1/bib/bulk/"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/bib/bulk/content/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "description": "Queue item identifier",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/correlationId"
+          }
+        }
+      ],
       "get": {
         "summary": "Retrieve queue item content",
         "tags": [
           "/v1/bib/bulk/"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "description": "Queue item identifier",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
         ],
         "security": [
           {
@@ -618,17 +667,6 @@
         "summary": "Remove queue item content",
         "tags": [
           "/v1/bib/bulk/"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "description": "Queue item identifier",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
         ],
         "security": [
           {
@@ -698,6 +736,94 @@
           }
         }
       }
+    },
+    "/v1/bib/bulk/logs/": {
+      "get": {
+        "summary": "Query job logs",
+        "tags": [
+          "/v1/bib/bulk/logs/"
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of job logs"
+          }
+        }
+      }
+    },
+    "/v1/bib/bulk/logs/list": {
+      "get": {
+        "summary": "List job logs",
+        "tags": [
+          "/v1/bib/bulk/logs/"
+        ],
+        "parameters": [
+          {
+            "name": "logItemType",
+            "in": "query",
+            "schema": {
+              "allOf": [
+                {
+                  "default": "MERGE_LOG"
+                },
+                {
+                  "$ref": "#/components/schemas/logItemType"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of job log ids"
+          }
+        }
+      }
+    },
+    "/v1/bib/bulk/logs/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "description": "Id for a job log",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/jobLogId"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Retrieve a job log",
+        "tags": [
+          "/v1/bib/bulk/logs/"
+        ],
+        "responses": {
+          "200": {
+            "description": "A job log item"
+          }
+        }
+      },
+      "put": {
+        "summary": "Protect a job log",
+        "tags": [
+          "/v1/bib/bulk/logs/"
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of job logs"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a job log",
+        "tags": [
+          "/v1/bib/bulk/logs/"
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of job logs"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -708,6 +834,21 @@
       }
     },
     "schemas": {
+      "logItemType": {
+        "type": "string",
+        "enum": [
+          "MERGE_LOG",
+          "MATCH_LOG"
+        ]
+      },
+      "jobLogId": {
+        "description": "Id for a job log (uuid)",
+        "type": "string"
+      },
+      "correlationId": {
+        "description": "CorrelationId of a job / queueItem (uuid)",
+        "type": "string"
+      },
       "recordResponseItemFor200Create": {
         "type": "object",
         "properties": {
@@ -825,7 +966,9 @@
           "recordStatus": {
             "allOf": [
               {
-                "example": "DUPLICATE"
+                "enum": [
+                  "DUPLICATE"
+                ]
               },
               {
                 "$ref": "#/components/schemas/recordStatus"
@@ -835,7 +978,9 @@
           "detailedRecordStatus": {
             "allOf": [
               {
-                "example": "DUPLICATE"
+                "enum": [
+                  "DUPLICATE"
+                ]
               },
               {
                 "$ref": "#/components/schemas/detailedRecordStatus"
@@ -854,7 +999,9 @@
       "databaseIdEmpty": {
         "allOf": [
           {
-            "example": "000000000"
+            "enum": [
+              "000000000"
+            ]
           },
           {
             "$ref": "#/components/schemas/databaseId"
@@ -920,31 +1067,10 @@
             "$ref": "#/components/schemas/recordMetadata"
           },
           "recordStatus": {
-            "description": "Status for the handled record after the operation.",
-            "type": "string",
-            "enum": [
-              "UPDATED",
-              "CREATED",
-              "SKIPPED",
-              "DUPLICATE",
-              "ERROR",
-              "INVALID"
-            ]
+            "$ref": "#/components/schemas/recordStatus"
           },
           "detailedRecordStatus": {
-            "description": "More detailed status for handled record after the operation.",
-            "type": "string",
-            "enum": [
-              "UPDATED",
-              "CREATED",
-              "SKIPPED",
-              "DUPLICATE",
-              "ERROR",
-              "INVALID",
-              "CONLICT",
-              "UNKNOWN",
-              "NOT_FOUND"
-            ]
+            "$ref": "#/components/schemas/detailedRecordStatus"
           },
           "message": {
             "description": "Explanation for the recordStatus after the operation including possible error messages.",
@@ -996,63 +1122,10 @@
           "blobSequence": {
             "description": "Sequence for the record in the input blob. Always \"1\" when handling single record input",
             "type": "string",
-            "example": "1"
+            "example": "1",
+            "pattern": "^\\d+$"
           }
         }
-      },
-      "recordConflictReport": {
-        "type": "object",
-        "oneOf": [
-          {
-            "$ref": "#/components/schemas/recordConflictReportWithIds"
-          },
-          {
-            "$ref": "#/components/schemas/recordConflictReportWithoutIds"
-          }
-        ]
-      },
-      "recordConflictReportWithIds": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string"
-          },
-          "ids": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "example": {
-          "message": "Duplicates in database",
-          "ids": [
-            "000001234"
-          ]
-        }
-      },
-      "recordConflictReportWithoutIds": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string"
-          }
-        },
-        "example": {
-          "message": "Matcher found too many candidates to check"
-        }
-      },
-      "recordValidationReport": {
-        "type": "array",
-        "items": {
-          "type": "object"
-        },
-        "example": [
-          {
-            "description": "Check whether the configured fields have valid structure",
-            "state": "invalid"
-          }
-        ]
       },
       "queueItemRemoveResponse": {
         "type": "object",
@@ -1160,6 +1233,22 @@
           ]
         }
       },
+      "queueItemState": {
+        "type": "string",
+        "description": "The request queue item state",
+        "enum": [
+          "DONE",
+          "ERROR",
+          "IMPORTER.IN_PROCESS",
+          "IMPORTER.IN_QUEUE",
+          "IMPORTER.IMPORTING",
+          "VALIDATOR.PENDING_QUEUING",
+          "VALIDATOR.QUEUING_IN_PROGRESS",
+          "VALIDATOR.UPLOADING",
+          "VALIDATOR.PENDING_VALIDATION",
+          "VALIDATOR.VALIDATING"
+        ]
+      },
       "dbQueueItem-bulk": {
         "type": "object",
         "properties": {
@@ -1203,20 +1292,7 @@
             ]
           },
           "queueItemState": {
-            "type": "string",
-            "description": "The request queue item state",
-            "enum": [
-              "DONE",
-              "ERROR",
-              "IMPORTER.IN_PROCESS",
-              "IMPORTER.IN_QUEUE",
-              "IMPORTER.IMPORTING",
-              "VALIDATOR.PENDING_QUEUING",
-              "VALIDATOR.QUEUING_IN_PROGRESS",
-              "VALIDATOR.UPLOADING",
-              "VALIDATOR.PENDING_VALIDATION",
-              "VALIDATOR.VALIDATING"
-            ]
+            "$ref": "#/components/schemas/queueItemState"
           },
           "creationTime": {
             "type": "string",
@@ -1337,20 +1413,7 @@
             }
           },
           "queueItemState": {
-            "type": "string",
-            "description": "The request queue item state",
-            "enum": [
-              "IMPORTER.IN_PROCESS",
-              "IMPORTER.IN_QUEUE",
-              "IMPORTER.IMPORTING",
-              "VALIDATOR.PENDING_QUEUING",
-              "VALIDATOR.QUEUING_IN_PROGRESS",
-              "VALIDATOR.PENDING_VALIDATION",
-              "VALIDATOR.VALIDATING",
-              "DONE",
-              "ERROR",
-              "ABORT"
-            ]
+            "$ref": "#/components/schemas/queueItemState"
           },
           "creationTime": {
             "type": "string",
@@ -1432,8 +1495,7 @@
             "type": "array",
             "description": "An array of validation messages given by validation to the record in a noop operation",
             "items": {
-              "type": "json",
-              "$ref": "#/components/schemas/recordValidationReport"
+              "type": "object"
             }
           }
         }
