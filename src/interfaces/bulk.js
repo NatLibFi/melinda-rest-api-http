@@ -36,7 +36,7 @@ import {generateQuery, generateShowParams} from './utils';
 export default async function ({mongoUri, amqpUrl}) {
   const logger = createLogger();
   const mongoOperator = await mongoFactory(mongoUri, 'bulk');
-  const amqpOperator = await amqpFactory(amqpUrl);
+  const amqpOperator = await amqpFactory(amqpUrl, true);
 
   return {create, addRecord, getState, updateState, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
 
