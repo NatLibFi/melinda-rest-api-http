@@ -259,8 +259,10 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   function getResponseDataForError(result) {
 
     const recordResponses = result.records ? result.records : [];
+    // prio assumes we had only one record, so we send back just the first recordResponse
+    // if we will later allow prio to have more than one record, this needs to be fixed
     const [firstRecordResponse] = recordResponses;
-    logger.debug(`We have recordResponses (${recordResponses.length}): ${inspect(recordResponses)}`);
+    logger.debug(`We have recordResponses (${recordResponses.length}): ${JSON.stringify(recordResponses)}`);
     logger.silly(`First recordResponse: ${firstRecordResponse}`);
 
     logger.debug(`QueueItemState is ERROR, errorStatus: ${result.errorStatus} errorMessage: ${result.errorMessage}`);
@@ -274,10 +276,11 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     const recordResponses = result.records ? result.records : [];
     const [firstRecordResponse] = recordResponses;
-    logger.debug(`We have recordResponses (${recordResponses.length}): ${inspect(recordResponses)}`);
+    logger.debug(`We have recordResponses (${recordResponses.length}): ${JSON.stringify(recordResponses)}`);
     logger.silly(`First recordResponse: ${firstRecordResponse}`);
     const {recordStatus} = firstRecordResponse;
-
+    // prio assumes we had only one record, so we send back just the first recordResponse
+    // if we will later allow prio to have more than one record, this needs to be fixed
     return {status: recordStatus, payload: firstRecordResponse};
   }
 
