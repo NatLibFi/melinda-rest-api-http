@@ -33,7 +33,7 @@ import {amqpFactory, conversions, OPERATIONS, mongoFactory, QUEUE_ITEM_STATE} fr
 import {MARCXML} from '@natlibfi/marc-record-serializers';
 import createSruClient from '@natlibfi/sru-client';
 import httpStatus from 'http-status';
-import {generateQuery, generateShowParams} from './utils';
+import sanitize from 'mongo-sanitize';
 
 const setTimeoutPromise = promisify(setTimeout);
 
@@ -41,7 +41,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   const logger = createLogger();
   logger.debug(`Connecting prio to: ${amqpUrl} and ${mongoUri}`);
   const converter = conversions();
-  const amqpOperator = await amqpFactory(amqpUrl, true);
+  const amqpOperator = await amqpFactory(amqpUrl);
   const mongoOperator = await mongoFactory(mongoUri, 'prio');
   const sruClient = createSruClient({url: sruUrl, recordSchema: 'marcxml'});
 
@@ -62,81 +62,78 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     throw new HttpError(httpStatus.NOT_FOUND, 'Record not found');
   }
 
-  async function create({data, format, cataloger, oCatalogerIn, operationSettings, correlationId}) {
+  async function create({data, format, cataloger, oCatalogerIn, noop, unique, correlationId}) {
     logger.info(`Creating CREATE task for a new record ${correlationId}`);
     logger.verbose('Sending a new record to queue');
     const operation = OPERATIONS.CREATE;
     const headers = {
-      correlationId,
       operation,
       format,
       cataloger,
-      operationSettings
+      noop,
+      unique
     };
 
     logger.verbose(`Creating Mongo queue item for correlationId ${correlationId}`);
-    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, operationSettings});
-
-    // handleRequest returns recordResponseItem as respenseData
-
+    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, unique, prio: true});
     const responseData = await handleRequest({correlationId, headers, data});
-    const {status, payload} = responseData;
-
     logger.silly(`prio/create response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
-    logger.debug(`status: ${status}, ${payload.databaseId}, ${JSON.stringify(payload)}`);
-
     cleanMongo(correlationId);
 
-    // eslint-disable-next-line no-extra-parens
-    if (status === 'CREATED' || (operationSettings.merge && (status === 'UPDATED' || status === 'SKIPPED'))) {
-      return {messages: payload, id: payload.databaseId, status};
+    // Should handle cases where operation was changed by validator
+
+    if (responseData.status === 'CREATED') {
+
+      if (noop) {
+        return {messages: responseData.messages, id: undefined};
+      }
+
+      return {messages: responseData.messages, id: responseData.payload};
     }
 
-    throw new HttpError(status, payload || '');
+    // Currently errors if validator changed the operation (CREATE -> UPDATE)
+    throw new HttpError(responseData.status, responseData.payload || '');
   }
 
 
-  async function update({id, data, format, cataloger, oCatalogerIn, operationSettings, correlationId}) {
+  async function update({id, data, format, cataloger, oCatalogerIn, noop, correlationId}) {
     validateRequestId(id);
     logger.info(`Creating UPDATE task for record ${id} / ${correlationId}`);
     const operation = OPERATIONS.UPDATE;
     const headers = {
-      correlationId,
       operation,
       id,
       format,
       cataloger,
-      operationSettings
+      noop
     };
 
-    logger.verbose(`Creating Mongo queue item for record ${id} / ${correlationId}`);
+    logger.verbose(`Creating Mongo queue item for record ${id}`);
 
-    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, operationSettings});
+    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, noop, prio: true});
     const responseData = await handleRequest({correlationId, headers, data});
-    const {status, payload} = responseData;
-
     logger.silly(`prio/update response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
-    logger.debug(`status: ${status}, ${payload}`);
-
     cleanMongo(correlationId);
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
-    // eslint-disable-next-line no-extra-parens
-    if (status === 'UPDATED' || status === 'SKIPPED') {
-      return {status, messages: payload, id: payload.databaseId};
+    if (responseData.status === 'UPDATED') {
+
+      if (noop) {
+        return responseData.messages;
+      }
+
+      return responseData;
     }
 
     // Note: if validator changed the operation -> this errors currently
-    throw new HttpError(status, payload || '');
+    throw new HttpError(responseData.status, responseData.payload || '');
   }
 
-  // cleanMongo cleans the actual MongoCollection ('prio'), logCollection ('logPrio') retains all items
   async function cleanMongo(correlationId) {
-    const result = await mongoOperator.queryById({correlationId, checkModTime: true});
+    const result = await mongoOperator.queryById(correlationId, true);
     logger.silly(` ${inspect(result, {colors: true, maxArrayLength: 3, depth: 1})}}`);
 
     // These could be configurable
-    // logCollection holds the queueItem -> this could remove also non-409 -ERRORs and ABORTs
 
     if (result.queueItemState === 'DONE') {
       logger.debug(`queueItemState: DONE, removing prio queueItem for ${correlationId}`);
@@ -159,7 +156,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.verbose(`interfaces/prio/create/handleRequest: Waiting response to id: ${correlationId}`);
     const responseData = await check(correlationId);
 
-    // We get responseData (recordResponseItem of ??? for errors) from check
+    // We get responseData from check
 
     logger.verbose(`Got response to id: ${correlationId}, status: ${responseData.status}, payload: ${responseData.payload}, messages: ${responseData.messages}`);
     logger.silly(`interfaces/prio/create/handleRequest: Response data: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}`);
@@ -196,8 +193,8 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   function validateRequestId(id) {
     logger.debug(`Validating requestId ${id}`);
-
-    if (id.length === 9 && (/^\d+$/u).test(id)) {
+    // This should also check that id has only numbers
+    if (id.length === 9) {
       return;
     }
     throw new HttpError(httpStatus.BAD_REQUEST, `Invalid request id ${id}`);
@@ -212,7 +209,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // Check status and and also if process has timeouted
     // Note: there can be timeout result and the create/update to Melinda can still be done, if timeout happens when while job is being imported
-    const result = await mongoOperator.queryById({correlationId, checkModTime: true});
+    const result = await mongoOperator.queryById(correlationId, true);
 
     if (queueItemState !== result.queueItemState) { // eslint-disable-line functional/no-conditional-statement
       logger.debug(`Queue item ${correlationId}, state ${result.queueItemState}`);
@@ -237,13 +234,14 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     throw new HttpError(httpStatus.REQUEST_TIMEOUT, errorMessage);
   }
 
-  // should we return also correlationId in prio?
   // async
   function getResponseDataForDoneNError(result) {
 
     logger.debug(`Mongo Result: ${JSON.stringify(result)}`);
     const correlationId = result.correlationId || '';
+    const {noop} = result.operationSettings;
 
+    // Create responseData for those errors that didn't sendErrorResponse through queue
     logger.debug(`Responding for ${correlationId} based on the queueItem`);
     logger.debug(`${result}`);
 
@@ -252,46 +250,65 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       return getResponseDataForError(result);
     }
 
+    // ResponseData for non-ERROR noops
+    if (noop) {
+      return getResponseDataForNoop(result);
+    }
+
     // ResponseData for non-ERROR non-noops
     return getResponseDataForDone(result);
   }
 
+  function getResponseDataForNoop(result) {
+    logger.debug(`QueueItem is noop!`);
+    const noopOperationStatus = result.operation === OPERATIONS.CREATE ? 'CREATED' : 'UPDATED';
+    const noopMessages = result.noopValidationMessages[0].messages;
+    return {status: noopOperationStatus, messages: noopMessages, payload: ''};
+  }
+
   function getResponseDataForError(result) {
-
-    const recordResponses = result.records ? result.records : [];
-    // prio assumes we had only one record, so we send back just the first recordResponse
-    // if we will later allow prio to have more than one record, this needs to be fixed
-    const [firstRecordResponse] = recordResponses;
-    logger.debug(`We have recordResponses (${recordResponses.length}): ${JSON.stringify(recordResponses)}`);
-    logger.silly(`First recordResponse: ${firstRecordResponse}`);
-
     logger.debug(`QueueItemState is ERROR, errorStatus: ${result.errorStatus} errorMessage: ${result.errorMessage}`);
     const errorStatus = result.errorStatus || httpStatus.INTERNAL_SERVER_ERROR;
-    const responsePayload = {message: result.errorMessage} || {message: 'unknown error'};
-    const responsePayloadAndStatus = {...responsePayload, status: errorStatus};
-    return {status: errorStatus, payload: firstRecordResponse || responsePayloadAndStatus};
+    const responsePayload = result.errorMessage || 'unknown error';
+    return {status: errorStatus, payload: responsePayload};
   }
 
   function getResponseDataForDone(result) {
+    const handledIds = result.handledIds ? result.handledIds : [];
+    const rejectedIds = result.rejectedIds ? result.rejectedIds : [];
 
-    const recordResponses = result.records ? result.records : [];
-    const [firstRecordResponse] = recordResponses;
-    logger.debug(`We have recordResponses (${recordResponses.length}): ${JSON.stringify(recordResponses)}`);
-    logger.silly(`First recordResponse: ${firstRecordResponse}`);
-    const {recordStatus} = firstRecordResponse;
-    // prio assumes we had only one record, so we send back just the first recordResponse
-    // if we will later allow prio to have more than one record, this needs to be fixed
-    return {status: recordStatus, payload: firstRecordResponse};
+    if (handledIds.length < 1) {
+      logger.debug(`Got 0 valid ids and rejected ${rejectedIds.length} ids: ${rejectedIds}`);
+
+      const responseStatus = httpStatus.UNPROCESSABLE_ENTITY;
+      const responsePayload = rejectedIds[0] || '';
+      return {status: responseStatus, payload: responsePayload};
+    }
+
+    const operationStatus = result.operation === OPERATIONS.CREATE ? 'CREATED' : 'UPDATED';
+    const responseStatus = operationStatus || 'unknown';
+    logger.silly(`responseStatus ${JSON.stringify(responseStatus)}`);
+
+    const responsePayload = handledIds[0] || '';
+    logger.silly(`responsePayload ${JSON.stringify(responsePayload)}`);
+
+    return {status: responseStatus, payload: responsePayload || ''};
   }
 
-  function doQuery(incomingParams) {
-    const params = generateQuery(incomingParams);
-    const showParams = generateShowParams(incomingParams);
+  function doQuery({query}) {
+    // Query filters oCatalogerIn, correlationId, operation
+    // Note currently only id works!
+    // (id = correlationId)
+    const clean = query.id ? sanitize(query.id) : {$ne: null};
+
+    const params = {
+      correlationId: clean
+    };
 
     logger.debug(`Queue items querried with params: ${JSON.stringify(params)}`);
 
     if (params) {
-      return mongoOperator.query(params, showParams);
+      return mongoOperator.query(params);
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST);
