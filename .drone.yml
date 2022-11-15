@@ -12,10 +12,10 @@ steps:
   - name: generate-tags
     image: quay.io/natlibfi/drone-gen-tags
 
-  - name: audit
-    image: node:14
-    commands:
-      - npm audit --package-lock-only --production --audit-level=moderate
+#  - name: audit
+#    image: node:14
+#    commands:
+#      - npm audit --package-lock-only --production --audit-level=moderate
 
   - name: install
     image: node:14
