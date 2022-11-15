@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Melinda REST API for ILS integration ",
-    "version": "1.1"
+    "version": "2.2"
   },
   "tags": [
     {
@@ -16,6 +16,10 @@
     {
       "name": "/v1/bib/prio/",
       "description": "Admin operations for operating on single bibliographic records"
+    },
+    {
+      "name": "/v1/bib/bulk/logs/",
+      "description": "Operate on logs for jobs"
     }
   ],
   "paths": {
@@ -43,6 +47,24 @@
               "type": "boolean",
               "default": true
             }
+          },
+          {
+            "name": "merge",
+            "description": "Merge incoming record to datastore record if a duplicate record is found",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "skipNoChangeUpdates",
+            "description": "Do not update the datastore record if update would result in no changes",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "requestBody": {
@@ -80,11 +102,11 @@
         ],
         "responses": {
           "200": {
-            "description": "The record was not actually created (The parameter **noop** was set to true)",
+            "description": "The record was okay, but was not actually created in the database, because   <li> parameter **noop** was set to true, or  <li> parameters **merge** and **skipNoChangeUpdates** were set to true and  the merged update would have resulted in no changes in the datastore",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/recordValidationReport"
+                  "$ref": "#/components/schemas/recordResponseItemFor200Create"
                 }
               }
             }
@@ -93,22 +115,22 @@
             "description": "The record was created succesfully",
             "headers": {
               "Record-ID": {
-                "description": "The Record's identifier",
+                "description": "Identifier for the created record in the datastore",
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/databaseIdNonEmpty"
                 }
               }
             },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/recordValidationReport"
+                  "$ref": "#/components/schemas/recordResponseItemFor201Create"
                 }
               }
             }
           },
           "400": {
-            "description": "The record data is malformed or has missmach content-type"
+            "description": "The record data is malformed or has missmach content-type, or the query parameters are invalid"
           },
           "401": {
             "description": "Credentials are invalid or missing"
@@ -120,11 +142,11 @@
             "description": "The request has timed out"
           },
           "409": {
-            "description": "The record has a duplicate in the datastore and **unique** was set to true",
+            "description": "There is conflict that prevents creating/updating the record to the datastore. Either the record has a duplicate in the datastore or there too many possible duplicates in the datastore (and **unique** was set to true) while creating a record -  or the request contains outdated data while updating the record",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/recordDuplicateReport"
+                  "$ref": "#/components/schemas/recordResponseItemFor409Create"
                 }
               }
             }
@@ -133,14 +155,7 @@
             "description": "The request is in a format that is not supported"
           },
           "422": {
-            "description": "The record does not pass validation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/recordValidationReport"
-                }
-              }
-            }
+            "description": "The record does not pass validation, or is not parseable"
           }
         }
       }
@@ -158,19 +173,34 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/databaseIdNonEmpty"
             }
           },
           {
             "name": "noop",
-            "description": "Do not actually do the update the record. Boolean value 1 or 0",
+            "description": "Do not actually do the update the record.",
             "in": "query",
             "schema": {
-              "type": "number",
-              "default": 0,
-              "maximum": 1,
-              "minimum": 0,
-              "maxLength": 1
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "merge",
+            "description": "Update the datastore record by merging the incoming record to it",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "skipNoChangeUpdates",
+            "description": "Do not update the datastore record if update would result in no changes",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
             }
           }
         ],
@@ -209,17 +239,25 @@
         ],
         "responses": {
           "200": {
-            "description": "The record was succesfully updated (Unless parameter **noop** was set to true)",
+            "description": "The record was succesfully updated. (Unless parameter **noop** was set to true, or parameter **skipNoChangeUpdate** was set to true and the update would have resulted in no changes in the datastore record.)",
+            "headers": {
+              "Record-ID": {
+                "description": "Identifier for the updated record in the datastore",
+                "schema": {
+                  "$ref": "#/components/schemas/databaseIdNonEmpty"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/recordValidationReport"
+                  "$ref": "#/components/schemas/recordResponseItemFor200Update"
                 }
               }
             }
           },
           "400": {
-            "description": "The request id invalid or the record data is malformed or has missmach content-type"
+            "description": "The request id invalid or the record data is malformed or has missmach content-type, or the parameters are invalid"
           },
           "401": {
             "description": "Credentials are invalid or missing"
@@ -240,14 +278,7 @@
             "description": "The request is in a format that is not supported"
           },
           "422": {
-            "description": "The record does not pass validation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/recordValidationReport"
-                }
-              }
-            }
+            "description": "The record does not pass validation"
           }
         }
       },
@@ -259,20 +290,11 @@
         "parameters": [
           {
             "name": "id",
-            "description": "The identifier of the record that's going to be retrieved",
+            "description": "The identifier of the record that's going to be retrieved. Pad with zeroes to nine numbers.",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "Accept",
-            "description": "Header param 'Accept' is used to rule response content-type",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/databaseIdNonEmpty"
             }
           }
         ],
@@ -283,6 +305,7 @@
         ],
         "responses": {
           "200": {
+            "description": "Retrieved a record",
             "content": {
               "application/json": {
                 "schema": {
@@ -309,9 +332,9 @@
             },
             "headers": {
               "Record-ID": {
-                "description": "Identifier of the record",
+                "description": "Identifier of the retrieved record",
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/databaseId"
                 }
               }
             }
@@ -336,7 +359,7 @@
     },
     "/v1/bib/bulk/": {
       "post": {
-        "summary": "Create bulk ",
+        "summary": "Create a bulk job for operating on several records",
         "tags": [
           "/v1/bib/bulk/"
         ],
@@ -352,11 +375,15 @@
           },
           {
             "name": "pOldNew",
-            "description": "Operation type ",
+            "description": "Operation type",
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "OLD",
+                "NEW"
+              ]
             }
           },
           {
@@ -379,7 +406,7 @@
           }
         ],
         "requestBody": {
-          "description": "Contains an array of records",
+          "description": "Contains an array of records, required for stream-type bulk jobs",
           "required": true,
           "content": {
             "application/json": {
@@ -443,24 +470,10 @@
             "description": "The credentials are not authorized for this operation, i.e. the user does not have the permission to change the owner metadata of the record"
           },
           "409": {
-            "description": "The record has a duplicate in the datastore and **unique** was set to true",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/recordDuplicateReport"
-                }
-              }
-            }
+            "description": "There is conflict that prevents creating/updating the record to the datastore. Either the record has a duplicate in the datastore or there too many possible duplicates in the datastore (and **unique** was set to true) while creating a record -  or the request contains outdated data while updating the record"
           },
           "422": {
-            "description": "The record does not pass validation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/recordValidationReport"
-                }
-              }
-            }
+            "description": "The record does not pass validation"
           }
         }
       },
@@ -469,17 +482,14 @@
         "tags": [
           "/v1/bib/bulk/"
         ],
-        "produces": [
-          "application/json"
-        ],
         "parameters": [
           {
             "name": "id",
-            "description": "Queue item identifier",
+            "description": "Queue item identifier (correlationId) for job",
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/correlationId"
             }
           }
         ],
@@ -491,10 +501,14 @@
         "responses": {
           "200": {
             "description": "Array of queue item objects (See #/components/schemas/dbQueueItem-bulk). Empty list if no resources were found",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/dbQueueItem-bulk"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/dbQueueItem-bulk"
+                  }
+                }
               }
             }
           },
@@ -513,9 +527,6 @@
         "summary": "Remove queue item",
         "tags": [
           "/v1/bib/bulk/"
-        ],
-        "produces": [
-          "application/json"
         ],
         "parameters": [
           {
@@ -536,8 +547,12 @@
         "responses": {
           "200": {
             "description": "Queue item removal report",
-            "schema": {
-              "$ref": "#/components/schemas/queueItemRemoveResponse"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/queueItemRemoveResponse"
+                }
+              }
             }
           },
           "401": {
@@ -552,25 +567,81 @@
         }
       }
     },
-    "/v1/bib/bulk/{id}": {
+    "/v1/bib/bulk/record/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "description": "Queue item identifier",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/correlationId"
+          }
+        }
+      ],
+      "put": {
+        "summary": "Add a record to a bulk job",
+        "tags": [
+          "/v1/bib/bulk/"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/bib/bulk/state/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "description": "Queue item identifier",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/correlationId"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Retrieve current state of a job",
+        "tags": [
+          "/v1/bib/bulk/"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update state of a job",
+        "tags": [
+          "/v1/bib/bulk/"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/bib/bulk/content/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "description": "Queue item identifier",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/correlationId"
+          }
+        }
+      ],
       "get": {
         "summary": "Retrieve queue item content",
         "tags": [
           "/v1/bib/bulk/"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "description": "Queue item identifier",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
         ],
         "security": [
           {
@@ -596,20 +667,6 @@
         "summary": "Remove queue item content",
         "tags": [
           "/v1/bib/bulk/"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "description": "Queue item identifier",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
         ],
         "security": [
           {
@@ -638,9 +695,6 @@
         "tags": [
           "/v1/bib/prio/"
         ],
-        "produces": [
-          "application/json"
-        ],
         "parameters": [
           {
             "name": "id",
@@ -660,10 +714,14 @@
         "responses": {
           "200": {
             "description": "Array of queue item objects (See #/components/schemas/dbQueueItem-prio). Empty list if no resources were found",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/dbQueueItem-prio"
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/dbQueueItem-prio"
+                  }
+                }
               }
             }
           },
@@ -678,6 +736,94 @@
           }
         }
       }
+    },
+    "/v1/bib/bulk/logs/": {
+      "get": {
+        "summary": "Query job logs",
+        "tags": [
+          "/v1/bib/bulk/logs/"
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of job logs"
+          }
+        }
+      }
+    },
+    "/v1/bib/bulk/logs/list": {
+      "get": {
+        "summary": "List job logs",
+        "tags": [
+          "/v1/bib/bulk/logs/"
+        ],
+        "parameters": [
+          {
+            "name": "logItemType",
+            "in": "query",
+            "schema": {
+              "allOf": [
+                {
+                  "default": "MERGE_LOG"
+                },
+                {
+                  "$ref": "#/components/schemas/logItemType"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of job log ids"
+          }
+        }
+      }
+    },
+    "/v1/bib/bulk/logs/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "description": "Id for a job log",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/jobLogId"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Retrieve a job log",
+        "tags": [
+          "/v1/bib/bulk/logs/"
+        ],
+        "responses": {
+          "200": {
+            "description": "A job log item"
+          }
+        }
+      },
+      "put": {
+        "summary": "Protect a job log",
+        "tags": [
+          "/v1/bib/bulk/logs/"
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of job logs"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a job log",
+        "tags": [
+          "/v1/bib/bulk/logs/"
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of job logs"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -688,26 +834,298 @@
       }
     },
     "schemas": {
-      "recordDuplicateReport": {
-        "type": "array",
-        "items": {
-          "type": "string"
-        },
-        "example": [
-          "000001234"
+      "logItemType": {
+        "type": "string",
+        "enum": [
+          "MERGE_LOG",
+          "MATCH_LOG"
         ]
       },
-      "recordValidationReport": {
-        "type": "array",
-        "items": {
-          "type": "json"
-        },
-        "example": [
+      "jobLogId": {
+        "description": "Id for a job log (uuid)",
+        "type": "string"
+      },
+      "correlationId": {
+        "description": "CorrelationId of a job / queueItem (uuid)",
+        "type": "string"
+      },
+      "recordResponseItemFor200Create": {
+        "type": "object",
+        "properties": {
+          "databaseId": {
+            "$ref": "#/components/schemas/databaseIdEmpty"
+          },
+          "recordMetadata": {
+            "$ref": "#/components/schemas/recordMetadata"
+          },
+          "recordStatus": {
+            "allOf": [
+              {
+                "example": "CREATED"
+              },
+              {
+                "$ref": "#/components/schemas/recordStatus"
+              }
+            ]
+          },
+          "detailedRecordStatus": {
+            "allOf": [
+              {
+                "example": "CREATED"
+              },
+              {
+                "$ref": "#/components/schemas/detailedRecordStatus"
+              }
+            ]
+          },
+          "message": {
+            "type": "string",
+            "example": "Would create a new record. - Noop."
+          }
+        }
+      },
+      "recordResponseItemFor200Update": {
+        "type": "object",
+        "properties": {
+          "databaseId": {
+            "$ref": "#/components/schemas/databaseIdNonEmpty"
+          },
+          "recordMetadata": {
+            "$ref": "#/components/schemas/recordMetadata"
+          },
+          "recordStatus": {
+            "allOf": [
+              {
+                "example": "UPDATED"
+              },
+              {
+                "$ref": "#/components/schemas/recordStatus"
+              }
+            ]
+          },
+          "detailedRecordStatus": {
+            "allOf": [
+              {
+                "example": "UPDATED"
+              },
+              {
+                "$ref": "#/components/schemas/detailedRecordStatus"
+              }
+            ]
+          },
+          "message": {
+            "type": "string",
+            "example": "Updated record 000123456"
+          }
+        }
+      },
+      "recordResponseItemFor201Create": {
+        "type": "object",
+        "properties": {
+          "databaseId": {
+            "$ref": "#/components/schemas/databaseIdNonEmpty"
+          },
+          "recordMetadata": {
+            "$ref": "#/components/schemas/recordMetadata"
+          },
+          "recordStatus": {
+            "allOf": [
+              {
+                "example": "CREATED"
+              },
+              {
+                "$ref": "#/components/schemas/recordStatus"
+              }
+            ]
+          },
+          "detailedRecordStatus": {
+            "allOf": [
+              {
+                "example": "CREATED"
+              },
+              {
+                "$ref": "#/components/schemas/detailedRecordStatus"
+              }
+            ]
+          },
+          "message": {
+            "type": "string",
+            "example": "Created record 000123456."
+          }
+        }
+      },
+      "recordResponseItemFor409Create": {
+        "type": "object",
+        "properties": {
+          "databaseId": {
+            "$ref": "#/components/schemas/databaseIdEmpty"
+          },
+          "recordMetadata": {
+            "$ref": "#/components/schemas/recordMetadata"
+          },
+          "recordStatus": {
+            "allOf": [
+              {
+                "enum": [
+                  "DUPLICATE"
+                ]
+              },
+              {
+                "$ref": "#/components/schemas/recordStatus"
+              }
+            ]
+          },
+          "detailedRecordStatus": {
+            "allOf": [
+              {
+                "enum": [
+                  "DUPLICATE"
+                ]
+              },
+              {
+                "$ref": "#/components/schemas/detailedRecordStatus"
+              }
+            ]
+          },
+          "message": {
+            "type": "string",
+            "example": "Duplicates in database."
+          },
+          "ids": {
+            "$ref": "#/components/schemas/recordResponseItemIds"
+          }
+        }
+      },
+      "databaseIdEmpty": {
+        "allOf": [
           {
-            "description": "Check whether the configured fields have valid structure",
-            "state": "invalid"
+            "enum": [
+              "000000000"
+            ]
+          },
+          {
+            "$ref": "#/components/schemas/databaseId"
           }
         ]
+      },
+      "databaseIdNonEmpty": {
+        "allOf": [
+          {
+            "example": "000123456"
+          },
+          {
+            "$ref": "#/components/schemas/databaseId"
+          }
+        ]
+      },
+      "databaseId": {
+        "type": "string",
+        "description": "ID for a record in the datastore in nine-digit format",
+        "pattern": "^\\d{9}$"
+      },
+      "recordStatus": {
+        "description": "Status for the handled record after the operation.",
+        "type": "string",
+        "enum": [
+          "UPDATED",
+          "CREATED",
+          "SKIPPED",
+          "DUPLICATE",
+          "ERROR",
+          "INVALID"
+        ]
+      },
+      "detailedRecordStatus": {
+        "description": "More detailed status for handled record after the operation.",
+        "type": "string",
+        "enum": [
+          "UPDATED",
+          "CREATED",
+          "SKIPPED",
+          "DUPLICATE",
+          "ERROR",
+          "INVALID",
+          "CONLICT",
+          "UNKNOWN",
+          "NOT_FOUND"
+        ]
+      },
+      "recordResponseItem": {
+        "type": "object",
+        "required": [
+          "databaseId",
+          "recordMetadata",
+          "recordStatus",
+          "detailedRecordStatus",
+          "message"
+        ],
+        "properties": {
+          "databaseId": {
+            "$ref": "#/components/schemas/databaseIdNonEmpty"
+          },
+          "recordMetadata": {
+            "$ref": "#/components/schemas/recordMetadata"
+          },
+          "recordStatus": {
+            "$ref": "#/components/schemas/recordStatus"
+          },
+          "detailedRecordStatus": {
+            "$ref": "#/components/schemas/detailedRecordStatus"
+          },
+          "message": {
+            "description": "Explanation for the recordStatus after the operation including possible error messages.",
+            "type": "string"
+          },
+          "ids": {
+            "allOf": [
+              {
+                "description": "IDs for related records in the datastore"
+              },
+              {
+                "$ref": "#/components/schemas/recordResponseItemIds"
+              }
+            ]
+          }
+        }
+      },
+      "recordResponseItemIds": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/databaseIdNonEmpty"
+        }
+      },
+      "recordMetadata": {
+        "description": "Metadata extracted from the input record",
+        "type": "object",
+        "properties": {
+          "sourceIds": {
+            "description": "Record identifiers",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "(FI-FOOBAR)123456"
+            }
+          },
+          "title": {
+            "description": "Title for described resource",
+            "type": "string",
+            "example": "Hobitti :"
+          },
+          "standardIdentifiers": {
+            "description": "Standard identifiers for described resource: ISBNs, ISSNs etc.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "example": "978-951-0-46873-9"
+            }
+          },
+          "blobSequence": {
+            "description": "Sequence for the record in the input blob. Always \"1\" when handling single record input",
+            "type": "string",
+            "example": "1",
+            "pattern": "^\\d+$"
+          }
+        }
       },
       "queueItemRemoveResponse": {
         "type": "object",
@@ -733,58 +1151,64 @@
       },
       "marcRecord": {
         "type": "object",
+        "required": [
+          "leader",
+          "fields"
+        ],
         "properties": {
           "leader": {
             "type": "string"
           },
           "fields": {
             "type": "array",
-            "required": true,
             "items": {
-              "type": "object",
-              "properties": {
-                "oneOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "tag": {
-                        "type": "string",
-                        "required": true
-                      },
-                      "value": {
-                        "type": "string",
-                        "required": true
-                      }
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "tag",
+                    "value"
+                  ],
+                  "properties": {
+                    "tag": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "string"
                     }
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "tag": {
-                        "type": "string",
-                        "required": true
-                      },
-                      "subfields": {
-                        "type": "array",
-                        "required": true,
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "code": {
-                              "type": "string",
-                              "required": true
-                            },
-                            "value": {
-                              "type": "string",
-                              "required": true
-                            }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "tag",
+                    "subfields"
+                  ],
+                  "properties": {
+                    "tag": {
+                      "type": "string"
+                    },
+                    "subfields": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "code",
+                          "value"
+                        ],
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
                           }
                         }
                       }
                     }
                   }
-                ]
-              }
+                }
+              ]
             }
           }
         },
@@ -808,6 +1232,22 @@
             }
           ]
         }
+      },
+      "queueItemState": {
+        "type": "string",
+        "description": "The request queue item state",
+        "enum": [
+          "DONE",
+          "ERROR",
+          "IMPORTER.IN_PROCESS",
+          "IMPORTER.IN_QUEUE",
+          "IMPORTER.IMPORTING",
+          "VALIDATOR.PENDING_QUEUING",
+          "VALIDATOR.QUEUING_IN_PROGRESS",
+          "VALIDATOR.UPLOADING",
+          "VALIDATOR.PENDING_VALIDATION",
+          "VALIDATOR.VALIDATING"
+        ]
       },
       "dbQueueItem-bulk": {
         "type": "object",
@@ -852,20 +1292,7 @@
             ]
           },
           "queueItemState": {
-            "type": "string",
-            "description": "The request queue item state",
-            "enum": [
-              "DONE",
-              "ERROR",
-              "IMPORTER.IN_PROCESS",
-              "IMPORTER.IN_QUEUE",
-              "IMPORTER.IMPORTING",
-              "VALIDATOR.PENDING_QUEUING",
-              "VALIDATOR.QUEUING_IN_PROGRESS",
-              "VALIDATOR.UPLOADING",
-              "VALIDATOR.PENDING_VALIDATION",
-              "VALIDATOR.VALIDATING"
-            ]
+            "$ref": "#/components/schemas/queueItemState"
           },
           "creationTime": {
             "type": "string",
@@ -911,34 +1338,34 @@
                 "processId": {
                   "type": "string",
                   "description": "Process id of the load process"
-                }
-              },
-              "processedAll": {
-                "type": "boolean",
-                "description": "Did load process process all the records"
-              },
-              "recordAmount": {
-                "type": "number",
-                "description": "Number of records given to the load process"
-              },
-              "processedAmount": {
-                "type": "number",
-                "description": "Number of records processed (handled or rejected) by the load process"
-              },
-              "handledAmount": {
-                "type": "number",
-                "description": "Number of records handled (updated or created) by the load process"
-              },
-              "rejectedAmount": {
-                "type": "number",
-                "description": "Number of records rejected by the load process"
-              },
-              "rejectMessages": {
-                "type": "array",
-                "description": "Reject messages given by the load process for the rejected records",
-                "items": {
-                  "type": "string",
-                  "description": "A reject message given by the load process for a single rejected record"
+                },
+                "processedAll": {
+                  "type": "boolean",
+                  "description": "Did load process process all the records"
+                },
+                "recordAmount": {
+                  "type": "number",
+                  "description": "Number of records given to the load process"
+                },
+                "processedAmount": {
+                  "type": "number",
+                  "description": "Number of records processed (handled or rejected) by the load process"
+                },
+                "handledAmount": {
+                  "type": "number",
+                  "description": "Number of records handled (updated or created) by the load process"
+                },
+                "rejectedAmount": {
+                  "type": "number",
+                  "description": "Number of records rejected by the load process"
+                },
+                "rejectMessages": {
+                  "type": "array",
+                  "description": "Reject messages given by the load process for the rejected records",
+                  "items": {
+                    "type": "string",
+                    "description": "A reject message given by the load process for a single rejected record"
+                  }
                 }
               }
             }
@@ -986,20 +1413,7 @@
             }
           },
           "queueItemState": {
-            "type": "string",
-            "description": "The request queue item state",
-            "enum": [
-              "IMPORTER.IN_PROCESS",
-              "IMPORTER.IN_QUEUE",
-              "IMPORTER.IMPORTING",
-              "VALIDATOR.PENDING_QUEUING",
-              "VALIDATOR.QUEUING_IN_PROGRESS",
-              "VALIDATOR.PENDING_VALIDATION",
-              "VALIDATOR.VALIDATING",
-              "DONE",
-              "ERROR",
-              "ABORT"
-            ]
+            "$ref": "#/components/schemas/queueItemState"
           },
           "creationTime": {
             "type": "string",
@@ -1045,34 +1459,34 @@
                 "processId": {
                   "type": "string",
                   "description": "Process id of the load process"
-                }
-              },
-              "processedAll": {
-                "type": "boolean",
-                "description": "Did load process process all the records"
-              },
-              "recordAmount": {
-                "type": "number",
-                "description": "Number of records given to the load process"
-              },
-              "processedAmount": {
-                "type": "number",
-                "description": "Number of records processed (handled or rejected) by the load process"
-              },
-              "handledAmount": {
-                "type": "number",
-                "description": "Number of records handled (updated or created) by the load process"
-              },
-              "rejectedAmount": {
-                "type": "number",
-                "description": "Number of records rejected by the load process"
-              },
-              "rejectMessages": {
-                "type": "array",
-                "description": "Reject messages given by the load process for the rejected records",
-                "items": {
-                  "type": "string",
-                  "description": "A reject message given by the load process for a single rejected record"
+                },
+                "processedAll": {
+                  "type": "boolean",
+                  "description": "Did load process process all the records"
+                },
+                "recordAmount": {
+                  "type": "number",
+                  "description": "Number of records given to the load process"
+                },
+                "processedAmount": {
+                  "type": "number",
+                  "description": "Number of records processed (handled or rejected) by the load process"
+                },
+                "handledAmount": {
+                  "type": "number",
+                  "description": "Number of records handled (updated or created) by the load process"
+                },
+                "rejectedAmount": {
+                  "type": "number",
+                  "description": "Number of records rejected by the load process"
+                },
+                "rejectMessages": {
+                  "type": "array",
+                  "description": "Reject messages given by the load process for the rejected records",
+                  "items": {
+                    "type": "string",
+                    "description": "A reject message given by the load process for a single rejected record"
+                  }
                 }
               }
             }
@@ -1081,19 +1495,22 @@
             "type": "array",
             "description": "An array of validation messages given by validation to the record in a noop operation",
             "items": {
-              "type": "json",
-              "$ref": "#/components/schemas/recordValidationReport"
+              "type": "object"
             }
           }
         }
       }
     },
     "examples": {
-      "MARCXML": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><record><leader>00000cam a22003494i 4500</leader><datafield tag=\"245\" ind1=\"0\" ind2=\" \"><subfield code=\"a\">foo</subfield></datafield></record>",
+      "MARCXML": {
+        "value": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><record><leader>00000cam a22003494i 4500</leader><datafield tag=\"245\" ind1=\"0\" ind2=\" \"><subfield code=\"a\">foo</subfield></datafield></record>"
+      },
       "ISO2709": {
         "externalValue": "https://raw.githubusercontent.com/NatLibFi/melinda-rest-api/master/test-fixtures/conversion/iso2709_1"
       },
-      "Alephseq": "000000001 FMT   L BK\n000000001 LDR   L ^^^^^xxx^x00000000x^0000\n000000001 001   L 000000001\n000000001 005   L 20090820094953.0"
+      "Alephseq": {
+        "value": "000000001 FMT   L BK\n000000001 LDR   L ^^^^^xxx^x00000000x^0000\n000000001 001   L 000000001\n000000001 005   L 20090820094953.0"
+      }
     }
   }
 }
