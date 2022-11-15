@@ -15,7 +15,7 @@ steps:
   - name: audit
     image: node:14
     commands:
-      - npm audit --package-lock-only --production --audit-level=moderate
+      - npm audit --package-lock-only --production --audit-level=low
 
   - name: install
     image: node:14
