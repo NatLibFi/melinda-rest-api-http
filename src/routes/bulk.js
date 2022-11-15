@@ -27,60 +27,48 @@
 */
 
 import {Router} from 'express';
-import bodyParser from 'body-parser';
 import httpStatus from 'http-status';
+import passport from 'passport';
 import {v4 as uuid} from 'uuid';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/bulk';
-import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils';
-import {checkQueryParams} from './queryUtils';
-import {inspect} from 'util';
+import {authorizeKVPOnly} from './routeUtils';
 
-export default async function ({mongoUri, amqpUrl, recordType}) {
+export default async function (mongoUrl) {
   const logger = createLogger();
 
+  const CONTENT_TYPES = ['application/xml', 'application/marc', 'application/json', 'application/alephseq'];
   const OPERATION_TYPES = [OPERATIONS.CREATE, OPERATIONS.UPDATE];
-  const Service = await createService({mongoUri, amqpUrl});
+  const Service = await createService(mongoUrl);
 
   return new Router()
+    .use(passport.authenticate('melinda', {session: false}))
     .use(authorizeKVPOnly)
-    .use(checkQueryParams)
+    .get('/:id', readContent)
     .get('/', doQuery)
-    .get('/content/:id', checkId, readContent)
-    .get('/state/:id', checkId, getState)
-    .put('/state/:id', checkId, updateState)
-    .delete('/:id', checkId, remove)
-    .delete('/content/:id', checkId, removeContent)
-    .post('/record/:id', checkContentType, checkId, bodyParser.text({limit: '5MB', type: '*/*'}), addRecordToBulk)
-    .post('/', checkContentType, create);
+    .delete('/:id', removeContent)
+    .delete('/', remove)
+    .use(checkContentType)
+    .post('/', create);
 
   async function create(req, res, next) {
     try {
       logger.silly('routes/Bulk create');
-      const {operation, recordLoadParams, noStream, operationSettings} = Service.validateQueryParams(req.query, req.user.id);
-
-      // We have match and merge settings just for bib records in validator
-      if (recordType !== 'bib' && (operationSettings.unique || operationSettings.merge)) {
-        throw new HttpError(httpStatus.BAD_REQUEST, `Unique and merge can only be used for bib records, use unique=0`);
-      }
-
+      const {operation, recordLoadParams} = Service.validateQueryParams(req.query, req.user.id);
       const params = {
         correlationId: uuid(),
         cataloger: Service.checkCataloger(req.user.id, req.query.pCatalogerIn),
         oCatalogerIn: req.user.id,
-        contentType: req.headers['content-type'],
         operation,
-        recordLoadParams,
-        operationSettings,
-        stream: noStream ? false : req
+        contentType: req.headers['content-type'],
+        recordLoadParams
       };
 
       logger.silly('Params done');
-      logger.silly(`Params: ${inspect(params)}`);
       if (params.operation && OPERATION_TYPES.includes(params.operation)) {
-        const response = await Service.create(params);
+        const response = await Service.create(req, params);
         res.json(response);
         return;
       }
@@ -96,67 +84,21 @@ export default async function ({mongoUri, amqpUrl, recordType}) {
     }
   }
 
-  async function addRecordToBulk(req, res, next) {
-    logger.debug('routes/Bulk addRecordToBulk');
-
-    try {
-      const correlationId = req.params.id;
-      const contentType = req.headers['content-type'];
-      const data = req.body;
-      logger.debug(`Data from request body: ${data}`);
-      const response = await Service.addRecord({correlationId, contentType, data});
-
-      res.status(response.status).json(response.payload);
-    } catch (error) {
-      logger.debug('routes/Bulk addRecordToBulk - error');
-
-      if (error instanceof HttpError) {
-        res.status(error.status).send(error.payload);
-        return;
-      }
-
-      return next(error);
+  function checkContentType(req, res, next) {
+    if (req.headers['content-type'] === undefined || !CONTENT_TYPES.includes(req.headers['content-type'])) { // eslint-disable-line functional/no-conditional-statement
+      logger.verbose('Invalid content type');
+      throw new HttpError(httpStatus.UNSUPPORTED_MEDIA_TYPE, 'Invalid content-type');
     }
+
+    return next();
   }
 
   async function doQuery(req, res, next) {
     try {
       logger.silly('routes/Bulk doQuery');
-      const response = await Service.doQuery(req.query);
+      const response = await Service.doQuery({query: req.query});
       res.json(response);
     } catch (error) {
-      if (error instanceof HttpError) {
-        res.status(error.status).send(error.payload);
-        return;
-      }
-      return next(error);
-    }
-  }
-
-  async function getState(req, res, next) {
-    logger.debug('routes/Bulk getState');
-    try {
-      logger.silly('routes/Bulk getState');
-      logger.silly(`We have a correlationId: ${req.params.id}`);
-      const response = await Service.getState({correlationId: req.params.id});
-      res.status(response.status).json(response.payload);
-    } catch (error) {
-      if (error instanceof HttpError) {
-        res.status(error.status).send(error.payload);
-        return;
-      }
-      return next(error);
-    }
-  }
-
-  async function updateState(req, res, next) {
-    logger.debug('routes/Bulk updateStatus');
-    try {
-      const {state} = Service.validateQueryParams(req.query);
-      const response = await Service.updateState({correlationId: req.params.id, state});
-      res.status(response.status).json(response.payload);
-    } catch (error) {
-      logger.debug('routes/Bulk updateStatus - error');
       if (error instanceof HttpError) {
         res.status(error.status).send(error.payload);
         return;
@@ -184,7 +126,7 @@ export default async function ({mongoUri, amqpUrl, recordType}) {
   async function remove(req, res, next) {
     logger.silly('routes/Bulk remove');
     try {
-      const response = await Service.remove({oCatalogerIn: req.user.id, correlationId: req.params.id});
+      const response = await Service.remove({oCatalogerIn: req.user.id, correlationId: req.query.id});
       res.json({request: req.query, result: response});
     } catch (error) {
       if (error instanceof HttpError) {
