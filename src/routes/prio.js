@@ -36,17 +36,19 @@ import createService from '../interfaces/prio';
 import httpStatus from 'http-status';
 import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger} from './routeUtils';
 import {CONTENT_TYPES} from '../config';
+import {checkQueryParams} from './queryUtils';
 
-export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
+export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType}) => {
   const logger = createLogger();
   const Service = await createService({
     sruUrl, amqpUrl, mongoUri, pollWaitTime
   });
 
   return new Router()
+    .use(checkQueryParams)
+    .get('/:id', checkAcceptHeader, readResource)
     .use(passport.authenticate('melinda', {session: false}))
     .get('/prio/', authorizeKVPOnly, getPrioLogs)
-    .get('/:id', checkAcceptHeader, readResource)
     .post('/', checkContentType, createResource)
     .post('/:id', checkContentType, updateResource);
 
@@ -54,8 +56,8 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
     logger.silly('routes/Prio readResource');
     try {
       const type = req.headers.accept;
-      const format = CONTENT_TYPES[type];
-      const {record} = await Service.read({id: req.params.id, format});
+      const {conversionFormat} = CONTENT_TYPES.find(({contentType}) => contentType === type);
+      const {record} = await Service.read({id: req.params.id, format: conversionFormat});
 
       return res.type(type).status(httpStatus.OK)
         .send(record);
@@ -67,35 +69,64 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
     }
   }
 
+  // eslint-disable-next-line max-statements
   async function createResource(req, res, next) {
     logger.silly('routes/Prio createResource');
     try {
       const type = req.headers['content-type'];
-      const format = CONTENT_TYPES[type];
+      const {conversionFormat} = CONTENT_TYPES.find(({contentType}) => contentType === type);
       const correlationId = uuid();
-      const unique = req.query.unique === undefined ? true : parseBoolean(req.query.unique);
-      const noop = parseBoolean(req.query.noop);
-      const {messages, id} = await Service.create({
-        format,
-        unique,
-        noop,
-        data: req.body,
+
+      const operationSettings = {
+        unique: req.query.unique === undefined ? true : parseBoolean(req.query.unique),
+        merge: req.query.merge === undefined ? false : parseBoolean(req.query.merge),
+        noop: parseBoolean(req.query.noop),
+        // Prio always validates
+        validate: true,
+        // failOnError is n/a for prio single record jobs
+        failOnError: null,
+        // Prio forces updates as default, even if the update would not make changes to the database record
+        skipNoChangeUpdates: req.query.skipNoChangeUpdates === undefined ? false : parseBoolean(req.query.skipNoChangeUpdates),
+        prio: true
+      };
+
+      // We have match and merge settings just for bib records in validator
+      if (recordType !== 'bib' && (operationSettings.unique || operationSettings.merge)) {
+        throw new HttpError(httpStatus.BAD_REQUEST, `Unique and merge can only be used for bib records, use unique=0`);
+      }
+
+      if (operationSettings.merge && !operationSettings.unique) {
+        throw new HttpError(httpStatus.BAD_REQUEST, `Merge cannot be used with unique set as **false**`);
+      }
+
+      const {messages, id, status} = await Service.create({
+        format: conversionFormat,
         cataloger: sanitizeCataloger(req.user, req.query.cataloger),
         oCatalogerIn: req.user.id,
-        correlationId
+        correlationId,
+        operationSettings,
+        data: req.body
       });
 
-      // create returns: {messages:<messages> id:<id>}
-      logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
-      logger.silly(`id: ${inspect(id, {colors: true, maxArrayLength: 3, depth: 1})}`);
+      // create returns: {messages:<messages> id:<id>, status: CREATED/UPDATED}
+      // logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
+      // logger.silly(`id: ${inspect(id, {colors: true, maxArrayLength: 3, depth: 1})}`);
 
-      if (!noop) {
+      // CREATED + id for non-noop creates
+      if (status === 'CREATED' && !operationSettings.noop) {
         res.status(httpStatus.CREATED).set('Record-ID', id)
           .json(messages);
         return;
       }
 
-      // Note: noops return OK even if they fail marc-record-validate validations
+      // OK + id for merged cases (noop & non-noop)
+      if (status === 'UPDATED' || status === 'SKIPPED') {
+        res.status(httpStatus.OK).set('Record-ID', id)
+          .json(messages);
+        return;
+      }
+
+      // just OK for noop creates
       res.status(httpStatus.OK).json(messages);
     } catch (error) {
       if (error instanceof HttpError) {
@@ -104,31 +135,51 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
       }
       return next(error);
     }
+
+
   }
 
   async function updateResource(req, res, next) {
     logger.silly('routes/Prio updateResource');
     try {
       const type = req.headers['content-type'];
-      const format = CONTENT_TYPES[type];
+      const {conversionFormat} = CONTENT_TYPES.find(({contentType}) => contentType === type);
       const correlationId = uuid();
 
-      const noop = parseBoolean(req.query.noop);
-      const messages = await Service.update({
+      const operationSettings = {
+        // unique is n/a for updates
+        unique: null,
+        merge: req.query.merge === undefined ? false : parseBoolean(req.query.merge),
+        noop: parseBoolean(req.query.noop),
+        // Prio always validates
+        validate: true,
+        // failOnError is n/a for prio single record jobs
+        failOnError: null,
+        // Prio forces updates as default, even if the update would not make changes to the database record
+        skipNoChangeUpdates: req.query.skipNoChangeUpdates === undefined ? false : parseBoolean(req.query.skipNoChangeUpdates),
+        prio: true
+      };
+
+      // We have match and merge settings just for bib records in validator
+      if (recordType !== 'bib' && (operationSettings.unique || operationSettings.merge)) {
+        throw new HttpError(httpStatus.BAD_REQUEST, `Merge can only be used for bib records`);
+      }
+
+      const {messages, id} = await Service.update({
         id: req.params.id,
-        data: req.body,
-        format,
+        format: conversionFormat,
         cataloger: sanitizeCataloger(req.user, req.query.cataloger),
         oCatalogerIn: req.user.id,
-        noop,
-        correlationId
+        operationSettings,
+        correlationId,
+        data: req.body
       });
 
-      // update gets messages as messeages for noop and {status, payload} as messages for non-noop
       logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
 
       // Note: noops return OK even if they fail marc-record-validate validations
-      return res.status(httpStatus.OK).json(messages);
+      return res.status(httpStatus.OK).set('Record-ID', id)
+        .json(messages);
     } catch (error) {
       if (error instanceof HttpError) {
         return res.status(error.status).send(error.payload);
@@ -139,7 +190,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) => {
 
   async function getPrioLogs(req, res) {
     logger.silly('routes/Bulk doQuery');
-    const response = await Service.doQuery({query: req.query});
+    const response = await Service.doQuery(req.query);
     res.json(response);
   }
 };
