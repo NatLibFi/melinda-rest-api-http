@@ -14,7 +14,7 @@ const logger = createLogger();
 // modificationTime stringified array of utc timestamps 1 specific or 2 for range
 
 // eslint-disable-next-line max-statements
-export function generateQuery({id, queueItemState, creationTime, modificationTime, skip, limit}) {
+export function generateQuery({id, correlationId, queueItemState, creationTime, modificationTime, skip, limit}) {
   const doc = {};
 
   if (skip) { // eslint-disable-line functional/no-conditional-statement
@@ -25,8 +25,14 @@ export function generateQuery({id, queueItemState, creationTime, modificationTim
     doc.limit = limit; // eslint-disable-line functional/immutable-data
   }
 
+  // We parse both 'id' and 'correlationId' in query as correlationId in Mongo
+
   if (id) { // eslint-disable-line functional/no-conditional-statement
     doc.correlationId = sanitize(id); // eslint-disable-line functional/immutable-data
+  }
+
+  if (correlationId) { // eslint-disable-line functional/no-conditional-statement
+    doc.correlationId = sanitize(correlationId); // eslint-disable-line functional/immutable-data
   }
 
   // we could have here also final: ABORT, DONE, ERROR, active: !final

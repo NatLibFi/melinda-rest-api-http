@@ -48,6 +48,7 @@ export default async function ({mongoUri}) {
   function generateLogQuery(queryParams) {
     const {
       correlationId: queryCorrelationId,
+      id: queryId,
       logItemType: queryLogItemType,
       blobSequence: queryBlobSequence,
       standardIdentifiers: queryStandardIdentifiers,
@@ -58,9 +59,12 @@ export default async function ({mongoUri}) {
       ...rest
     } = queryParams;
 
+    // Use id if we do not have correlationId
+    const queryCombinedId = queryCorrelationId || queryId;
+
     // Format blobSequence* parameters from strings to numbers
     // Create blobSequenceStart and blobSequenceEnd from blobSequence
-    const correlationIdObj = queryCorrelationId ? {correlationId: queryCorrelationId} : {};
+    const correlationIdObj = queryCombinedId ? {correlationId: queryCombinedId} : {};
     const logItemTypeObj = queryLogItemType ? {logItemType: queryLogItemType} : {};
     const blobSequenceObj = queryBlobSequence ? {blobSequence: Number(queryBlobSequence)} : {};
     const standardIdentifiersObj = queryStandardIdentifiers ? {standardIdentifiers: queryStandardIdentifiers} : {};
