@@ -7,9 +7,12 @@ const logger = createLogger();
 
 export function checkQueryParams(req, res, next) {
   const queryParams = req.query;
+
   logger.debug(`Checking query params: ${JSON.stringify(queryParams)}`);
   const failedParams = [
     {name: 'id', value: queryParams.id ? uuidValidate(queryParams.id) && uuidVersion(queryParams.id) === 4 : true},
+    // correlationId is checked as LogQueryParameters below
+    //{name: 'correlationId', value: queryParams.correlationId ? uuidValidate(queryParams.correlationId) && uuidVersion(queryParams.correlationId) === 4 : true},
     {name: 'pOldNew', value: queryParams.pOldNew ? (/^(?<pOldNew>NEW|OLD)$/u).test(queryParams.pOldNew) : true},
     {name: 'pActiveLibrary', value: queryParams.pActiveLibrary ? (/^FIN\d\d$/u).test(queryParams.pActiveLibrary) : true},
     {name: 'noStream', value: queryParams.noStream ? (/^(?:1|0|true|false)$/ui).test(queryParams.noStream) : true},
@@ -31,13 +34,23 @@ export function checkQueryParams(req, res, next) {
     ...checkRecordReportParams(queryParams)
   ].filter(param => !param.value).map(param => param.name);
 
-  if (failedParams.length === 0) {
+  const nonCompatibleParams = checkNonCompatibleParams(queryParams);
+
+  if (failedParams.length === 0 && nonCompatibleParams.length === 0) {
     logger.debug('Query params OK');
     return next();
   }
 
-  logger.error(`Failed query params: ${failedParams}`);
-  return res.status(httpStatus.BAD_REQUEST).json({error: 'BAD query params', failedParams});
+  logger.error(`Failed query params: ${failedParams}, ${nonCompatibleParams}`);
+  //const combinedFailedParams = [...failedParams, ...nonCompatibleParams];
+  return res.status(httpStatus.BAD_REQUEST).json({error: 'BAD query params', failedParams, nonCompatibleParams});
+
+  function checkNonCompatibleParams(queryParams) {
+    if (queryParams.id !== undefined && queryParams.correlationId !== undefined && queryParams.id !== queryParams.correlationId) {
+      return ['correlationId', 'id'];
+    }
+    return [];
+  }
 
   function checkLogQuerryParams(queryParams) {
     return [
