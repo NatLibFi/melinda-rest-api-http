@@ -60,7 +60,7 @@ export default async function ({mongoUri}) {
     } = queryParams;
 
     // Use id if we do not have correlationId
-    const queryCombinedId = queryCorrelationId || queryId;
+    const queryCombinedId = queryCorrelationId === undefined ? queryCorrelationId : queryId;
 
     // Format blobSequence* parameters from strings to numbers
     // Create blobSequenceStart and blobSequenceEnd from blobSequence
