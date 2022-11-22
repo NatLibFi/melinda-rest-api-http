@@ -24,6 +24,7 @@ export default async function ({mongoUri}) {
   async function doLogsQuery(req, res, next) {
     logger.verbose('routes/logs doLogsQuery');
     try {
+      logger.debug(JSON.stringify(req.query));
       const response = await Service.doLogsQuery(req.query);
       res.json(response);
     } catch (error) {

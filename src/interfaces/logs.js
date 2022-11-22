@@ -26,8 +26,9 @@ export default async function ({mongoUri}) {
   }
 
   function doLogsQuery(incomingParams) {
+    logger.debug(`Incoming params (JSON): ${JSON.stringify(incomingParams)}`);
     const params = generateLogQuery(incomingParams);
-    // logger.debug(`Params (JSON): ${JSON.stringify(params)}`);
+    logger.debug(`Params (JSON): ${JSON.stringify(params)}`);
     // logger.debug(`Params (inspect): ${inspect(params)}`);
     const result = mongoLogOperator.query(params);
     return result;
@@ -46,6 +47,7 @@ export default async function ({mongoUri}) {
   }
 
   function generateLogQuery(queryParams) {
+    logger.debug(`generateLogQuery: queryParams: ${JSON.stringify(queryParams)}`);
     const {
       correlationId: queryCorrelationId,
       id: queryId,
@@ -59,8 +61,12 @@ export default async function ({mongoUri}) {
       ...rest
     } = queryParams;
 
+    logger.debug(`queryCorrelationId: ${queryCorrelationId}, queryId: ${queryId}`);
+
     // Use id if we do not have correlationId
-    const queryCombinedId = queryCorrelationId === undefined ? queryCorrelationId : queryId;
+    const queryCombinedId = queryCorrelationId === undefined ? queryId : queryCorrelationId;
+
+    logger.debug(`queryCombinedId: ${queryCombinedId}`);
 
     // Format blobSequence* parameters from strings to numbers
     // Create blobSequenceStart and blobSequenceEnd from blobSequence
