@@ -49,8 +49,8 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType}) => 
 
   return new Router()
     .use(checkQueryParams)
-    .get('/', serveApiDoc)
     .get('/:id', checkAcceptHeader, readResource)
+    .get('/', serveApiDoc)
     .use(passport.authenticate('melinda', {session: false}))
     .get('/prio/', authorizeKVPOnly, getPrioLogs)
     .post('/', checkContentType, createResource)
