@@ -26,6 +26,8 @@
 *
 */
 
+import fs from 'fs';
+import path from 'path';
 import {Router} from 'express';
 import {inspect} from 'util';
 import passport from 'passport';
@@ -40,17 +42,24 @@ import {checkQueryParams} from './queryUtils';
 
 export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType}) => {
   const logger = createLogger();
+  const apiDoc = fs.readFileSync(path.join(__dirname, '..', 'api.json'), 'utf8');
   const Service = await createService({
     sruUrl, amqpUrl, mongoUri, pollWaitTime
   });
 
   return new Router()
     .use(checkQueryParams)
+    .get('/', serveApiDoc)
     .get('/:id', checkAcceptHeader, readResource)
     .use(passport.authenticate('melinda', {session: false}))
     .get('/prio/', authorizeKVPOnly, getPrioLogs)
     .post('/', checkContentType, createResource)
     .post('/:id', checkContentType, updateResource);
+
+  function serveApiDoc(req, res) {
+    res.set('Content-Type', 'application/json');
+    res.send(apiDoc);
+  }
 
   async function readResource(req, res, next) {
     logger.silly('routes/Prio readResource');
