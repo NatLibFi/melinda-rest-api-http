@@ -9,7 +9,7 @@ export default async function ({mongoUri}) {
   const logger = createLogger();
   const mongoLogOperator = await mongoLogFactory(mongoUri);
 
-  return {doLogsQuery, getLogs, getListOfLogs, protectLog, removeLog};
+  return {doLogsQuery, getLogs, getListOfLogs, getExpandedListOfLogs, protectLog, removeLog};
 
   async function getLogs(params) {
     logger.debug(`getLogs: params: ${JSON.stringify(params)}`);
@@ -36,6 +36,10 @@ export default async function ({mongoUri}) {
 
   function getListOfLogs(logItemType = 'MERGE_LOG') {
     return mongoLogOperator.getListOfLogs(logItemType);
+  }
+
+  function getExpandedListOfLogs() {
+    return mongoLogOperator.getExpandedListOfLogs();
   }
 
   function protectLog(correlationId, blobSequence) {
