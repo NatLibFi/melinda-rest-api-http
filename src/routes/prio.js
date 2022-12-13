@@ -42,7 +42,7 @@ import {checkQueryParams} from './queryUtils';
 
 export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType}) => {
   const logger = createLogger();
-  const apiDoc = fs.readFileSync(path.join(__dirname, '..', 'api.json'), 'utf8');
+  const apiDoc = fs.readFileSync(path.join(__dirname, '..', 'api.yaml'), 'utf8');
   const Service = await createService({
     sruUrl, amqpUrl, mongoUri, pollWaitTime
   });
@@ -57,7 +57,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType}) => 
     .post('/:id', checkContentType, updateResource);
 
   function serveApiDoc(req, res) {
-    res.set('Content-Type', 'application/json');
+    res.set('Content-Type', 'application/yaml');
     res.send(apiDoc);
   }
 
