@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3.3.0
-      - uses: mikaelvesavuori/license-compliance-action@master
+      - uses: mikaelvesavuori/license-compliance-action@main
         with:
           exclude_pattern: /^@natlibfi/
 
