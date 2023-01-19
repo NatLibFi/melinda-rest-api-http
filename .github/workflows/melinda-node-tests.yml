@@ -16,9 +16,9 @@ jobs:
 
     steps:
     - name: Checkout the code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v3.3.0
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v3.6.0
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
@@ -34,8 +34,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: mikaelvesavuori/license-compliance-action@v1.0.1
+      - uses: actions/checkout@v3.3.0
+      - uses: mikaelvesavuori/license-compliance-action@main
         with:
           exclude_pattern: /^@natlibfi/
 
@@ -45,7 +45,7 @@ jobs:
 
     steps:
     - name: Checkout the code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v3.3.0
     - name: nodejsscan scan
       id: njsscan
       uses: ajinabraham/njsscan-action@master
@@ -58,10 +58,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v3.3.0
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v3
+        uses: docker/metadata-action@v4.1.1
         with:
           images: quay.io/${{ github.repository }}
           tags: |
@@ -72,13 +72,13 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
       - name: Login to Quay.io
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2.1.0
         with:
           registry: quay.io
           username: ${{ secrets.MELINDA_QUAY_IO_USERNAME }}
           password: ${{ secrets.MELINDA_QUAY_IO_PASSWORD }}
       - name: Build and publish image to Quay.io
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3.2.0
         with:
           context: .
           push: true
@@ -96,9 +96,15 @@ jobs:
         with:
           url: ${{ secrets.WEBHOOK_URL_TEST }}
           body: '{}'
-      - name: Production auth webhook
+      - name: Production bib webhook
         uses: joelwmale/webhook-action@master
         if: github.ref == 'refs/heads/master'
         with:
-          url: ${{ secrets.WEBHOOK_URL_AUTH_PROD }}
+          url: ${{ secrets.WEBHOOK_URL_BIB_PROD_FROM_MASTER }}
+          body: '{}'
+      - name: Production aut-names webhook
+        uses: joelwmale/webhook-action@master
+        if: github.ref == 'refs/heads/master'
+        with:
+          url: ${{ secrets.WEBHOOK_URL_AUTNAMES_PROD_FROM_MASTER }}
           body: '{}'
