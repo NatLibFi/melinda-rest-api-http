@@ -304,7 +304,7 @@ export default async function ({mongoUri, amqpUrl}) {
     // NOTE: failOnError currently works on for splitting streamBulk stream to records, not for other validations
     // should these be in config.js ?
 
-    logger.debug(JSON.stringify(queryParams));
+    logger.debug(`QueryParams for validating and getting operationSettings: ${JSON.stringify(queryParams)}`);
 
     const paramValidate = queryParams.validate ? parseBoolean(queryParams.validate) : undefined;
     const paramUnique = queryParams.unique ? parseBoolean(queryParams.unique) : undefined;

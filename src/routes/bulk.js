@@ -103,7 +103,7 @@ export default async function ({mongoUri, amqpUrl, recordType}) {
       const correlationId = req.params.id;
       const contentType = req.headers['content-type'];
       const data = req.body;
-      logger.debug(`Data from request body: ${data}`);
+      logger.silly(`Data from request body: ${data}`);
       const response = await Service.addRecord({correlationId, contentType, data});
 
       res.status(response.status).json(response.payload);

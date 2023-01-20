@@ -161,7 +161,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // We get responseData (recordResponseItem of ??? for errors) from check
 
-    logger.verbose(`Got response to id: ${correlationId}, status: ${responseData.status}, payload: ${responseData.payload}, messages: ${responseData.messages}`);
+    logger.verbose(`Got response to id: ${correlationId}, status: ${responseData.status}, payload: ${responseData.payload}`);
     logger.silly(`interfaces/prio/create/handleRequest: Response data: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}`);
     // Ack message was in check
 
@@ -245,7 +245,6 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     const correlationId = result.correlationId || '';
 
     logger.debug(`Responding for ${correlationId} based on the queueItem`);
-    logger.debug(`${result}`);
 
     // ResponseData for ERRORs (noop & non-noop)
     if (result.queueItemState === QUEUE_ITEM_STATE.ERROR) {
@@ -263,7 +262,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     // if we will later allow prio to have more than one record, this needs to be fixed
     const [firstRecordResponse] = recordResponses;
     logger.debug(`We have recordResponses (${recordResponses.length}): ${JSON.stringify(recordResponses)}`);
-    logger.silly(`First recordResponse: ${firstRecordResponse}`);
+    logger.silly(`First recordResponse: ${JSON.stringify(firstRecordResponse)}`);
 
     logger.debug(`QueueItemState is ERROR, errorStatus: ${result.errorStatus} errorMessage: ${result.errorMessage}`);
     const errorStatus = result.errorStatus || httpStatus.INTERNAL_SERVER_ERROR;
@@ -277,7 +276,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     const recordResponses = result.records ? result.records : [];
     const [firstRecordResponse] = recordResponses;
     logger.debug(`We have recordResponses (${recordResponses.length}): ${JSON.stringify(recordResponses)}`);
-    logger.silly(`First recordResponse: ${firstRecordResponse}`);
+    logger.silly(`First recordResponse: ${JSON.stringify(firstRecordResponse)}`);
     const {recordStatus} = firstRecordResponse;
     // prio assumes we had only one record, so we send back just the first recordResponse
     // if we will later allow prio to have more than one record, this needs to be fixed
