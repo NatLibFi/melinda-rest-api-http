@@ -4,7 +4,7 @@
 *
 * RESTful API for Melinda
 *
-* Copyright (C) 2018-2019 University Of Helsinki (The National Library Of Finland)
+* Copyright (C) 2018-2019, 2023 University Of Helsinki (The National Library Of Finland)
 *
 * This file is part of melinda-rest-api-http
 *
@@ -26,8 +26,8 @@
 *
 */
 
-import fs from 'fs';
-import path from 'path';
+//import fs from 'fs';
+//import path from 'path';
 import {Router} from 'express';
 import {inspect} from 'util';
 import passport from 'passport';
@@ -40,9 +40,9 @@ import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger
 import {CONTENT_TYPES} from '../config';
 import {checkQueryParams} from './queryUtils';
 
-export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType}) => {
+export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead}) => {
   const logger = createLogger();
-  const apiDoc = fs.readFileSync(path.join(__dirname, '..', 'api.yaml'), 'utf8');
+  //const apiDoc = fs.readFileSync(path.join(__dirname, '..', 'api.yaml'), 'utf8');
   const Service = await createService({
     sruUrl, amqpUrl, mongoUri, pollWaitTime
   });
@@ -50,18 +50,24 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType}) => 
   return new Router()
     .use(checkQueryParams)
     .get('/:id', checkAcceptHeader, readResource)
-    .get('/apidoc/', serveApiDoc)
+    //.get('/apidoc/', serveApiDoc)
     .use(passport.authenticate('melinda', {session: false}))
     .get('/prio/', authorizeKVPOnly, getPrioLogs)
     .post('/', checkContentType, createResource)
     .post('/:id', checkContentType, updateResource);
 
-  function serveApiDoc(req, res) {
+  /*
+    function serveApiDoc(req, res) {
     res.set('Content-Type', 'application/yaml');
     res.send(apiDoc);
   }
+  */
 
   async function readResource(req, res, next) {
+    // eslint-disable-next-line functional/no-conditional-statement
+    if (requireAuthForRead) {
+      logger.debug(`We would need authorization here`);
+    }
     logger.silly('routes/Prio readResource');
     try {
       const type = req.headers.accept;
