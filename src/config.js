@@ -4,7 +4,7 @@
 *
 * RESTful API for Melinda
 *
-* Copyright (C) 2018-2019 University Of Helsinki (The National Library Of Finland)
+* Copyright (C) 2018-2019, 2023 University Of Helsinki (The National Library Of Finland)
 *
 * This file is part of melinda-rest-api-http
 *
@@ -50,6 +50,8 @@ export const mongoUri = readEnvironmentVariable('MONGO_URI', {defaultValue: 'mon
 export const pollWaitTime = readEnvironmentVariable('POLL_WAIT_TIME', {defaultValue: 100, format: v => Number(v)});
 
 export const recordType = readEnvironmentVariable('RECORD_TYPE', {defaultValue: 'bib'});
+
+export const requireAuthForRead = readEnvironmentVariable('REQUIRE_AUTH_FOR_READ', {defaultValue: 0, format: v => parseBoolean(v)});
 
 export const CONTENT_TYPES = [
   {contentType: 'application/json', conversionFormat: CONVERSION_FORMATS.JSON, allowPrio: true, allowBulk: true},
