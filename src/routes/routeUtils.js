@@ -21,7 +21,7 @@ export function sanitizeCataloger(passportCataloger, queryCataloger) {
     return {id: queryCataloger, authorization};
   }
 
-  if (!authorization.includes('KVP') && queryCataloger !== undefined) { // eslint-disable-line functional/no-conditional-statement
+  if (!authorization.includes('KVP') && queryCataloger !== undefined) { // eslint-disable-line functional/no-conditional-statements
     throw new HttpError(httpStatus.FORBIDDEN, 'Account has no permission to do this request');
   }
 

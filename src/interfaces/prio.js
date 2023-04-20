@@ -214,7 +214,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     // Note: there can be timeout result and the create/update to Melinda can still be done, if timeout happens when while job is being imported
     const result = await mongoOperator.queryById({correlationId, checkModTime: true});
 
-    if (queueItemState !== result.queueItemState) { // eslint-disable-line functional/no-conditional-statement
+    if (queueItemState !== result.queueItemState) { // eslint-disable-line functional/no-conditional-statements
       logger.debug(`Queue item ${correlationId}, state ${result.queueItemState}`);
     }
 
