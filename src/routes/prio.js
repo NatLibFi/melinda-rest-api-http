@@ -37,7 +37,7 @@ import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import createService from '../interfaces/prio';
 import httpStatus from 'http-status';
 import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger} from './routeUtils';
-import {CONTENT_TYPES} from '../config';
+import {CONTENT_TYPES, DEFAULT_ACCEPT} from '../config';
 import {checkQueryParams} from './queryUtils';
 
 export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead}) => {
@@ -77,9 +77,9 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
   async function readResource(req, res, next) {
     logger.silly('routes/Prio readResource');
     try {
-      const type = req.headers.accept;
-      const {conversionFormat} = CONTENT_TYPES.find(({contentType}) => contentType === type);
-      const {record} = await Service.read({id: req.params.id, format: conversionFormat});
+
+      const type = getType();
+      const {record} = await Service.read({id: req.params.id, format: getConversionFormat(type)});
 
       return res.type(type).status(httpStatus.OK)
         .send(record);
@@ -89,14 +89,23 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       }
       return next(error);
     }
+
+    function getType() {
+      if (req.headers.accept === '*/*') {
+        logger.debug(`Accept header ${req.headers.accept}, using DEFAULT_ACCEPT: ${DEFAULT_ACCEPT}`);
+        return DEFAULT_ACCEPT;
+      }
+      return req.headers.accept;
+    }
+
   }
 
   // eslint-disable-next-line max-statements
   async function createResource(req, res, next) {
     logger.silly('routes/Prio createResource');
     try {
-      const type = req.headers['content-type'];
-      const {conversionFormat} = CONTENT_TYPES.find(({contentType}) => contentType === type);
+
+      const conversionFormat = getConversionFormat(req.headers['content-type']);
       const correlationId = uuid();
 
       const operationSettings = {
@@ -164,8 +173,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
   async function updateResource(req, res, next) {
     logger.silly('routes/Prio updateResource');
     try {
-      const type = req.headers['content-type'];
-      const {conversionFormat} = CONTENT_TYPES.find(({contentType}) => contentType === type);
+      const conversionFormat = getConversionFormat(req.headers['content-type']);
       const correlationId = uuid();
 
       const operationSettings = {
@@ -215,4 +223,11 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     const response = await Service.doQuery(req.query);
     res.json(response);
   }
+
+  function getConversionFormat(type) {
+    const {conversionFormat} = CONTENT_TYPES.find(({contentType}) => contentType === type);
+    return conversionFormat;
+  }
+
+
 };

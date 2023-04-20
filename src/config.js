@@ -60,3 +60,5 @@ export const CONTENT_TYPES = [
   {contentType: 'application/alephseq', conversionFormat: CONVERSION_FORMATS.ALEPHSEQ, allowPrio: false, allowBulk: true}
 ];
 
+export const DEFAULT_ACCEPT = readEnvironmentVariable('DEFAULT_ACCEPT', {defaultValue: 'application/json'});
+
