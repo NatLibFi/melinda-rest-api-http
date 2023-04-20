@@ -47,6 +47,17 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     sruUrl, amqpUrl, mongoUri, pollWaitTime
   });
 
+  // Require authentication before reading if requireAuthForRead is true
+  if (requireAuthForRead) {
+    return new Router()
+      .use(passport.authenticate('melinda', {session: false}))
+      .use(checkQueryParams)
+      .get('/:id', checkAcceptHeader, readResource)
+      .get('/prio/', authorizeKVPOnly, getPrioLogs)
+      .post('/', checkContentType, createResource)
+      .post('/:id', checkContentType, updateResource);
+  }
+
   return new Router()
     .use(checkQueryParams)
     .get('/:id', checkAcceptHeader, readResource)
@@ -64,10 +75,6 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
   */
 
   async function readResource(req, res, next) {
-    // eslint-disable-next-line functional/no-conditional-statement
-    if (requireAuthForRead) {
-      logger.debug(`We would need authorization here`);
-    }
     logger.silly('routes/Prio readResource');
     try {
       const type = req.headers.accept;
