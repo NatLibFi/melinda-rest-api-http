@@ -21,7 +21,7 @@ export function sanitizeCataloger(passportCataloger, queryCataloger) {
     return {id: queryCataloger, authorization};
   }
 
-  if (!authorization.includes('KVP') && queryCataloger !== undefined) { // eslint-disable-line functional/no-conditional-statement
+  if (!authorization.includes('KVP') && queryCataloger !== undefined) { // eslint-disable-line functional/no-conditional-statements
     throw new HttpError(httpStatus.FORBIDDEN, 'Account has no permission to do this request');
   }
 
@@ -31,6 +31,11 @@ export function sanitizeCataloger(passportCataloger, queryCataloger) {
 // Note: checkAcceptHeader currently works only for prio
 export function checkAcceptHeader(req, res, next) {
   logger.debug(`routesUtils:checkAcceptHeader: accept: ${req.headers.accept}`);
+
+  if (req.headers.accept === '*/*') {
+    return next();
+  }
+
   if (req.headers.accept === undefined || !CONTENT_TYPES.find(({contentType, allowPrio}) => contentType === req.headers.accept && allowPrio === true)) {
     return res.status(httpStatus.UNSUPPORTED_MEDIA_TYPE).send('Invalid Accept header');
   }

@@ -17,34 +17,34 @@ const logger = createLogger();
 export function generateQuery({id, correlationId, queueItemState, creationTime, modificationTime, skip, limit}) {
   const doc = {};
 
-  if (skip) { // eslint-disable-line functional/no-conditional-statement
+  if (skip) { // eslint-disable-line functional/no-conditional-statements
     doc.skip = skip; // eslint-disable-line functional/immutable-data
   }
 
-  if (limit) { // eslint-disable-line functional/no-conditional-statement
+  if (limit) { // eslint-disable-line functional/no-conditional-statements
     doc.limit = limit; // eslint-disable-line functional/immutable-data
   }
 
   // We parse both 'id' and 'correlationId' in query as correlationId in Mongo
 
-  if (id) { // eslint-disable-line functional/no-conditional-statement
+  if (id) { // eslint-disable-line functional/no-conditional-statements
     doc.correlationId = sanitize(id); // eslint-disable-line functional/immutable-data
   }
 
-  if (correlationId) { // eslint-disable-line functional/no-conditional-statement
+  if (correlationId) { // eslint-disable-line functional/no-conditional-statements
     doc.correlationId = sanitize(correlationId); // eslint-disable-line functional/immutable-data
   }
 
   // we could have here also final: ABORT, DONE, ERROR, active: !final
-  if (queueItemState) { // eslint-disable-line functional/no-conditional-statement
+  if (queueItemState) { // eslint-disable-line functional/no-conditional-statements
     doc.queueItemState = queueItemState; // eslint-disable-line functional/immutable-data
   }
 
   if (creationTime) {
     const timestampArray = JSON.parse(creationTime);
-    if (creationTime.length === 1) { // eslint-disable-line functional/no-conditional-statement
+    if (creationTime.length === 1) { // eslint-disable-line functional/no-conditional-statements
       doc.creationTime = formatTime(timestampArray[0]); // eslint-disable-line functional/immutable-data
-    } else { // eslint-disable-line functional/no-conditional-statement
+    } else { // eslint-disable-line functional/no-conditional-statements
       doc.$and = [ // eslint-disable-line functional/immutable-data
         {creationTime: {$gte: formatTime(timestampArray[0])}},
         {creationTime: {$lte: formatTime(timestampArray[1])}}
@@ -54,9 +54,9 @@ export function generateQuery({id, correlationId, queueItemState, creationTime, 
 
   if (modificationTime) {
     const timestampArray = JSON.parse(modificationTime);
-    if (modificationTime.length === 1) { // eslint-disable-line functional/no-conditional-statement
+    if (modificationTime.length === 1) { // eslint-disable-line functional/no-conditional-statements
       doc.modificationTime = formatTime(timestampArray[0]); // eslint-disable-line functional/immutable-data
-    } else { // eslint-disable-line functional/no-conditional-statement
+    } else { // eslint-disable-line functional/no-conditional-statements
       doc.$and = [ // eslint-disable-line functional/immutable-data
         {modificationTime: {$gte: formatTime(timestampArray[0])}},
         {modificationTime: {$lte: formatTime(timestampArray[1])}}

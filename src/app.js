@@ -13,7 +13,8 @@ export default async function ({
   xServiceURL, userLibrary,
   ownAuthzURL, ownAuthzApiKey,
   sruUrl, amqpUrl, mongoUri,
-  pollWaitTime, recordType
+  pollWaitTime, recordType,
+  requireAuthForRead
 }) {
   const logger = createLogger();
   const server = await initExpress();
@@ -46,7 +47,7 @@ export default async function ({
     app.use(bodyParser.text({limit: '5MB', type: '*/*'}));
     app.use('/apidoc', createApiDocRouter());
     app.use('/logs', passport.authenticate('melinda', {session: false}), await createLogsRouter({mongoUri}));
-    app.use('/', await createPrioRouter({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType}));
+    app.use('/', await createPrioRouter({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead}));
     app.use(handleError);
 
     return app.listen(httpPort, () => logger.info(`Started Melinda REST API for ${recordType} records in port ${httpPort}`));
