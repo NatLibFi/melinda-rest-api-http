@@ -4,7 +4,7 @@
 *
 * RESTful API for Melinda
 *
-* Copyright (C) 2018-2019 University Of Helsinki (The National Library Of Finland)
+* Copyright (C) 2018-2019, 2023 University Of Helsinki (The National Library Of Finland)
 *
 * This file is part of melinda-rest-api-http
 *
@@ -26,8 +26,8 @@
 *
 */
 
-import fs from 'fs';
-import path from 'path';
+//import fs from 'fs';
+//import path from 'path';
 import {Router} from 'express';
 import {inspect} from 'util';
 import passport from 'passport';
@@ -37,36 +37,49 @@ import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import createService from '../interfaces/prio';
 import httpStatus from 'http-status';
 import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger} from './routeUtils';
-import {CONTENT_TYPES} from '../config';
+import {CONTENT_TYPES, DEFAULT_ACCEPT} from '../config';
 import {checkQueryParams} from './queryUtils';
 
-export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType}) => {
+export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead}) => {
   const logger = createLogger();
-  const apiDoc = fs.readFileSync(path.join(__dirname, '..', 'api.yaml'), 'utf8');
+  //const apiDoc = fs.readFileSync(path.join(__dirname, '..', 'api.yaml'), 'utf8');
   const Service = await createService({
     sruUrl, amqpUrl, mongoUri, pollWaitTime
   });
 
+  // Require authentication before reading if requireAuthForRead is true
+  if (requireAuthForRead) {
+    return new Router()
+      .use(passport.authenticate('melinda', {session: false}))
+      .use(checkQueryParams)
+      .get('/:id', checkAcceptHeader, readResource)
+      .get('/prio/', authorizeKVPOnly, getPrioLogs)
+      .post('/', checkContentType, createResource)
+      .post('/:id', checkContentType, updateResource);
+  }
+
   return new Router()
     .use(checkQueryParams)
     .get('/:id', checkAcceptHeader, readResource)
-    .get('/apidoc/', serveApiDoc)
+    //.get('/apidoc/', serveApiDoc)
     .use(passport.authenticate('melinda', {session: false}))
     .get('/prio/', authorizeKVPOnly, getPrioLogs)
     .post('/', checkContentType, createResource)
     .post('/:id', checkContentType, updateResource);
 
-  function serveApiDoc(req, res) {
+  /*
+    function serveApiDoc(req, res) {
     res.set('Content-Type', 'application/yaml');
     res.send(apiDoc);
   }
+  */
 
   async function readResource(req, res, next) {
     logger.silly('routes/Prio readResource');
     try {
-      const type = req.headers.accept;
-      const {conversionFormat} = CONTENT_TYPES.find(({contentType}) => contentType === type);
-      const {record} = await Service.read({id: req.params.id, format: conversionFormat});
+
+      const type = getType();
+      const {record} = await Service.read({id: req.params.id, format: getConversionFormat(type)});
 
       return res.type(type).status(httpStatus.OK)
         .send(record);
@@ -76,14 +89,23 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType}) => 
       }
       return next(error);
     }
+
+    function getType() {
+      if (req.headers.accept === '*/*') {
+        logger.debug(`Accept header ${req.headers.accept}, using DEFAULT_ACCEPT: ${DEFAULT_ACCEPT}`);
+        return DEFAULT_ACCEPT;
+      }
+      return req.headers.accept;
+    }
+
   }
 
   // eslint-disable-next-line max-statements
   async function createResource(req, res, next) {
     logger.silly('routes/Prio createResource');
     try {
-      const type = req.headers['content-type'];
-      const {conversionFormat} = CONTENT_TYPES.find(({contentType}) => contentType === type);
+
+      const conversionFormat = getConversionFormat(req.headers['content-type']);
       const correlationId = uuid();
 
       const operationSettings = {
@@ -151,8 +173,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType}) => 
   async function updateResource(req, res, next) {
     logger.silly('routes/Prio updateResource');
     try {
-      const type = req.headers['content-type'];
-      const {conversionFormat} = CONTENT_TYPES.find(({contentType}) => contentType === type);
+      const conversionFormat = getConversionFormat(req.headers['content-type']);
       const correlationId = uuid();
 
       const operationSettings = {
@@ -202,4 +223,11 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType}) => 
     const response = await Service.doQuery(req.query);
     res.json(response);
   }
+
+  function getConversionFormat(type) {
+    const {conversionFormat} = CONTENT_TYPES.find(({contentType}) => contentType === type);
+    return conversionFormat;
+  }
+
+
 };
