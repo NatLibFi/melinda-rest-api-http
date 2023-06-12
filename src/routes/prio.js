@@ -40,15 +40,32 @@ import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger
 import {CONTENT_TYPES, DEFAULT_ACCEPT} from '../config';
 import {checkQueryParams} from './queryUtils';
 
-export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead}) => {
+// eslint-disable-next-line no-unused-vars
+export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite}) => {
   const logger = createLogger();
   //const apiDoc = fs.readFileSync(path.join(__dirname, '..', 'api.yaml'), 'utf8');
   const Service = await createService({
     sruUrl, amqpUrl, mongoUri, pollWaitTime
   });
 
+  //logger.debug(`Read: ${requireAuthForRead} write: ${requireKVPForWrite}`);
+  // Require KVP authentication for creates/updates if requireKVPForWrite is true
+  // Note: this also requires general authentication for read
+
+  if (requireKVPForWrite) {
+    logger.verbose(`Requiring authentication for reading and KVP authentication for writing`);
+    return new Router()
+      .use(passport.authenticate('melinda', {session: false}))
+      .use(checkQueryParams)
+      .get('/:id', checkAcceptHeader, readResource)
+      .get('/prio/', authorizeKVPOnly, getPrioLogs)
+      .post('/', authorizeKVPOnly, checkContentType, createResource)
+      .post('/:id', authorizeKVPOnly, checkContentType, updateResource);
+  }
+
   // Require authentication before reading if requireAuthForRead is true
   if (requireAuthForRead) {
+    logger.verbose(`Requiring authentication for reading and writing`);
     return new Router()
       .use(passport.authenticate('melinda', {session: false}))
       .use(checkQueryParams)
@@ -58,6 +75,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       .post('/:id', checkContentType, updateResource);
   }
 
+  //logger.verbose(`Requiring authentication only for writing`);
   return new Router()
     .use(checkQueryParams)
     .get('/:id', checkAcceptHeader, readResource)
@@ -91,6 +109,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     }
 
     function getType() {
+      // Note - this doesn't work if accept-header has several accepted types (ie. in browsers)
       if (req.headers.accept === '*/*') {
         logger.debug(`Accept header ${req.headers.accept}, using DEFAULT_ACCEPT: ${DEFAULT_ACCEPT}`);
         return DEFAULT_ACCEPT;

@@ -7,7 +7,9 @@ import {version as uuidVersion, validate as uuidValidate} from 'uuid';
 const logger = createLogger();
 
 export function authorizeKVPOnly(req, res, next) {
+  logger.debug(`Checking ${JSON.stringify(req.user.id)} for KVP-authorization`);
   if (req.user.authorization.includes('KVP')) {
+    logger.debug(`We have user with KVP-authorization`);
     return next();
   }
 
@@ -29,6 +31,8 @@ export function sanitizeCataloger(passportCataloger, queryCataloger) {
 }
 
 // Note: checkAcceptHeader currently works only for prio
+// Note: checkAcceptHeader always errors if accept-header has several accepted types
+
 export function checkAcceptHeader(req, res, next) {
   logger.debug(`routesUtils:checkAcceptHeader: accept: ${req.headers.accept}`);
 
