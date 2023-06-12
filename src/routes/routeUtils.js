@@ -31,6 +31,8 @@ export function sanitizeCataloger(passportCataloger, queryCataloger) {
 }
 
 // Note: checkAcceptHeader currently works only for prio
+// Note: checkAcceptHeader always errors if accept-header has several accepted types
+
 export function checkAcceptHeader(req, res, next) {
   logger.debug(`routesUtils:checkAcceptHeader: accept: ${req.headers.accept}`);
 

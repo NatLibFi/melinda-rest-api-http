@@ -109,6 +109,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     }
 
     function getType() {
+      // Note - this doesn't work if accept-header has several accepted types (ie. in browsers)
       if (req.headers.accept === '*/*') {
         logger.debug(`Accept header ${req.headers.accept}, using DEFAULT_ACCEPT: ${DEFAULT_ACCEPT}`);
         return DEFAULT_ACCEPT;
