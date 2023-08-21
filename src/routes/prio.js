@@ -93,6 +93,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
   */
 
   async function readResource(req, res, next) {
+    logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
     logger.silly('routes/Prio readResource');
     try {
 
@@ -121,6 +122,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
 
   // eslint-disable-next-line max-statements
   async function createResource(req, res, next) {
+    logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
     logger.silly('routes/Prio createResource');
     try {
 
@@ -190,6 +192,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
   }
 
   async function updateResource(req, res, next) {
+    logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
     logger.silly('routes/Prio updateResource');
     try {
       const conversionFormat = getConversionFormat(req.headers['content-type']);
@@ -238,6 +241,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
   }
 
   async function getPrioLogs(req, res) {
+    logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
     logger.silly('routes/Bulk doQuery');
     const response = await Service.doQuery(req.query);
     res.json(response);
