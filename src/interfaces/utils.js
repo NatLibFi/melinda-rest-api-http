@@ -15,6 +15,7 @@ const logger = createLogger();
 
 // eslint-disable-next-line max-statements
 export function generateQuery({id, correlationId, queueItemState, creationTime, modificationTime, skip, limit}) {
+  logger.silly(`generateQuery`);
   const doc = {};
 
   if (skip) { // eslint-disable-line functional/no-conditional-statements
@@ -77,17 +78,18 @@ export function generateQuery({id, correlationId, queueItemState, creationTime, 
 
 export function generateShowParams({showAll = 0, showOperations = undefined, showOperationSettings = undefined, showRecordLoadParams = undefined, showImportJobState = undefined}) {
   if (parseBoolean(showAll)) {
-    return {_id: 0};
+    return {showAll: true};
   }
 
   const paramsArray = [
-    {showOperations: showOperations ? showOperations : false},
-    {showOperationSettings: showOperationSettings ? showOperationSettings : false},
-    {showRecordLoadParams: showRecordLoadParams ? showRecordLoadParams : false},
-    {showImportJobState: showImportJobState ? showImportJobState : false}
+    {showAll: showAll ? parseBoolean(showAll) : false},
+    {showOperations: showOperations ? parseBoolean(showOperations) : false},
+    {showOperationSettings: showOperationSettings ? parseBoolean(showOperationSettings) : false},
+    {showRecordLoadParams: showRecordLoadParams ? parseBoolean(showRecordLoadParams) : false},
+    {showImportJobState: showImportJobState ? parseBoolean(showImportJobState) : false}
   ].filter(param => param);
 
-  return Object.assign({_id: 0}, ...paramsArray);
+  return Object.assign(...paramsArray);
 }
 
 
