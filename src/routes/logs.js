@@ -54,7 +54,7 @@ export default async function ({mongoUri}) {
     logger.verbose('routes/logs getListOfLogs');
     try {
       const expanded = req.query === undefined || req.query.expanded === undefined ? false : parseBoolean(req.query.expanded);
-      const {logItemType} = req.query === undefined || req.query.logItemType === undefined ? 'MERGE_LOG' : req.query.logItemType;
+      const logItemType = req.query === undefined || req.query.logItemType === undefined ? 'MERGE_LOG' : req.query.logItemType;
       if (expanded !== true) {
         logger.debug(`Getting list of logs ${logItemType}`);
         const response = await Service.getListOfLogs(logItemType);
