@@ -160,11 +160,11 @@ export default async function ({mongoUri, amqpUrl}) {
     const removeRecords = noRecords === undefined ? false : parseBoolean(noRecords);
     const removeIds = noIds === undefined ? false : parseBoolean(noIds);
 
-    logger.debug(`Queue items querried with params: ${JSON.stringify(params)}`);
+    logger.debug(`Queue items querried with params: ${JSON.stringify(params)}, showParams: ${JSON.stringify(showParams)}`);
 
     if (params) {
       const result = await mongoOperator.query(params, showParams);
-      if (report) {
+      if (report || removeRecords || removeIds) {
         logger.debug(`Reducing recordItems to recordReport`);
         return result.map(queueItem => createRecordReport({queueItem, report, removeRecords, removeIds}));
       }

@@ -110,13 +110,15 @@ export function checkQueryParams(req, res, next) {
   }
 
   function checkLogItemType(logItemType) {
-    const states = {
+    const logItemTypes = {
       MERGE_LOG: 'MERGE_LOG',
-      MATCH_VALIDATION_LOG: 'MATCH_VALIDATION_LOG',
-      MATCH_LOG: 'MATCH_LOG'
+      //MATCH_VALIDATION_LOG: 'MATCH_VALIDATION_LOG',
+      MATCH_LOG: 'MATCH_LOG',
+      SPLITTER_LOG: 'SPLITTER_LOG',
+      LOAD_PROCESS_LOG: 'LOAD_PROCESS_LOG'
     };
 
-    return states[logItemType];
+    return logItemTypes[logItemType];
   }
 
   function checkShowParams(queryParams) {
