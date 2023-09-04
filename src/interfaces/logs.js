@@ -76,10 +76,14 @@ export default async function ({mongoUri}) {
     // Create blobSequenceStart and blobSequenceEnd from blobSequence
     const correlationIdObj = queryCombinedId ? {correlationId: queryCombinedId} : {};
     const logItemTypeObj = queryLogItemType ? {logItemType: queryLogItemType} : {};
-    const blobSequenceObj = queryBlobSequence ? {blobSequence: Number(queryBlobSequence)} : {};
+    //const blobSequenceObj = queryBlobSequence ? {blobSequence: Number(queryBlobSequence)} : {};
+    // blobSequence is a string in Mongo!
+    const blobSequenceObj = queryBlobSequence ? {blobSequence: queryBlobSequence} : {};
+    // following queryItems do not work
     const standardIdentifiersObj = queryStandardIdentifiers ? {standardIdentifiers: queryStandardIdentifiers} : {};
     const databaseIdObj = queryDatabaseId ? {databaseId: queryDatabaseId} : {};
     const sourceIdsObj = querySourceIds ? {sourceIds: querySourceIds} : {};
+    // skip and limit work?
     const skip = querySkip ? {skip: Number(querySkip)} : {};
     const limit = queryLimit ? {limit: Number(queryLimit)} : {};
 
