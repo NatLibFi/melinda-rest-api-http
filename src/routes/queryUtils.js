@@ -1,7 +1,7 @@
 import httpStatus from 'http-status';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {version as uuidVersion, validate as uuidValidate} from 'uuid';
-import {QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
+import {QUEUE_ITEM_STATE, LOG_ITEM_TYPE} from '@natlibfi/melinda-rest-api-commons';
 
 const logger = createLogger();
 
@@ -109,14 +109,22 @@ export function checkQueryParams(req, res, next) {
     return states[queueItemState];
   }
 
+  // We'd propably like to get these from commons?
   function checkLogItemType(logItemType) {
+
+    const logItemTypes = LOG_ITEM_TYPE;
+
+    /*
     const logItemTypes = {
       MERGE_LOG: 'MERGE_LOG',
       //MATCH_VALIDATION_LOG: 'MATCH_VALIDATION_LOG',
       MATCH_LOG: 'MATCH_LOG',
       SPLITTER_LOG: 'SPLITTER_LOG',
-      LOAD_PROCESS_LOG: 'LOAD_PROCESS_LOG'
+      LOAD_PROCESS_LOG: 'LOAD_PROCESS_LOG',
+      INPUT_RECORD_LOG: 'INPUT_RECORD_LOG',
+      RESULT_RECORD_LOG: 'RESULT_RECORD_LOG'
     };
+    */
 
     return logItemTypes[logItemType];
   }
