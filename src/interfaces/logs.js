@@ -79,7 +79,6 @@ export default async function ({mongoUri}) {
     //const blobSequenceObj = queryBlobSequence ? {blobSequence: Number(queryBlobSequence)} : {};
     // blobSequence is a string in Mongo!
     const blobSequenceObj = queryBlobSequence ? {blobSequence: queryBlobSequence} : {};
-    // following queryItems do not work
     const standardIdentifiersObj = queryStandardIdentifiers ? {standardIdentifiers: queryStandardIdentifiers} : {};
     const databaseIdObj = queryDatabaseId ? {databaseId: queryDatabaseId} : {};
     const sourceIdsObj = querySourceIds ? {sourceIds: querySourceIds} : {};
