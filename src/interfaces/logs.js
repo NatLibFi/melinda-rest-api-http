@@ -72,17 +72,17 @@ export default async function ({mongoUri}) {
 
     logger.debug(`queryCombinedId: ${queryCombinedId}`);
 
-    // Format blobSequence* parameters from strings to numbers
-    // Create blobSequenceStart and blobSequenceEnd from blobSequence
+    // DEVELOP: Format blobSequence* parameters from strings to numbers
+    // DEVELOP: Create blobSequenceStart and blobSequenceEnd from blobSequence
     const correlationIdObj = queryCombinedId ? {correlationId: queryCombinedId} : {};
     const logItemTypeObj = queryLogItemType ? {logItemType: queryLogItemType} : {};
     //const blobSequenceObj = queryBlobSequence ? {blobSequence: Number(queryBlobSequence)} : {};
-    // blobSequence is a string in Mongo!
+    // blobSequence is (currently) a string in Mongo!
     const blobSequenceObj = queryBlobSequence ? {blobSequence: queryBlobSequence} : {};
     const standardIdentifiersObj = queryStandardIdentifiers ? {standardIdentifiers: queryStandardIdentifiers} : {};
     const databaseIdObj = queryDatabaseId ? {databaseId: queryDatabaseId} : {};
     const sourceIdsObj = querySourceIds ? {sourceIds: querySourceIds} : {};
-    // skip and limit work?
+    // skip and limit work
     const skip = querySkip ? {skip: Number(querySkip)} : {};
     const limit = queryLimit ? {limit: Number(queryLimit)} : {};
 
