@@ -740,8 +740,8 @@ components:
           description: >-
             Sequence for the record in the input blob. Always "1" when handling
             single record input
-          type: string
-          example: '1'
+          type: number
+          example: 1
           pattern: ^\d+$
     queueItemRemoveResponse:
       type: object

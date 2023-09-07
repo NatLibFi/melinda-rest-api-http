@@ -76,9 +76,8 @@ export default async function ({mongoUri}) {
     // DEVELOP: Create blobSequenceStart and blobSequenceEnd from blobSequence
     const correlationIdObj = queryCombinedId ? {correlationId: queryCombinedId} : {};
     const logItemTypeObj = queryLogItemType ? {logItemType: queryLogItemType} : {};
-    //const blobSequenceObj = queryBlobSequence ? {blobSequence: Number(queryBlobSequence)} : {};
-    // blobSequence is (currently) a string in Mongo!
-    const blobSequenceObj = queryBlobSequence ? {blobSequence: queryBlobSequence} : {};
+    // blobSequence should be *number* in Mongo!
+    const blobSequenceObj = queryBlobSequence ? {blobSequence: Number(queryBlobSequence)} : {};
     const standardIdentifiersObj = queryStandardIdentifiers ? {standardIdentifiers: queryStandardIdentifiers} : {};
     const databaseIdObj = queryDatabaseId ? {databaseId: queryDatabaseId} : {};
     const sourceIdsObj = querySourceIds ? {sourceIds: querySourceIds} : {};
