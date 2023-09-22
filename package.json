@@ -50,10 +50,10 @@
 	"devDependencies": {
 		"@babel/cli": "^7.22.15",
 		"@babel/core": "^7.22.20",
-		"@babel/eslint-parser": "^7.22.15",
 		"@babel/node": "^7.22.19",
 		"@babel/preset-env": "^7.22.20",
 		"@babel/register": "^7.22.15",
+		"@babel/plugin-transform-runtime": "7.22.15",
 		"@natlibfi/eslint-config-melinda-backend": "^3.0.2",
 		"cross-env": "^7.0.3",
 		"eslint": "^8.49.0"
@@ -69,7 +69,12 @@
 					"targets": "maintained node versions"
 				}
 			]
-		]
+		],
+		"plugins": [
+            [
+                "@babel/transform-runtime"
+            ]
+        ]
 	},
 	"nodemonConfig": {
 		"exec": "npm run lint:dev && npm run start:dev",
