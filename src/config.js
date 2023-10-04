@@ -51,8 +51,8 @@ export const pollWaitTime = readEnvironmentVariable('POLL_WAIT_TIME', {defaultVa
 
 export const recordType = readEnvironmentVariable('RECORD_TYPE', {defaultValue: 'bib'});
 
-export const requireAuthForRead = readEnvironmentVariable('REQUIRE_AUTH_FOR_READ', {defaultValue: 0, format: v => parseBoolean(v)});
-export const requireKVPForWrite = readEnvironmentVariable('REQUIRE_KVP_FOR_WRITE', {defaultValue: 0, format: v => parseBoolean(v)});
+export const requireAuthForRead = readEnvironmentVariable('REQUIRE_AUTH_FOR_READ', {defaultValue: false, format: v => parseBoolean(v)});
+export const requireKVPForWrite = readEnvironmentVariable('REQUIRE_KVP_FOR_WRITE', {defaultValue: false, format: v => parseBoolean(v)});
 
 export const CONTENT_TYPES = [
   {contentType: 'application/json', conversionFormat: CONVERSION_FORMATS.JSON, allowPrio: true, allowBulk: true},
