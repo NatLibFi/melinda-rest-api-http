@@ -34,7 +34,7 @@
 		"@natlibfi/marc-record-serializers": "^10.1.1",
 		"@natlibfi/melinda-backend-commons": "^2.2.1",
 		"@natlibfi/melinda-commons": "^13.0.7",
-		"@natlibfi/melinda-rest-api-commons": "^4.0.15",
+		"@natlibfi/melinda-rest-api-commons": "^4.0.16-alpha.3",
 		"@natlibfi/passport-melinda-aleph": "^2.0.4",
 		"@natlibfi/sru-client": "^6.0.5",
 		"body-parser": "^1.20.2",
