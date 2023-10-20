@@ -71,6 +71,7 @@ export default async function ({mongoUri}) {
       const dateAfter = creationTimeArray[0] || new Date('2000-01-01');
       const dateBefore = creationTimeArray[1] || new Date();
       const catalogers = req.query?.catalogers ? req.query.catalogers.split(`,`) : [];
+      logger.debug(`logItemTypes: ${JSON.stringify(logItemTypes)}, dateAfter: ${dateAfter}, dateBefore: ${dateBefore}}, catalogers: ${JSON.stringify(catalogers)}`);
       const response = await Service.getExpandedListOfLogs({logItemTypes, dateAfter, dateBefore, catalogers});
       res.status(response.status).json(response.payload);
       return;
