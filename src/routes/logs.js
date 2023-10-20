@@ -66,11 +66,11 @@ export default async function ({mongoUri}) {
       }
       logger.debug(`Getting expanded list of logs`);
       logger.silly(`Query: ${JSON.stringify(req.query)}`);
-      const logItemTypes = req.query?.logItemType ? [req.query.logItemType] : [];
+      const logItemTypes = req.query?.logItemType ? [req.query.logItemType] : undefined;
       const creationTimeArray = req.query?.creationTime ? JSON.parse(req.query.creationTime) : [];
       const dateAfter = creationTimeArray[0] || new Date('2000-01-01');
       const dateBefore = creationTimeArray[1] || new Date();
-      const catalogers = req.query?.catalogers ? req.query.catalogers.split(`,`) : [];
+      const catalogers = req.query?.catalogers ? req.query.catalogers.split(`,`) : undefined;
       logger.debug(`logItemTypes: ${JSON.stringify(logItemTypes)}, dateAfter: ${dateAfter}, dateBefore: ${dateBefore}}, catalogers: ${JSON.stringify(catalogers)}`);
       const response = await Service.getExpandedListOfLogs({logItemTypes, dateAfter, dateBefore, catalogers});
       res.status(response.status).json(response.payload);
