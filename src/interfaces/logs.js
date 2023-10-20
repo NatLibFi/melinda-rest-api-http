@@ -38,8 +38,8 @@ export default async function ({mongoUri}) {
     return mongoLogOperator.getListOfLogs(logItemType);
   }
 
-  function getExpandedListOfLogs() {
-    return mongoLogOperator.getExpandedListOfLogs();
+  function getExpandedListOfLogs(params) {
+    return mongoLogOperator.getExpandedListOfLogs(params);
   }
 
   function protectLog(correlationId, blobSequence) {
