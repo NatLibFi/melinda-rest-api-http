@@ -1,6 +1,6 @@
 import httpStatus from 'http-status';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
-import {Error as HttpError} from '@natlibfi/melinda-commons';
+import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {mongoLogFactory} from '@natlibfi/melinda-rest-api-commons';
 import {LOG_ITEM_TYPE} from '@natlibfi/melinda-rest-api-commons/dist/constants';
 
