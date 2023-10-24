@@ -5,7 +5,6 @@ import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {checkQueryParams} from './queryUtils';
 import {authorizeKVPOnly, checkId} from './routeUtils';
 import createService from '../interfaces/logs';
-import {LOG_ITEM_TYPE} from '@natlibfi/melinda-rest-api-commons/dist/constants';
 
 export default async function ({mongoUri}) {
   const logger = createLogger();
@@ -16,6 +15,7 @@ export default async function ({mongoUri}) {
     .use(passport.authenticate('melinda', {session: false}))
     .use(authorizeKVPOnly)
     .use(checkQueryParams)
+    .get('/catalogers', getListOfCatalogers)
     .get('/list', getListOfLogs)
     .get('/:id', checkId, getLogs)
     .get('/', doLogsQuery)
@@ -51,28 +51,25 @@ export default async function ({mongoUri}) {
     }
   }
 
+  async function getListOfCatalogers(req, res, next) {
+    logger.verbose('routes/logs getListOfCatalogers');
+    try {
+      const response = await Service.getListOfCatalogers();
+      res.status(response.status).json(response.payload);
+      return;
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
+  }
+
   // eslint-disable-next-line max-statements
   async function getListOfLogs(req, res, next) {
     logger.verbose('routes/logs getListOfLogs');
     try {
-      const expanded = req.query === undefined || req.query.expanded === undefined ? false : parseBoolean(req.query.expanded);
-      // default to MERGE_LOG if no logItemType is given
-      const logItemType = req.query === undefined || req.query.logItemType === undefined ? LOG_ITEM_TYPE.MERGE_LOG : req.query.logItemType;
-      if (expanded !== true) {
-        logger.debug(`Getting list of logs ${logItemType}`);
-        const response = await Service.getListOfLogs(logItemType);
-        res.status(response.status).json(response.payload);
-        return;
-      }
-      logger.debug(`Getting expanded list of logs`);
-      logger.silly(`Query: ${JSON.stringify(req.query)}`);
-      const logItemTypes = req.query?.logItemType ? [req.query.logItemType] : undefined;
-      const creationTimeArray = req.query?.creationTime ? JSON.parse(req.query.creationTime) : [];
-      const dateAfter = creationTimeArray[0] || new Date('2000-01-01');
-      const dateBefore = creationTimeArray[1] || new Date();
-      const catalogers = req.query?.catalogers ? req.query.catalogers.split(`,`) : undefined;
-      logger.debug(`logItemTypes: ${JSON.stringify(logItemTypes)}, dateAfter: ${dateAfter}, dateBefore: ${dateBefore}}, catalogers: ${JSON.stringify(catalogers)}`);
-      const response = await Service.getExpandedListOfLogs({logItemTypes, dateAfter, dateBefore, catalogers});
+      const response = await Service.getExpandedListOfLogs(req.query);
       res.status(response.status).json(response.payload);
       return;
     } catch (error) {
