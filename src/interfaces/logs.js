@@ -57,8 +57,8 @@ export default async function ({mongoUri}) {
       const getLogItemTypes = logItemTypes ? logItemTypes.split(',') : [logItemType];
       const getCatalogers = catalogers ? catalogers.split(`,`) : undefined;
       const creationTimeArray = creationTime ? JSON.parse(creationTime) : [];
-      const dateAfter = creationTimeArray[0] || new Date('2000-01-01');
-      const dateBefore = creationTimeArray[1] || new Date();
+      const dateAfter = creationTimeArray[0] || '2000-01-01';
+      const dateBefore = creationTimeArray[1] || new Date().toISOString();
       logger.debug(`logItemTypes: [${getLogItemTypes}], dateAfter: ${dateAfter}, dateBefore: ${dateBefore}}, catalogers: [${getCatalogers}]`);
       return mongoLogOperator.getExpandedListOfLogs({logItemTypes: getLogItemTypes, catalogers: getCatalogers, dateAfter, dateBefore});
     }
