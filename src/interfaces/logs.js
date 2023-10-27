@@ -39,7 +39,7 @@ export default async function ({mongoUri}) {
     return mongoLogOperator.getListOfCatalogers();
   }
 
-  function getListOfLogs(logItemType) {
+  function getListOfLogs(logItemType = LOG_ITEM_TYPE.MERGE_LOG) {
     return mongoLogOperator.getListOfLogs(logItemType);
   }
 
