@@ -10,7 +10,7 @@ export default async function ({mongoUri}) {
   const logger = createLogger();
   const mongoLogOperator = await mongoLogFactory(mongoUri);
 
-  return {getLogs, doLogsQuery, getListOfCatalogers, getListOfLogs, getExpandedListOfLogs, protectLog, removeLog};
+  return {getLogs, doLogsQuery, getListOfCatalogers, getListOfCorrelationIds, getListOfLogs, getExpandedListOfLogs, protectLog, removeLog};
 
   async function getLogs(params) {
     logger.debug(`getLogs: params: ${JSON.stringify(params)}`);
@@ -39,13 +39,19 @@ export default async function ({mongoUri}) {
     return mongoLogOperator.getListOfCatalogers();
   }
 
+  // This is used nowhere?
   function getListOfLogs(logItemType = LOG_ITEM_TYPE.MERGE_LOG) {
     return mongoLogOperator.getListOfLogs(logItemType);
   }
 
+  function getListOfCorrelationIds() {
+    return mongoLogOperator.getListOfCorrelationIds();
+  }
+
   // default to MERGE_LOG if no logItemType is given
-  function getExpandedListOfLogs({expanded = 'false', logItemType = LOG_ITEM_TYPE.MERGE_LOG}, logItemTypes = false, catalogers = false, creationTime = false) {
+  function getExpandedListOfLogs({expanded = 'false', logItemType = LOG_ITEM_TYPE.MERGE_LOG, logItemTypes = false, catalogers = false, creationTime = false}) {
     const getExpanded = parseBoolean(expanded);
+    logger.debug(`getExpandedListOfLogs`);
     if (getExpanded) {
       logger.debug(`Getting expanded list of logs`);
       const getLogItemTypes = logItemTypes ? logItemTypes.split(',') : [logItemType];
@@ -58,7 +64,7 @@ export default async function ({mongoUri}) {
     }
 
     logger.debug(`Getting list of logs ${logItemType}`);
-    if (LOG_ITEM_TYPE.includes(logItemType)) {
+    if (LOG_ITEM_TYPE[logItemType]) {
       return getListOfLogs(logItemType);
     }
 
