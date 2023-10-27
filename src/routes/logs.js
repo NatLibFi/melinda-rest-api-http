@@ -15,6 +15,7 @@ export default async function ({mongoUri}) {
     .use(passport.authenticate('melinda', {session: false}))
     .use(authorizeKVPOnly)
     .use(checkQueryParams)
+    .get('/catalogers', getListOfCatalogers)
     .get('/list', getListOfLogs)
     .get('/:id', checkId, getLogs)
     .get('/', doLogsQuery)
@@ -50,20 +51,25 @@ export default async function ({mongoUri}) {
     }
   }
 
+  async function getListOfCatalogers(req, res, next) {
+    logger.verbose('routes/logs getListOfCatalogers');
+    try {
+      const response = await Service.getListOfCatalogers();
+      res.status(response.status).json(response.payload);
+      return;
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
+  }
+
+  // eslint-disable-next-line max-statements
   async function getListOfLogs(req, res, next) {
     logger.verbose('routes/logs getListOfLogs');
     try {
-      const expanded = req.query === undefined || req.query.expanded === undefined ? false : parseBoolean(req.query.expanded);
-      // default to MERGE_LOG if no logItemType is given
-      const logItemType = req.query === undefined || req.query.logItemType === undefined ? 'MERGE_LOG' : req.query.logItemType;
-      if (expanded !== true) {
-        logger.debug(`Getting list of logs ${logItemType}`);
-        const response = await Service.getListOfLogs(logItemType);
-        res.status(response.status).json(response.payload);
-        return;
-      }
-      logger.debug(`Getting expanded list of logs`);
-      const response = await Service.getExpandedListOfLogs();
+      const response = await Service.getExpandedListOfLogs(req.query);
       res.status(response.status).json(response.payload);
       return;
     } catch (error) {

@@ -1,7 +1,8 @@
 import httpStatus from 'http-status';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
-import {Error as HttpError} from '@natlibfi/melinda-commons';
+import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {mongoLogFactory} from '@natlibfi/melinda-rest-api-commons';
+import {LOG_ITEM_TYPE} from '@natlibfi/melinda-rest-api-commons/dist/constants';
 
 // import {inspect} from 'util';
 
@@ -9,7 +10,7 @@ export default async function ({mongoUri}) {
   const logger = createLogger();
   const mongoLogOperator = await mongoLogFactory(mongoUri);
 
-  return {doLogsQuery, getLogs, getListOfLogs, getExpandedListOfLogs, protectLog, removeLog};
+  return {getLogs, doLogsQuery, getListOfCatalogers, getListOfLogs, getExpandedListOfLogs, protectLog, removeLog};
 
   async function getLogs(params) {
     logger.debug(`getLogs: params: ${JSON.stringify(params)}`);
@@ -34,12 +35,34 @@ export default async function ({mongoUri}) {
     return result;
   }
 
-  function getListOfLogs(logItemType = 'MERGE_LOG') {
+  function getListOfCatalogers() {
+    return mongoLogOperator.getListOfCatalogers();
+  }
+
+  function getListOfLogs(logItemType = LOG_ITEM_TYPE.MERGE_LOG) {
     return mongoLogOperator.getListOfLogs(logItemType);
   }
 
-  function getExpandedListOfLogs() {
-    return mongoLogOperator.getExpandedListOfLogs();
+  // default to MERGE_LOG if no logItemType is given
+  function getExpandedListOfLogs({expanded = 'false', logItemType = LOG_ITEM_TYPE.MERGE_LOG}, logItemTypes = false, catalogers = false, creationTime = false) {
+    const getExpanded = parseBoolean(expanded);
+    if (getExpanded) {
+      logger.debug(`Getting expanded list of logs`);
+      const getLogItemTypes = logItemTypes ? logItemTypes.split(',') : [logItemType];
+      const getCatalogers = catalogers ? catalogers.split(`,`) : undefined;
+      const creationTimeArray = creationTime ? JSON.parse(creationTime) : [];
+      const dateAfter = creationTimeArray[0] || new Date('2000-01-01');
+      const dateBefore = creationTimeArray[1] || new Date();
+      logger.debug(`logItemTypes: [${getLogItemTypes}], dateAfter: ${dateAfter}, dateBefore: ${dateBefore}}, catalogers: [${getCatalogers}]`);
+      return mongoLogOperator.getExpandedListOfLogs({logItemTypes: getLogItemTypes, catalogers: getCatalogers, dateAfter, dateBefore});
+    }
+
+    logger.debug(`Getting list of logs ${logItemType}`);
+    if (LOG_ITEM_TYPE.includes(logItemType)) {
+      return getListOfLogs(logItemType);
+    }
+
+    throw new HttpError(httpStatus.BAD_REQUEST, 'Invalid logItemType');
   }
 
   function protectLog(correlationId, blobSequence) {
