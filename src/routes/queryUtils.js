@@ -63,7 +63,8 @@ export function checkQueryParams(req, res, next) {
       {name: 'force', value: queryParams.force ? (/^(?:1|0|true|false)$/ui).test(queryParams.force) : true},
       {name: 'expanded', value: queryParams.expanded ? (/^(?:1|0|true|false)$/ui).test(queryParams.expanded) : true},
       // catalogers has comma-separated list of catalogers (1-10 word characters each)
-      {name: 'catalogers', value: queryParams.catalogers ? (/^[A-Z|0-9|_|-]{1,10}(?:,[A-Z|0-9|_|-]{1,10})*$/ui).test(queryParams.catalogers) : true}
+      {name: 'catalogers', value: queryParams.catalogers ? (/^[A-Z|0-9|_|-]{1,10}(?:,[A-Z|0-9|_|-]{1,10})*$/ui).test(queryParams.catalogers) : true},
+      {name: 'logItemTypes', value: queryParams.logItemTypes ? !queryParams.logItemTypes.split(',').some(logItemType => !checkLogItemType(logItemType)) : true}
     ];
   }
 
@@ -113,11 +114,9 @@ export function checkQueryParams(req, res, next) {
 
   // We'd propably like to get these from commons?
   function checkLogItemType(logItemType) {
-
     const logItemTypes = LOG_ITEM_TYPE;
 
-    /*
-    const logItemTypes = {
+    /*const logItemTypes = {
       MERGE_LOG: 'MERGE_LOG',
       //MATCH_VALIDATION_LOG: 'MATCH_VALIDATION_LOG',
       MATCH_LOG: 'MATCH_LOG',
@@ -125,10 +124,13 @@ export function checkQueryParams(req, res, next) {
       LOAD_PROCESS_LOG: 'LOAD_PROCESS_LOG',
       INPUT_RECORD_LOG: 'INPUT_RECORD_LOG',
       RESULT_RECORD_LOG: 'RESULT_RECORD_LOG'
-    };
-    */
+    };*/
 
-    return logItemTypes[logItemType];
+    if (logItemTypes[logItemType]) {
+      return true;
+    }
+
+    return false;
   }
 
   function checkShowParams(queryParams) {
