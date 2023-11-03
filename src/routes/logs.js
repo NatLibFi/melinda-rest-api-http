@@ -15,7 +15,10 @@ export default async function ({mongoUri}) {
     .use(passport.authenticate('melinda', {session: false}))
     .use(authorizeKVPOnly)
     .use(checkQueryParams)
+    .get('/catalogers', getListOfCatalogers)
+    .get('/correlationIds', getListOfCorrelationIds)
     .get('/list', getListOfLogs)
+    .get('/list2', getListOfLogs2)
     .get('/:id', checkId, getLogs)
     .get('/', doLogsQuery)
     .put('/:id', checkId, protectLog)
@@ -41,7 +44,59 @@ export default async function ({mongoUri}) {
     try {
       logger.debug(`We have a correlationId: ${req.params.id}`);
       const response = await Service.getLogs({correlationId: req.params.id});
-      res.status(response.status).json(response.payload);
+      logger.debug(`Response: ${JSON.stringify(response)}`);
+      //res.status(response.status).json(response.payload);
+      res.json(response);
+      return;
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
+  }
+
+  async function getListOfCatalogers(req, res, next) {
+    logger.verbose('routes/logs getListOfCatalogers');
+    try {
+      const response = await Service.getListOfCatalogers();
+      logger.debug(`Response: ${JSON.stringify(response)}`);
+      //res.status(response.status).json(response.payload);
+      res.json(response);
+      return;
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
+  }
+
+
+  async function getListOfCorrelationIds(req, res, next) {
+    logger.verbose('routes/logs getListOforrelationIds');
+    try {
+      const response = await Service.getListOfCorrelationIds();
+      logger.debug(`Response: ${JSON.stringify(response)}`);
+      //res.status(response.status).json(response.payload);
+      res.json(response);
+      return;
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
+  }
+
+  async function getListOfLogs2(req, res, next) {
+    logger.verbose('routes/logs getListOfCatalogers');
+    try {
+      const response = await Service.getListOfLogs();
+      logger.debug(`Response: ${JSON.stringify(response)}`);
+      //res.status(response.status).json(response.payload);
+      res.json(response);
+      return;
     } catch (error) {
       if (error instanceof HttpError) {
         return res.status(error.status).send(error.payload);
@@ -52,19 +107,13 @@ export default async function ({mongoUri}) {
 
   async function getListOfLogs(req, res, next) {
     logger.verbose('routes/logs getListOfLogs');
+    logger.debug(`query: ${JSON.stringify(req.query)}`);
+    const getExpanded = req.query?.expanded ? parseBoolean(req.query.expanded) : false;
     try {
-      const expanded = req.query === undefined || req.query.expanded === undefined ? false : parseBoolean(req.query.expanded);
-      // default to MERGE_LOG if no logItemType is given
-      const logItemType = req.query === undefined || req.query.logItemType === undefined ? 'MERGE_LOG' : req.query.logItemType;
-      if (expanded !== true) {
-        logger.debug(`Getting list of logs ${logItemType}`);
-        const response = await Service.getListOfLogs(logItemType);
-        res.status(response.status).json(response.payload);
-        return;
-      }
-      logger.debug(`Getting expanded list of logs`);
-      const response = await Service.getExpandedListOfLogs();
-      res.status(response.status).json(response.payload);
+      const response = getExpanded ? await Service.getExpandedListOfLogs(req.query) : await Service.getListOfLogs(req.query);
+      logger.debug(`Response: ${JSON.stringify(response)}`);
+      //res.status(response.status).json(response.payload);
+      res.json(response);
       return;
     } catch (error) {
       if (error instanceof HttpError) {
