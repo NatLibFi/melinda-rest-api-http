@@ -133,7 +133,7 @@ export default async function ({mongoUri}) {
       logger.debug(`We have a correlationId: ${correlationId}`);
       const response = await Service.removeLog(correlationId, parseBoolean(force));
       // res.status(response.status).json(response.payload);
-      res.json(response.payload);
+      res.json(response);
     } catch (error) {
       if (error instanceof HttpError) {
         return res.status(error.status).send(error.payload);
