@@ -18,7 +18,6 @@ export default async function ({mongoUri}) {
     .get('/catalogers', getListOfCatalogers)
     .get('/correlationIds', getListOfCorrelationIds)
     .get('/list', getListOfLogs)
-    .get('/list2', getListOfLogs2)
     .get('/:id', checkId, getLogs)
     .get('/', doLogsQuery)
     .put('/:id', checkId, protectLog)
@@ -77,22 +76,6 @@ export default async function ({mongoUri}) {
     logger.verbose('routes/logs getListOforrelationIds');
     try {
       const response = await Service.getListOfCorrelationIds();
-      logger.debug(`Response: ${JSON.stringify(response)}`);
-      //res.status(response.status).json(response.payload);
-      res.json(response);
-      return;
-    } catch (error) {
-      if (error instanceof HttpError) {
-        return res.status(error.status).send(error.payload);
-      }
-      return next(error);
-    }
-  }
-
-  async function getListOfLogs2(req, res, next) {
-    logger.verbose('routes/logs getListOfCatalogers');
-    try {
-      const response = await Service.getListOfLogs();
       logger.debug(`Response: ${JSON.stringify(response)}`);
       //res.status(response.status).json(response.payload);
       res.json(response);
