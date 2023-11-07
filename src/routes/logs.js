@@ -5,6 +5,7 @@ import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {checkQueryParams} from './queryUtils';
 import {authorizeKVPOnly, checkId} from './routeUtils';
 import createService from '../interfaces/logs';
+import httpStatus from 'http-status';
 
 export default async function ({mongoUri}) {
   const logger = createLogger();
@@ -114,7 +115,9 @@ export default async function ({mongoUri}) {
       const {blobSequence} = req.query || false;
       logger.debug(`We have a correlationId: ${correlationId}${blobSequence ? `, blobSequence: ${blobSequence}` : ''}`);
       const response = await Service.protectLog(correlationId, blobSequence);
-      res.status(response.status).json(response.payload);
+      logger.debug(`We have a response: ${JSON.stringify(response)}`);
+      // DEVELOP: handle response, now we just pass mongo's response on
+      res.status(httpStatus.OK).json(response);
     } catch (error) {
       if (error instanceof HttpError) {
         return res.status(error.status).send(error.payload);
