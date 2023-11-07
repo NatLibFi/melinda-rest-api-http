@@ -92,8 +92,9 @@ export default async function ({mongoUri}) {
     logger.verbose('routes/logs getListOfLogs');
     logger.debug(`query: ${JSON.stringify(req.query)}`);
     const getExpanded = req.query?.expanded ? parseBoolean(req.query.expanded) : false;
+    const logItemType = req.query?.logItemType ? req.query.logItemType : undefined;
     try {
-      const response = getExpanded ? await Service.getExpandedListOfLogs(req.query) : await Service.getListOfLogs(req.query);
+      const response = getExpanded ? await Service.getExpandedListOfLogs(req.query) : await Service.getListOfLogs(logItemType);
       logger.debug(`Response: ${JSON.stringify(response)}`);
       //res.status(response.status).json(response.payload);
       res.json(response);
