@@ -18,7 +18,6 @@ export default async function ({mongoUri}) {
     .get('/catalogers', getListOfCatalogers)
     .get('/correlationIds', getListOfCorrelationIds)
     .get('/list', getListOfLogs)
-    .get('/list2', getListOfLogs2)
     .get('/:id', checkId, getLogs)
     .get('/', doLogsQuery)
     .put('/:id', checkId, protectLog)
@@ -89,28 +88,13 @@ export default async function ({mongoUri}) {
     }
   }
 
-  async function getListOfLogs2(req, res, next) {
-    logger.verbose('routes/logs getListOfCatalogers');
-    try {
-      const response = await Service.getListOfLogs();
-      logger.debug(`Response: ${JSON.stringify(response)}`);
-      //res.status(response.status).json(response.payload);
-      res.json(response);
-      return;
-    } catch (error) {
-      if (error instanceof HttpError) {
-        return res.status(error.status).send(error.payload);
-      }
-      return next(error);
-    }
-  }
-
   async function getListOfLogs(req, res, next) {
     logger.verbose('routes/logs getListOfLogs');
     logger.debug(`query: ${JSON.stringify(req.query)}`);
     const getExpanded = req.query?.expanded ? parseBoolean(req.query.expanded) : false;
+    const logItemType = req.query?.logItemType ? req.query.logItemType : undefined;
     try {
-      const response = getExpanded ? await Service.getExpandedListOfLogs(req.query) : await Service.getListOfLogs(req.query);
+      const response = getExpanded ? await Service.getExpandedListOfLogs(req.query) : await Service.getListOfLogs(logItemType);
       logger.debug(`Response: ${JSON.stringify(response)}`);
       //res.status(response.status).json(response.payload);
       res.json(response);
@@ -130,7 +114,9 @@ export default async function ({mongoUri}) {
       const {blobSequence} = req.query || false;
       logger.debug(`We have a correlationId: ${correlationId}${blobSequence ? `, blobSequence: ${blobSequence}` : ''}`);
       const response = await Service.protectLog(correlationId, blobSequence);
-      res.status(response.status).json(response.payload);
+      logger.debug(`We have a response: ${JSON.stringify(response)}`);
+      // DEVELOP: handle response, now we just pass mongo's response on
+      res.json(response);
     } catch (error) {
       if (error instanceof HttpError) {
         return res.status(error.status).send(error.payload);
@@ -146,7 +132,8 @@ export default async function ({mongoUri}) {
       const {force} = req.query || 0;
       logger.debug(`We have a correlationId: ${correlationId}`);
       const response = await Service.removeLog(correlationId, parseBoolean(force));
-      res.status(response.status).json(response.payload);
+      // res.status(response.status).json(response.payload);
+      res.json(response);
     } catch (error) {
       if (error instanceof HttpError) {
         return res.status(error.status).send(error.payload);
