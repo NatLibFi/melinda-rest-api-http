@@ -14,7 +14,7 @@
 		"url": "git@github.com:natlibfi/melinda-rest-api-http.git"
 	},
 	"license": "AGPL-3.0+",
-	"version": "3.3.1",
+	"version": "3.3.2-alpha.2",
 	"main": "dist/index.js",
 	"engines": {
 		"node": ">=18"
@@ -33,7 +33,7 @@
 		"@babel/runtime": "^7.23.2",
 		"@natlibfi/marc-record-serializers": "^10.1.2",
 		"@natlibfi/melinda-backend-commons": "^2.2.2",
-		"@natlibfi/melinda-commons": "^13.0.7",
+		"@natlibfi/melinda-commons": "^13.0.8-alpha.1",
 		"@natlibfi/melinda-rest-api-commons": "^4.0.19",
 		"@natlibfi/passport-melinda-aleph": "^2.0.4",
 		"@natlibfi/sru-client": "^6.0.5",

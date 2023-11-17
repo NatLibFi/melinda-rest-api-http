@@ -4,7 +4,7 @@
 *
 * RESTful API for Melinda
 *
-* Copyright (C) 2018-2019 University Of Helsinki (The National Library Of Finland)
+* Copyright (C) 2018-2023 University Of Helsinki (The National Library Of Finland)
 *
 * This file is part of melinda-rest-api-http
 ** melinda-rest-api-http program is free software: you can redistribute it and/or modify
@@ -48,8 +48,16 @@ export default async function ({mongoUri, amqpUrl}) {
     }
 
     logger.verbose(`Stream uploaded for ${correlationId}!`);
-    // setState does not do anything with oCatalogerIn or operation
-    return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
+
+    logger.silly(`Updating current state of ${correlationId} to ${QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING}`);
+    const setStateResult = await mongoOperator.setState({correlationId, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
+    logger.silly(JSON.stringify(setStateResult));
+    const resultCorrelationId = setStateResult.value?.correlationId || undefined;
+    logger.silly(`resultCorrelationId: ${resultCorrelationId}`);
+    if (!resultCorrelationId) {
+      throw new HttpError(httpStatus.INTERNAL_SERVER_ERROR, `Could not update state for correlationId ${correlationId}. Result: ${JSON.stringify(setStateResult)}`);
+    }
+    return setStateResult;
   }
 
   // eslint-disable-next-line max-statements
