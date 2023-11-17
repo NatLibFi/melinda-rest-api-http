@@ -48,45 +48,17 @@ export default async function ({mongoUri, amqpUrl}) {
     }
 
     logger.verbose(`Stream uploaded for ${correlationId}!`);
-    // setState does not do anything with oCatalogerIn or operation
-    const streamResult = checkSetStateResult(updateState({correlationId, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING}), correlationId);
-    return streamResult;
-    //return mongoOperator.setState({correlationId, oCatalogerIn, operation, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
-  }
 
-  /*
-  function pumpSetState({correlationId, state}, tries = 3, originalState = undefined) {
-    if (tries -1 < 0) {
-      //if (state !== QUEUE_ITEM_STATE.ABORT) {
-      //  return pumpSetState({correlationId, state: QUEUE_ITEM_STATE.ABORT}, 3, state);
-      //}
-      throw new HttpError(httpStatus.INTERNAL_SERVER_ERROR, `Cannot find ${correlationId} to set state ${statetate}`);
-    }
-    const result = mongoOperator.setState({correlationId, state});
-    const stateUpdated = checkSetStateResult(result);
-    if (!stateUpdated) {
-      // sleep here
-      return pumpSetState({correlationId, state}, tries--);
-     }
-     return result;
-    }
-  }
-  */
-
-  function checkSetStateResult(result, correlationId) {
-    // Non-successful update: {'lastErrorObject': {'n': 0, 'updatedExisting': False}, 'value': None, 'ok': 1}
-    // Successfull update: {"lastErrorObject": {"n": 1, "updatedExisting": true}, "value": <queueItem>, "ok": 1}
-
-    logger.silly(`Result from checkSetState: ${JSON.stringify(result)}`);
-
-    const resultCorrelationId = result.value?.correlationId || undefined;
-    logger.debug(`resultCorrelationId: ${resultCorrelationId}`);
+    logger.silly(`Updating current state of ${correlationId} to ${QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING}`);
+    const setStateResult = await mongoOperator.setState({correlationId, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
+    logger.silly(JSON.stringify(setStateResult));
+    const resultCorrelationId = setStateResult.value?.correlationId || undefined;
+    logger.silly(`resultCorrelationId: ${resultCorrelationId}`);
     if (!resultCorrelationId) {
-      throw new HttpError(httpStatus.INTERNAL_SERVER_ERROR, `Could not update state for correlationId ${correlationId}. Result: ${JSON.stringify(result)}`);
+      throw new HttpError(httpStatus.INTERNAL_SERVER_ERROR, `Could not update state for correlationId ${correlationId}. Result: ${JSON.stringify(setStateResult)}`);
     }
-    return result;
+    return setStateResult;
   }
-
 
   // eslint-disable-next-line max-statements
   async function addRecord({correlationId, contentType, data}) {
