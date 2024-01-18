@@ -7,7 +7,7 @@ import {version as uuidVersion, validate as uuidValidate} from 'uuid';
 const logger = createLogger();
 
 export function authorizeKVPOnly(req, res, next) {
-  logger.debug(`Checking ${JSON.stringify(req.user.id)} for KVP-authorization`);
+  logger.debug(`Checking ${JSON.stringify(req.user.id)} for KVP-authorization: ${req.user.authorization}`);
   if (req.user.authorization.includes('KVP')) {
     logger.debug(`We have user with KVP-authorization`);
     return next();
