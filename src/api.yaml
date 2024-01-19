@@ -589,7 +589,8 @@ paths:
           description: Array of JobLogItems, or empty array if not logItems are found.
   /logs/list:
     get:
-      summary: >-
+      summary: Get list of correlationIds (or expanded info) for jobs that have logs available.
+      description: >-
         Get list of correlationIds (or expanded info) for jobs that have logs available.
         Note that logItemType defaults to MERGE_LOG, if its not given as a parameter.
         Note that most other query parameters are only usable with expanded = true.
