@@ -586,6 +586,17 @@ paths:
       responses:
         '200':
           description: Array of catalogers that have triggered jobs that have logs available
+  /logs/correlationIds:
+    get:
+      summary: List correlationIds that have logs available
+      tags:
+        - /logs/
+      security:
+        - httpBasic: []
+      responses:
+        '200':
+          description: Array of correlationIds that have logs available
+
   /logs/{id}:
     parameters:
       - name: id
