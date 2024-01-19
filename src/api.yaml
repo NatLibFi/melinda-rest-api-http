@@ -8,7 +8,7 @@ tags:
   - name: /bulk/
     description: >-
       Operate on bibliographic records in bulk format. Also admin operations for
-      operatiing on bib records in bulk format.
+      operating on bib records in bulk format.
   - name: /prio/
     description: Admin operations for operating on single bibliographic records
   - name: /logs/
@@ -259,6 +259,12 @@ paths:
   /bulk/:
     post:
       summary: Create a bulk job for operating on several records
+      description: >-
+        A bulk job can be created: 
+        <li> as a <b>streamBulk</b> job (default), which requires a request body that contains record(s) for the job, or 
+        <li> as a <b>batchBulk</b> (<b>noStreamBulk</b>) job, where initial POST does not require a request body
+         
+        In case of batchBulk jobs the records are added one by one to the job by POST requests to <em>bulk/record/{correlationId}</em> endpoint, and the job is started by updating it's state by a PUT request to <em>bulk/state/{correlationId}</em> endpoint
       tags:
         - /bulk/
       parameters:
@@ -387,6 +393,48 @@ paths:
           required: false
           schema:
             $ref: '#/components/schemas/correlationId'
+        - name: showAll
+          in: query
+          required: false
+          schema: 
+            type: boolean
+            default: false
+        - name: showOperationSettings
+          in: query
+          required: false
+          schema: 
+            type: boolean
+            default: false
+        - name: showRecordLoadParams
+          in: query
+          required: false
+          schema: 
+            type: boolean
+            default: false
+        - name: showImportJobState
+          in: query
+          required: false
+          schema: 
+            type: boolean
+            default: false
+        - name: recordsAsReport
+          in: query
+          required: false
+          schema: 
+            type: boolean
+            default: false
+        - name: noRecords
+          in: query
+          required: false
+          schema: 
+            type: boolean
+            default: false
+        - name: noIds
+          in: query
+          required: false
+          schema: 
+            type: boolean
+            default: false
       security:
         - httpBasic: []
       responses:
@@ -441,12 +489,30 @@ paths:
         required: true
         schema:
           $ref: '#/components/schemas/correlationId'
-    put:
+    post:
       summary: Add a record to a bulk job
       tags:
         - /bulk/
       security:
         - httpBasic: []
+      requestBody:
+        description: Contains a single record
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/marcRecord'
+          application/xml:
+            schema:
+              type: string
+            example:
+              $ref: '#/components/examples/MARCXML'
+          application/marc:
+            schema:
+              type: string
+              format: binary
+            example:
+              $ref: '#/components/examples/ISO2709'
       responses:
         '200':
           description: OK
@@ -469,6 +535,19 @@ paths:
           description: OK
     put:
       summary: Update state of a job
+      description: >-
+        Update state (queueItemState) of an existing job.<br>
+        Usually used to start a batchBulk job by updating it's state to PENDING_VALIDATION.<br>
+        Note that other manual state changes may cause unexpected problems in the bulk job.
+      parameters:
+       - name: status
+         description: >-
+          Target queueItemState.
+         in: query
+         required: true
+         schema:
+          type: string
+          default: 'PENDING_VALIDATION'
       tags:
         - /bulk/
       security:
@@ -591,9 +670,9 @@ paths:
     get:
       summary: Get list of correlationIds (or expanded info) for jobs that have logs available.
       description: >-
-        Get list of correlationIds (or expanded info) for jobs that have logs available.
-        Note that logItemType defaults to MERGE_LOG, if its not given as a parameter.
-        Note that most other query parameters are only usable with expanded = true.
+        Get list of correlationIds (or expanded info) for jobs that have logs available.<br>
+        Note that *logItemType* defaults to MERGE_LOG, if its not given as a parameter.<br>
+        Note that most other query parameters are only usable with *expanded* = true.<br>
         Note that expanded is not currently usable with LOAD_PROCESS_REPORT or
         SPLITTER_LOG logItemType.
       tags:
@@ -614,20 +693,20 @@ paths:
             default: false
         - name: logItemTypes
           description: Comma-separated list of logItemTypes (see '#/components/schemas/logItemType')
-          example: 'INPUT_RECORD_LOG,MATCH_LOG'
+          example: 'MERGE_LOG,MATCH_LOG'
           in: query
           schema:
             type: string
         - name: catalogers
           description: Comma-separated list of catalogers
-          example: 'TEST1234,FOOBA0000,ZOO-TEST'
+          example: 'TEST1234,FOOBA0000'
           in: query
           required: false
           schema:
             type: string
         - name: creationTime
           description: >-
-            String array of one or two YYYY-MM-YY-formatted timestamps.
+            String array of one or two YYYY-MM-YY-formatted timestamps.<br>
             First date is dateAfter, second is dateBefore for
             filtering logs by creationTime.
           example: '["2023-12-01","2023-12-31"]'
