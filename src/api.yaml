@@ -586,10 +586,15 @@ paths:
         - httpBasic: []
       responses:
         '200':
-          description: Array of JobLogItems
+          description: Array of JobLogItems, or empty array if not logItems are found.
   /logs/list:
     get:
-      summary: List correlationIds that have job logs available
+      summary: >-
+        Get list of correlationIds (or expanded info) for jobs that have logs available.
+        Note that logItemType defaults to MERGE_LOG, if its not given as a parameter.
+        Note that most other query parameters are only usable with expanded = true.
+        Note that expanded is not currently usable with LOAD_PROCESS_REPORT or
+        SPLITTER_LOG logItemType.
       tags:
         - /logs/
       parameters:
@@ -606,6 +611,29 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: logItemTypes
+          description: Comma-separated list of logItemTypes (see '#/components/schemas/logItemType')
+          example: 'INPUT_RECORD_LOG,MATCH_LOG'
+          in: query
+          schema:
+            type: string
+        - name: catalogers
+          description: Comma-separated list of catalogers
+          example: 'TEST1234,FOOBA0000,ZOO-TEST'
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: creationTime
+          description: >-
+            String array of one or two YYYY-MM-YY-formatted timestamps.
+            First date is dateAfter, second is dateBefore for
+            filtering logs by creationTime.
+          example: '["2023-12-01","2023-12-31"]'
+          in: query
+          required: false
+          schema:
+            type: string
       security:
         - httpBasic: []
       responses:
