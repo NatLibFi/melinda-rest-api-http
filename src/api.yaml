@@ -410,6 +410,8 @@ paths:
       summary: Add a record to a bulk job
       tags:
         - /bulk/
+      security:
+        - httpBasic: []
       responses:
         '200':
           description: OK
@@ -425,6 +427,8 @@ paths:
       summary: Retrieve current state of a job
       tags:
         - /bulk/
+      security:
+        - httpBasic: []
       responses:
         '200':
           description: OK
@@ -432,6 +436,8 @@ paths:
       summary: Update state of a job
       tags:
         - /bulk/
+      security:
+        - httpBasic: []
       responses:
         '200':
           description: OK
@@ -510,6 +516,8 @@ paths:
       summary: Query job logs
       tags:
         - /logs/
+      security:
+        - httpBasic: []
       responses:
         '200':
           description: Array of job logs
@@ -525,6 +533,8 @@ paths:
             allOf:
               - default: MERGE_LOG
               - $ref: '#/components/schemas/logItemType'
+      security:
+        - httpBasic: []
       responses:
         '200':
           description: Array of job log ids
@@ -543,10 +553,14 @@ paths:
       responses:
         '200':
           description: A job log item
+      security:
+        - httpBasic: []
     put:
       summary: Protect a job log
       tags:
         - /logs/
+      security:
+        - httpBasic: []
       responses:
         '200':
           description: Array of job logs
@@ -554,6 +568,8 @@ paths:
       summary: Delete a job log
       tags:
         - /logs/
+      security:
+        - httpBasic: []
       responses:
         '200':
           description: Array of job logs
@@ -568,6 +584,10 @@ components:
       enum:
         - MERGE_LOG
         - MATCH_LOG
+        - LOAD_PROCESS_LOG
+        - SPLITTER_LOG
+        - INPUT_RECORD_LOG
+        - RESULT_RECORD_LOG
     jobLogId:
       description: Id for a job log (uuid)
       type: string
