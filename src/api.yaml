@@ -277,6 +277,41 @@ paths:
             enum:
               - OLD
               - NEW
+        - name: noStream
+          description: Start bulk job as noStream/batch bulk job and wait for records
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: noop
+          description: Do not create/update the record
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: unique
+          description: Do not create the record if there are duplicates in the datastore
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: merge
+          description: >-
+            Merge incoming record to datastore record if a duplicate record is
+            found
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: skipNoChangeUpdates
+          description: >-
+            Do not update the datastore record if update would result in no
+            changes
+          in: query
+          schema:
+            type: boolean
+            default: false
         - name: pRejectFile
           description: Error log file location
           in: query
