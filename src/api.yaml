@@ -413,7 +413,7 @@ paths:
         - /bulk/
       parameters:
         - name: id
-          description: Queue item identifier
+          description: Queue item identifier (correlationId)
           in: query
           required: true
           schema:
@@ -436,7 +436,7 @@ paths:
   /bulk/record/{id}:
     parameters:
       - name: id
-        description: Queue item identifier
+        description: Queue item identifier (correlationId)
         in: path
         required: true
         schema:
@@ -453,7 +453,7 @@ paths:
   /bulk/state/{id}:
     parameters:
       - name: id
-        description: Queue item identifier
+        description: Queue item identifier (correlationId)
         in: path
         required: true
         schema:
@@ -479,7 +479,7 @@ paths:
   /bulk/content/{id}:
     parameters:
       - name: id
-        description: Queue item identifier
+        description: Queue item identifier (correlationId)
         in: path
         required: true
         schema:
@@ -521,7 +521,7 @@ paths:
         - /prio/
       parameters:
         - name: id
-          description: Queue item identifier
+          description: Queue item identifier (correlationId)
           in: query
           required: false
           schema:
