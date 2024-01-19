@@ -520,10 +520,10 @@ paths:
         - httpBasic: []
       responses:
         '200':
-          description: Array of job logs
+          description: Array of correlationIds for jobs that have logs available
   /logs/list:
     get:
-      summary: List job logs
+      summary: List correlationIds that have job logs available
       tags:
         - /logs/
       parameters:
@@ -533,11 +533,27 @@ paths:
             allOf:
               - default: MERGE_LOG
               - $ref: '#/components/schemas/logItemType'
+        - name: expanded
+          description: Get expanded info on jobs that have logs instead just correlationIds
+          in: query
+          schema:
+            type: boolean
+            default: false
       security:
         - httpBasic: []
       responses:
         '200':
-          description: Array of job log ids
+          description: Array of correlationIds or expanded info on jobs that have logs available
+  /logs/catalogers:
+    get:
+      summary: List catalogers that have triggered jobs that have logs availabel
+      tags:
+        - /logs/
+      security:
+        - httpBasic: []
+      responses:
+        '200':
+          description: Array of catalogers that have triggered jobs that have logs available
   /logs/{id}:
     parameters:
       - name: id
