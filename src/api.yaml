@@ -511,16 +511,47 @@ paths:
           description: The credentials are not authorized for this operation
         '404':
           description: The record does not exist
-  /logs/:
+  /logs:
     get:
       summary: Query job logs
       tags:
         - /logs/
+      parameters:
+        - name: correlationId
+          description: Queue item identifier (correlationId) for job
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/correlationId'
+        - name: blobSequence
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: logItemType
+          in: query
+          required: false
+          schema:
+            allOf:
+              - default: MERGE_LOG
+              - $ref: '#/components/schemas/logItemType'
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 5
+        - name: skip
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
       security:
         - httpBasic: []
       responses:
         '200':
-          description: Array of correlationIds for jobs that have logs available
+          description: Array of JobLogItems
   /logs/list:
     get:
       summary: List correlationIds that have job logs available
@@ -536,6 +567,7 @@ paths:
         - name: expanded
           description: Get expanded info on jobs that have logs instead just correlationIds
           in: query
+          required: false
           schema:
             type: boolean
             default: false
@@ -546,7 +578,7 @@ paths:
           description: Array of correlationIds or expanded info on jobs that have logs available
   /logs/catalogers:
     get:
-      summary: List catalogers that have triggered jobs that have logs availabel
+      summary: List catalogers that have triggered jobs that have logs available
       tags:
         - /logs/
       security:
@@ -557,13 +589,13 @@ paths:
   /logs/{id}:
     parameters:
       - name: id
-        description: Id for a job log
+        description: correlationId for a job
         in: path
         required: true
         schema:
           $ref: '#/components/schemas/jobLogId'
     get:
-      summary: Retrieve a job log
+      summary: Retrieve one MERGE_LOG -type of logItem for a job
       tags:
         - /logs/
       responses:
