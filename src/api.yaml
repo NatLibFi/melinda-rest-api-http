@@ -650,23 +650,37 @@ paths:
       security:
         - httpBasic: []
     put:
-      summary: Protect a job log
+      summary: Protect/unprotect a job's / a job's blobSequence's logs
       tags:
         - /logs/
+      parameters:
+        - name: blobSequence
+          in: query
+          required: false
+          schema:
+            type: integer
       security:
         - httpBasic: []
       responses:
         '200':
-          description: Array of job logs
+          description: Mongo response object for update
     delete:
-      summary: Delete a job log
+      summary: Delete a job's logs
       tags:
         - /logs/
+      parameters:
+      - name: force
+        description: Force deletion of protected logs
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
       security:
         - httpBasic: []
       responses:
         '200':
-          description: Array of job logs
+          description: Mongo response object for deletion
 components:
   securitySchemes:
     httpBasic:
