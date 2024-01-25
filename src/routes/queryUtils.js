@@ -79,25 +79,30 @@ export function checkQueryParams(req, res, next) {
     if (!(/^\[.*\]$/u).test(timestampArrayString)) {
       return false;
     }
+    logger.debug(`TimestampArrayString: ${timestampArrayString}`);
+    try {
+      const timestampArray = JSON.parse(timestampArrayString);
+      const invalidTimestamps = timestampArray.some(timestamp => {
+        if ((/^\d{4}-[01]{1}\d{1}-[0-3]{1}\d{1}T[0-2]{1}\d{1}:[0-6]{1}\d{1}:[0-6]{1}\d{1}\.\d{3}Z/u).test(timestamp)) {
+          return false;
+        }
 
-    const timestampArray = JSON.parse(timestampArrayString);
-    const invalidTimestamps = timestampArray.some(timestamp => {
-      if ((/^\d{4}-[01]{1}\d{1}-[0-3]{1}\d{1}T[0-2]{1}\d{1}:[0-6]{1}\d{1}:[0-6]{1}\d{1}\.\d{3}Z/u).test(timestamp)) {
-        return false;
-      }
+        if ((/^\d{4}-[01]{1}\d{1}-[0-3]{1}\d{1}$/u).test(timestamp)) {
+          return false;
+        }
 
-      if ((/^\d{4}-[01]{1}\d{1}-[0-3]{1}\d{1}$/u).test(timestamp)) {
+        return true;
+      });
+
+      if (invalidTimestamps) {
         return false;
       }
 
       return true;
-    });
-
-    if (invalidTimestamps) {
+    } catch (err) {
+      logger.debug(`Parsing timestampArrayString ${timestampArrayString} failed: ${err.message}`);
       return false;
     }
-
-    return true;
   }
 
   function checkQueueItemState(queueItemState) {
@@ -112,19 +117,8 @@ export function checkQueryParams(req, res, next) {
     return states[queueItemState];
   }
 
-  // We'd propably like to get these from commons?
   function checkLogItemType(logItemType) {
     const logItemTypes = LOG_ITEM_TYPE;
-
-    /*const logItemTypes = {
-      MERGE_LOG: 'MERGE_LOG',
-      //MATCH_VALIDATION_LOG: 'MATCH_VALIDATION_LOG',
-      MATCH_LOG: 'MATCH_LOG',
-      SPLITTER_LOG: 'SPLITTER_LOG',
-      LOAD_PROCESS_LOG: 'LOAD_PROCESS_LOG',
-      INPUT_RECORD_LOG: 'INPUT_RECORD_LOG',
-      RESULT_RECORD_LOG: 'RESULT_RECORD_LOG'
-    };*/
 
     if (logItemTypes[logItemType]) {
       return true;

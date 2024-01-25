@@ -38,6 +38,8 @@ export default async function ({mongoUri}) {
     }
   }
 
+  // routes/getLogs -> interfaces -> getLogs -> mongoLog queryByIds
+  // DEVELOP: currently return *one MERGE_LOG* for correlationId if such exists
   async function getLogs(req, res, next) {
     logger.verbose('routes/logs getLogs');
     try {
