@@ -30,10 +30,10 @@
 		"prod": "NODE_ENV=production npm run build && npm run start"
 	},
 	"dependencies": {
-		"@babel/runtime": "^7.23.8",
+		"@babel/runtime": "^7.23.9",
 		"@natlibfi/marc-record-serializers": "^10.1.2",
 		"@natlibfi/melinda-backend-commons": "^2.2.6",
-		"@natlibfi/melinda-commons": "^13.0.11",
+		"@natlibfi/melinda-commons": "^13.0.12",
 		"@natlibfi/melinda-rest-api-commons": "^4.1.1",
 		"@natlibfi/passport-melinda-aleph": "^2.0.4",
 		"@natlibfi/sru-client": "^6.0.8",
@@ -48,11 +48,11 @@
 		"uuid": "^9.0.1"
 	},
 	"devDependencies": {
-		"@babel/cli": "^7.23.4",
-		"@babel/core": "^7.23.7",
-		"@babel/node": "^7.22.19",
-		"@babel/plugin-transform-runtime": "^7.23.7",
-		"@babel/preset-env": "^7.23.8",
+		"@babel/cli": "^7.23.9",
+		"@babel/core": "^7.23.9",
+		"@babel/node": "^7.23.9",
+		"@babel/plugin-transform-runtime": "^7.23.9",
+		"@babel/preset-env": "^7.23.9",
 		"@babel/register": "^7.23.7",
 		"@natlibfi/eslint-config-melinda-backend": "^3.0.4",
 		"cross-env": "^7.0.3",
