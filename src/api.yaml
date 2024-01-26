@@ -8,7 +8,7 @@ tags:
   - name: /bulk/
     description: >-
       Operate on bibliographic records in bulk format. Also admin operations for
-      operatiing on bib records in bulk format.
+      operating on bib records in bulk format.
   - name: /prio/
     description: Admin operations for operating on single bibliographic records
   - name: /logs/
@@ -259,6 +259,12 @@ paths:
   /bulk/:
     post:
       summary: Create a bulk job for operating on several records
+      description: >-
+        A bulk job can be created: 
+        <li> as a <b>streamBulk</b> job (default), which requires a request body that contains record(s) for the job, or 
+        <li> as a <b>batchBulk</b> (<b>noStreamBulk</b>) job, where initial POST does not require a request body
+         
+        In case of batchBulk jobs the records are added one by one to the job by POST requests to <em>bulk/record/{correlationId}</em> endpoint, and the job is started by updating it's state by a PUT request to <em>bulk/state/{correlationId}</em> endpoint
       tags:
         - /bulk/
       parameters:
@@ -277,6 +283,41 @@ paths:
             enum:
               - OLD
               - NEW
+        - name: noStream
+          description: Start bulk job as noStream/batch bulk job and wait for records
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: noop
+          description: Do not create/update the record
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: unique
+          description: Do not create the record if there are duplicates in the datastore
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: merge
+          description: >-
+            Merge incoming record to datastore record if a duplicate record is
+            found
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: skipNoChangeUpdates
+          description: >-
+            Do not update the datastore record if update would result in no
+            changes
+          in: query
+          schema:
+            type: boolean
+            default: false
         - name: pRejectFile
           description: Error log file location
           in: query
@@ -352,6 +393,48 @@ paths:
           required: false
           schema:
             $ref: '#/components/schemas/correlationId'
+        - name: showAll
+          in: query
+          required: false
+          schema: 
+            type: boolean
+            default: false
+        - name: showOperationSettings
+          in: query
+          required: false
+          schema: 
+            type: boolean
+            default: false
+        - name: showRecordLoadParams
+          in: query
+          required: false
+          schema: 
+            type: boolean
+            default: false
+        - name: showImportJobState
+          in: query
+          required: false
+          schema: 
+            type: boolean
+            default: false
+        - name: recordsAsReport
+          in: query
+          required: false
+          schema: 
+            type: boolean
+            default: false
+        - name: noRecords
+          in: query
+          required: false
+          schema: 
+            type: boolean
+            default: false
+        - name: noIds
+          in: query
+          required: false
+          schema: 
+            type: boolean
+            default: false
       security:
         - httpBasic: []
       responses:
@@ -378,7 +461,7 @@ paths:
         - /bulk/
       parameters:
         - name: id
-          description: Queue item identifier
+          description: Queue item identifier (correlationId)
           in: query
           required: true
           schema:
@@ -401,22 +484,42 @@ paths:
   /bulk/record/{id}:
     parameters:
       - name: id
-        description: Queue item identifier
+        description: Queue item identifier (correlationId)
         in: path
         required: true
         schema:
           $ref: '#/components/schemas/correlationId'
-    put:
+    post:
       summary: Add a record to a bulk job
       tags:
         - /bulk/
+      security:
+        - httpBasic: []
+      requestBody:
+        description: Contains a single record
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/marcRecord'
+          application/xml:
+            schema:
+              type: string
+            example:
+              $ref: '#/components/examples/MARCXML'
+          application/marc:
+            schema:
+              type: string
+              format: binary
+            example:
+              $ref: '#/components/examples/ISO2709'
       responses:
         '200':
           description: OK
   /bulk/state/{id}:
     parameters:
       - name: id
-        description: Queue item identifier
+        description: Queue item identifier (correlationId)
         in: path
         required: true
         schema:
@@ -425,20 +528,37 @@ paths:
       summary: Retrieve current state of a job
       tags:
         - /bulk/
+      security:
+        - httpBasic: []
       responses:
         '200':
           description: OK
     put:
       summary: Update state of a job
+      description: >-
+        Update state (queueItemState) of an existing job.<br>
+        Usually used to start a batchBulk job by updating it's state to PENDING_VALIDATION.<br>
+        Note that other manual state changes may cause unexpected problems in the bulk job.
+      parameters:
+       - name: status
+         description: >-
+          Target queueItemState.
+         in: query
+         required: true
+         schema:
+          type: string
+          default: 'PENDING_VALIDATION'
       tags:
         - /bulk/
+      security:
+        - httpBasic: []
       responses:
         '200':
           description: OK
   /bulk/content/{id}:
     parameters:
       - name: id
-        description: Queue item identifier
+        description: Queue item identifier (correlationId)
         in: path
         required: true
         schema:
@@ -480,7 +600,7 @@ paths:
         - /prio/
       parameters:
         - name: id
-          description: Queue item identifier
+          description: Queue item identifier (correlationId)
           in: query
           required: false
           schema:
@@ -505,17 +625,56 @@ paths:
           description: The credentials are not authorized for this operation
         '404':
           description: The record does not exist
-  /logs/:
+  /logs:
     get:
       summary: Query job logs
       tags:
         - /logs/
+      parameters:
+        - name: correlationId
+          description: Queue item identifier (correlationId) for job
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/correlationId'
+        - name: blobSequence
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: logItemType
+          in: query
+          required: false
+          schema:
+            allOf:
+              - default: MERGE_LOG
+              - $ref: '#/components/schemas/logItemType'
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 5
+        - name: skip
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+      security:
+        - httpBasic: []
       responses:
         '200':
-          description: Array of job logs
+          description: Array of JobLogItems, or empty array if not logItems are found.
   /logs/list:
     get:
-      summary: List job logs
+      summary: Get list of correlationIds (or expanded info) for jobs that have logs available.
+      description: >-
+        Get list of correlationIds (or expanded info) for jobs that have logs available.<br>
+        Note that *logItemType* defaults to MERGE_LOG, if its not given as a parameter.<br>
+        Note that most other query parameters are only usable with *expanded* = true.<br>
+        Note that expanded is not currently usable with LOAD_PROCESS_REPORT or
+        SPLITTER_LOG logItemType.
       tags:
         - /logs/
       parameters:
@@ -525,38 +684,111 @@ paths:
             allOf:
               - default: MERGE_LOG
               - $ref: '#/components/schemas/logItemType'
+        - name: expanded
+          description: Get expanded info on jobs that have logs instead just correlationIds
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: logItemTypes
+          description: Comma-separated list of logItemTypes (see '#/components/schemas/logItemType')
+          example: 'MERGE_LOG,MATCH_LOG'
+          in: query
+          schema:
+            type: string
+        - name: catalogers
+          description: Comma-separated list of catalogers
+          example: 'TEST1234,FOOBA0000'
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: creationTime
+          description: >-
+            String array of one or two YYYY-MM-YY-formatted timestamps.<br>
+            First date is dateAfter, second is dateBefore for
+            filtering logs by creationTime.
+          example: '["2023-12-01","2023-12-31"]'
+          in: query
+          required: false
+          schema:
+            type: string
+      security:
+        - httpBasic: []
       responses:
         '200':
-          description: Array of job log ids
+          description: Array of correlationIds or expanded info on jobs that have logs available
+  /logs/catalogers:
+    get:
+      summary: List catalogers that have triggered jobs that have logs available
+      tags:
+        - /logs/
+      security:
+        - httpBasic: []
+      responses:
+        '200':
+          description: Array of catalogers that have triggered jobs that have logs available
+  /logs/correlationIds:
+    get:
+      summary: List correlationIds that have logs available
+      tags:
+        - /logs/
+      security:
+        - httpBasic: []
+      responses:
+        '200':
+          description: Array of correlationIds that have logs available
+
   /logs/{id}:
     parameters:
       - name: id
-        description: Id for a job log
+        description: correlationId for a job
         in: path
         required: true
         schema:
           $ref: '#/components/schemas/jobLogId'
     get:
-      summary: Retrieve a job log
+      summary: Retrieve one MERGE_LOG -type of logItem for a job
       tags:
         - /logs/
       responses:
         '200':
           description: A job log item
+      security:
+        - httpBasic: []
     put:
-      summary: Protect a job log
+      summary: Protect/unprotect a job's / a job's blobSequence's logs
       tags:
         - /logs/
+      parameters:
+        - name: blobSequence
+          in: query
+          required: false
+          schema:
+            type: integer
+      security:
+        - httpBasic: []
       responses:
         '200':
-          description: Array of job logs
+          description: Mongo response object for update
     delete:
-      summary: Delete a job log
+      summary: Delete a job's logs
       tags:
         - /logs/
+      parameters:
+      - name: force
+        description: Force deletion of protected logs
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+      security:
+        - httpBasic: []
       responses:
         '200':
-          description: Array of job logs
+          description: Mongo response object for deletion
 components:
   securitySchemes:
     httpBasic:
@@ -568,6 +800,10 @@ components:
       enum:
         - MERGE_LOG
         - MATCH_LOG
+        - LOAD_PROCESS_LOG
+        - SPLITTER_LOG
+        - INPUT_RECORD_LOG
+        - RESULT_RECORD_LOG
     jobLogId:
       description: Id for a job log (uuid)
       type: string

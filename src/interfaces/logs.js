@@ -12,6 +12,10 @@ export default async function ({mongoUri}) {
 
   return {getLogs, doLogsQuery, getListOfCatalogers, getListOfCorrelationIds, getListOfLogs, getExpandedListOfLogs, protectLog, removeLog};
 
+  // routes/getLogs -> interfaces -> getLogs -> mongoLog queryByIds
+  // DEVELOP: currently return *one MERGE_LOG* for correlationId if such exists
+  // getLogs reads *just* correlationId, and returns one MERGE_LOG for it
+  // this is kinda useless
   async function getLogs(params) {
     logger.debug(`getLogs: params: ${JSON.stringify(params)}`);
     logger.debug(`Getting action logs for ${params.correlationId}`);
