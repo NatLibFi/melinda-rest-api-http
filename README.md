@@ -28,6 +28,6 @@ https://rest.api.melinda-test.kansalliskirjasto.fi/apidoc/v1/bib/
 
 ## License and copyright
 
-Copyright (c) 2018-2023 **University Of Helsinki (The National Library Of Finland)**
+Copyright (c) 2018-2024 **University Of Helsinki (The National Library Of Finland)**
 
 This project's source code is licensed under the terms of **GNU Affero General Public License Version 3** or any later version.
