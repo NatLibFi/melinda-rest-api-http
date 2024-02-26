@@ -60,8 +60,15 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       .get('/:id', checkAcceptHeader, readResource)
       .get('/prio/', authorizeKVPOnly, getPrioLogs)
       .post('/', authorizeKVPOnly, checkContentType, createResource)
-      .post('/:id', authorizeKVPOnly, checkContentType, updateResource);
+      .post('/:id', authorizeKVPOnly, checkContentType, updateResource)
+      // .post('remove/:databaseId', removeResource)
+      // .post('recover/:databaseId', recoverResource)
+      .post('fix/:databaseId', authorizeKVPOnly, fixResource);
   }
+
+  // POST remove/{id} FIX_TYPE: DELET - deletes record
+  // POST recover/{id} FIX_TYPE: UNDEL - undeletes record
+  // POST fix/{id} FIX_TYPE: param:pFixType - runs Aleph p-manage-37 fix routine given in pFixType param
 
   // Require authentication before reading if requireAuthForRead is true
   if (requireAuthForRead) {
@@ -72,25 +79,23 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       .get('/:id', checkAcceptHeader, readResource)
       .get('/prio/', authorizeKVPOnly, getPrioLogs)
       .post('/', checkContentType, createResource)
-      .post('/:id', checkContentType, updateResource);
+      .post('/:id', checkContentType, updateResource)
+      //.post('remove/:databaseId', removeResource)
+      //.post('recover/:databaseId', recoverResource)
+      .post('fix/:databaseId', authorizeKVPOnly, fixResource);
   }
 
   //logger.verbose(`Requiring authentication only for writing`);
   return new Router()
     .use(checkQueryParams)
     .get('/:id', checkAcceptHeader, readResource)
-    //.get('/apidoc/', serveApiDoc)
     .use(passport.authenticate('melinda', {session: false}))
     .get('/prio/', authorizeKVPOnly, getPrioLogs)
     .post('/', checkContentType, createResource)
-    .post('/:id', checkContentType, updateResource);
-
-  /*
-    function serveApiDoc(req, res) {
-    res.set('Content-Type', 'application/yaml');
-    res.send(apiDoc);
-  }
-  */
+    .post('/:id', checkContentType, updateResource)
+    //.post('remove/:databaseId', removeResource)
+    //.post('recover/:databaseId', recoverResource)
+    .post('fix/:databaseId', authorizeKVPOnly, fixResource);
 
   async function readResource(req, res, next) {
     logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
@@ -239,6 +244,45 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       return next(error);
     }
   }
+
+  async function fixResource(req, res, next) {
+    logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
+    logger.silly('routes/Prio fixResource');
+    logger.debug(`Fix request for ${req.params.databaseId}, ${req.query}`);
+    try {
+      const correlationId = uuid();
+      const pFixType = req?.query?.pFixType;
+
+      const operationSettings = {
+        noop: parseBoolean(req.query.noop),
+        // Prio always validates
+        validate: true,
+        prio: true
+      };
+
+      const {messages, id} = await Service.fix({
+        databaseId: req.params.databaseId,
+        cataloger: sanitizeCataloger(req.user, req.query.cataloger),
+        oCatalogerIn: req.user.id,
+        pFixType,
+        operationSettings,
+        correlationId
+        // data: req.body
+      });
+
+      logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
+
+      // Note: noops return OK even if they fail marc-record-validate validations
+      return res.status(httpStatus.OK).set('Record-ID', id)
+        .json(messages);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
+  }
+
 
   async function getPrioLogs(req, res) {
     logger.debug(`Request from ${req?.user?.id || 'N/A'}`);

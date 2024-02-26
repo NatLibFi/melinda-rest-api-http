@@ -56,6 +56,13 @@ export default async function ({mongoUri, amqpUrl, recordType}) {
     .post('/record/:id', checkContentType, checkId, bodyParser.text({limit: '5MB', type: '*/*'}), addRecordToBulk)
     .post('/', checkContentType, create);
 
+  // POST remove - body: list of record database ids - pFixType: DELET
+  // POST recover - body: list of record database ids - pFixType: UNDEL
+  // POST fix - body: list of record database ids - pFixType: param
+
+  // Add here optional prio-parameter
+  // Add here possibility for non-KVP-users to run prio, no-stream-bulk
+
   async function create(req, res, next) {
     try {
       logger.silly('routes/Bulk create');

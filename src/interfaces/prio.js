@@ -45,7 +45,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   const mongoOperator = await mongoFactory(mongoUri, 'prio');
   const sruClient = createSruClient({url: sruUrl, recordSchema: 'marcxml'});
 
-  return {read, create, update, doQuery};
+  return {read, create, update, fix, doQuery};
 
   async function read({id, format}) {
     logger.info(`Reading record ${id} / ${format}`);
@@ -130,6 +130,41 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     throw new HttpError(status, payload || '');
   }
 
+  async function fix({id, cataloger, oCatalogerIn, fixType, operationSettings, correlationId}) {
+    validateRequestId(id);
+    logger.info(`Creating FIX task for record ${id} / ${correlationId}`);
+    const operation = OPERATIONS.FIX;
+    const headers = {
+      correlationId,
+      operation,
+      id,
+      fixType,
+      cataloger,
+      operationSettings
+    };
+
+    logger.verbose(`Creating Mongo queue item for fixing record ${id} / ${correlationId}`);
+
+    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, operationSettings});
+    const responseData = await handleFixRequest({correlationId, headers});
+    const {status, payload} = responseData;
+
+    logger.silly(`prio/fix response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
+    logger.debug(`status: ${status}, ${payload}`);
+
+    cleanMongo(correlationId);
+
+    // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
+    // eslint-disable-next-line no-extra-parens
+    if (status === 'UPDATED' || status === 'SKIPPED') {
+      return {status, messages: payload, id: payload.databaseId};
+    }
+
+    // Note: if validator changed the operation -> this errors currently
+    throw new HttpError(status, payload || '');
+  }
+
+
   // cleanMongo cleans the actual MongoCollection ('prio'), logCollection ('logPrio') retains all items
   async function cleanMongo(correlationId) {
     const result = await mongoOperator.queryById({correlationId, checkModTime: true});
@@ -167,6 +202,24 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     return responseData;
   }
+
+  async function handleFixRequest({correlationId, headers}) {
+    logger.silly(`interfaces/prio/create/handleFixRequest`);
+    // {queue, correlationId, headers, data}
+    await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers});
+
+    logger.verbose(`interfaces/prio/create/handleRequest: Waiting response to id: ${correlationId}`);
+    const responseData = await check(correlationId);
+
+    // We get responseData (recordResponseItem of ??? for errors) from check
+
+    logger.verbose(`Got response to id: ${correlationId}, status: ${responseData.status}, payload: ${responseData.payload}`);
+    logger.silly(`interfaces/prio/create/handleRequest: Response data: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}`);
+    // Ack message was in check
+
+    return responseData;
+  }
+
 
   function getRecord(id) {
     return new Promise((resolve, reject) => {
