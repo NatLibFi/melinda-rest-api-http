@@ -131,8 +131,9 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
   async function fix({id, cataloger, oCatalogerIn, fixType, operationSettings, correlationId}) {
+    logger.debug(`interfaces/prio: ${id}`);
     validateRequestId(id);
-    logger.info(`Creating FIX task for record ${id} / ${correlationId}`);
+    logger.info(`Creating FIX task (${fixType}) for record ${id} / ${correlationId}`);
     const operation = OPERATIONS.FIX;
     const headers = {
       correlationId,
@@ -156,7 +157,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
     // eslint-disable-next-line no-extra-parens
-    if (status === 'UPDATED' || status === 'SKIPPED') {
+    if (status === 'FIXED') {
       return {status, messages: payload, id: payload.databaseId};
     }
 

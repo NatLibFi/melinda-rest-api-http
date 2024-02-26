@@ -61,9 +61,9 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       .get('/prio/', authorizeKVPOnly, getPrioLogs)
       .post('/', authorizeKVPOnly, checkContentType, createResource)
       .post('/:id', authorizeKVPOnly, checkContentType, updateResource)
-      // .post('remove/:databaseId', removeResource)
-      // .post('recover/:databaseId', recoverResource)
-      .post('fix/:databaseId', authorizeKVPOnly, fixResource);
+      // .post('/remove/:id', removeResource)
+      // .post('/recover/:id', recoverResource)
+      .post('/fix/:id', authorizeKVPOnly, fixResource);
   }
 
   // POST remove/{id} FIX_TYPE: DELET - deletes record
@@ -80,9 +80,9 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       .get('/prio/', authorizeKVPOnly, getPrioLogs)
       .post('/', checkContentType, createResource)
       .post('/:id', checkContentType, updateResource)
-      //.post('remove/:databaseId', removeResource)
-      //.post('recover/:databaseId', recoverResource)
-      .post('fix/:databaseId', authorizeKVPOnly, fixResource);
+      //.post('/remove/:id', removeResource)
+      //.post('/recover/:id', recoverResource)
+      .post('/fix/:id', authorizeKVPOnly, fixResource);
   }
 
   //logger.verbose(`Requiring authentication only for writing`);
@@ -93,9 +93,9 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     .get('/prio/', authorizeKVPOnly, getPrioLogs)
     .post('/', checkContentType, createResource)
     .post('/:id', checkContentType, updateResource)
-    //.post('remove/:databaseId', removeResource)
-    //.post('recover/:databaseId', recoverResource)
-    .post('fix/:databaseId', authorizeKVPOnly, fixResource);
+    //.post('remove/:id', removeResource)
+    //.post('recover/:id', recoverResource)
+    .post('/fix/:id', authorizeKVPOnly, fixResource);
 
   async function readResource(req, res, next) {
     logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
@@ -248,23 +248,24 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
   async function fixResource(req, res, next) {
     logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
     logger.silly('routes/Prio fixResource');
-    logger.debug(`Fix request for ${req.params.databaseId}, ${req.query}`);
+    logger.debug(`Fix request for ${req.params.id}, ${JSON.stringify(req.query)}`);
     try {
       const correlationId = uuid();
-      const pFixType = req?.query?.pFixType;
+      const pFixType = req?.query?.pFixType || undefined;
 
       const operationSettings = {
         noop: parseBoolean(req.query.noop),
         // Prio always validates
         validate: true,
-        prio: true
+        prio: true,
+        fixType: pFixType
       };
 
       const {messages, id} = await Service.fix({
-        databaseId: req.params.databaseId,
+        id: req.params.id,
         cataloger: sanitizeCataloger(req.user, req.query.cataloger),
         oCatalogerIn: req.user.id,
-        pFixType,
+        //        pFixType,
         operationSettings,
         correlationId
         // data: req.body

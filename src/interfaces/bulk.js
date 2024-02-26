@@ -300,7 +300,7 @@ export default async function ({mongoUri, amqpUrl}) {
         return {state: queryParams.status};
       }
 
-      throw new HttpError(httpStatus.BAD_REQUEST, 'Invalid status query parameter!');
+      throw new HttpError(httpStatus.BAD_REQUEST, 'id query parameter!');
     }
 
     logger.debug(`bulk/validateQueryParams: mandatory query param missing: pOldNew: ${JSON.stringify(queryParams.pOldNew)}, pActiveLibrary: ${JSON.stringify(queryParams.pActiveLibrary)}`);
