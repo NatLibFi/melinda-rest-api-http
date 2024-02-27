@@ -48,12 +48,12 @@ export default async function ({mongoUri, amqpUrl, recordType}) {
     .use(authorizeKVPOnly)
     .use(checkQueryParams)
     .get('/', doQuery)
-    .get('/content/:id', checkId, readContent)
-    .get('/state/:id', checkId, getState)
-    .put('/state/:id', checkId, updateState)
-    .delete('/:id', checkId, remove)
-    .delete('/content/:id', checkId, removeContent)
-    .post('/record/:id', checkContentType, checkId, bodyParser.text({limit: '5MB', type: '*/*'}), addRecordToBulk)
+    .get('/content/:correlationId', checkId, readContent)
+    .get('/state/:correlationId', checkId, getState)
+    .put('/state/:correlationId', checkId, updateState)
+    .delete('/:correlationId', checkId, remove)
+    .delete('/content/:correlationId', checkId, removeContent)
+    .post('/record/:correlationId', checkContentType, checkId, bodyParser.text({limit: '5MB', type: '*/*'}), addRecordToBulk)
     .post('/', checkContentType, create);
 
   // POST remove - body: list of record database ids - pFixType: DELET

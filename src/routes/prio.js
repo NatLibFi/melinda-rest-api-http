@@ -66,10 +66,6 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       .post('/fix/:id', authorizeKVPOnly, fixResource);
   }
 
-  // POST remove/{id} FIX_TYPE: DELET - deletes record
-  // POST recover/{id} FIX_TYPE: UNDEL - undeletes record
-  // POST fix/{id} FIX_TYPE: param:pFixType - runs Aleph p-manage-37 fix routine given in pFixType param
-
   // Require authentication before reading if requireAuthForRead is true
   if (requireAuthForRead) {
     logger.verbose(`Requiring authentication for reading and writing`);
