@@ -61,8 +61,8 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       .get('/prio/', authorizeKVPOnly, getPrioLogs)
       .post('/', authorizeKVPOnly, checkContentType, createResource)
       .post('/:id', checkId, authorizeKVPOnly, checkContentType, updateResource)
-      .post('/remove/:id', checkId, removeResource)
-      .post('/restore/:id', checkId, restoreResource)
+      .post('/remove/:id', checkId, authorizeKVPOnly, removeResource)
+      .post('/restore/:id', checkId, authorizeKVPOnly, restoreResource)
       .post('/fix/:id', authorizeKVPOnly, checkId, fixResource);
   }
 
