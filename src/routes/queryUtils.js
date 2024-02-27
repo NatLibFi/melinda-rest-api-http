@@ -5,15 +5,36 @@ import {QUEUE_ITEM_STATE, LOG_ITEM_TYPE} from '@natlibfi/melinda-rest-api-common
 
 const logger = createLogger();
 
-export function checkId(req, res, next) {
+export function checkIdFOO(requireId = true, requireValidId = true) {
+  return function (req, res, next) {
+    logger.debug(`Check if id is required`);
+    if (!requireId && !requireValidId) {
+      return next();
+    }
+    const {id} = req.params;
+    if (!id || !(/^[0-9]{9}$/u).test(id)) {
+      return res.status(httpStatus.BAD_REQUEST).json(`Invalid id ${id}`);
+    }
+    logger.debug(`Id ${id} is OK.`);
+    return next();
+  };
+}
+
+export function checkIdBAR(req, res, next) {
+  logger.debug(`Check if id is required`);
   const {id} = req.params;
-  if (!(/^[0-9]{9}$/u).test(id)) {
+  if (!id || !(/^[0-9]{9}$/u).test(id)) {
     return res.status(httpStatus.BAD_REQUEST).json(`Invalid id ${id}`);
   }
   logger.debug(`Id ${id} is OK.`);
   return next();
 }
 
+export function checkId(req, res, next) {
+  const {id} = req.params;
+  logger.debug(`Id ${id} for ${JSON.stringify(req.params)}is OK.`);
+  return next();
+}
 
 // eslint-disable-next-line complexity
 export function checkQueryParams(req, res, next) {

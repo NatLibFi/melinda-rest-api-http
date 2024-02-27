@@ -258,18 +258,23 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
   // Loop
-  async function check(correlationId, queueItemState = '', wait = false) {
+  async function check(correlationId, queueItemState = '', queueItemImportJobState = '', wait = false) {
     if (wait) {
       await setTimeoutPromise(pollWaitTime);
-      return check(correlationId, queueItemState);
+      return check(correlationId, queueItemState, queueItemImportJobState);
     }
 
     // Check status and and also if process has timeouted
     // Note: there can be timeout result and the create/update to Melinda can still be done, if timeout happens when while job is being imported
     const result = await mongoOperator.queryById({correlationId, checkModTime: true});
+    const resultQueueItemImportJobState = JSON.stringify(result.importJobState);
 
     if (queueItemState !== result.queueItemState) { // eslint-disable-line functional/no-conditional-statements
       logger.debug(`Queue item ${correlationId}, state ${result.queueItemState}`);
+    }
+    // eslint-disable-next-line functional/no-conditional-statements
+    if (queueItemImportJobState !== resultQueueItemImportJobState) {
+      logger.debug(`Queue item ${correlationId}, importJobStates: ${resultQueueItemImportJobState}`);
     }
 
     // If ABORT -> Timeout
@@ -282,7 +287,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     }
 
     // queueItem state not DONE/ERROR/ABORT - loop back to check status
-    return check(correlationId, result.queueItemState, true);
+    return check(correlationId, result.queueItemState, resultQueueItemImportJobState, true);
   }
 
   function getResponseDataForAbort(result) {
