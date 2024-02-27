@@ -81,7 +81,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       .post('/', checkContentType, createResource)
       .post('/:id', checkContentType, updateResource)
       .post('/remove/:id', removeResource)
-      .post('/restore/:id', recoverResource)
+      .post('/restore/:id', restoreResource)
       .post('/fix/:id', authorizeKVPOnly, fixResource);
   }
 
@@ -94,7 +94,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     .post('/', checkContentType, createResource)
     .post('/:id', checkContentType, updateResource)
     .post('/remove/:id', removeResource)
-    .post('/restore/:id', recoverResource)
+    .post('/restore/:id', restoreResource)
     .post('/fix/:id', authorizeKVPOnly, fixResource);
 
   async function readResource(req, res, next) {
@@ -252,6 +252,10 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     try {
       const correlationId = uuid();
       const pFixType = req?.query?.pFixType || undefined;
+
+      if (!pFixType) {
+        throw new HttpError(httpStatus.BAD_REQUEST, `pFixType for generic fix missing`);
+      }
 
       const operationSettings = {
         noop: parseBoolean(req.query.noop),
