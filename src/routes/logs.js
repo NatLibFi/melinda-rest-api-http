@@ -3,7 +3,7 @@ import passport from 'passport';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {checkQueryParams} from './queryUtils';
-import {authorizeKVPOnly, checkId} from './routeUtils';
+import {authorizeKVPOnly, checkCorrelationId} from './routeUtils';
 import createService from '../interfaces/logs';
 
 export default async function ({mongoUri}) {
@@ -18,10 +18,10 @@ export default async function ({mongoUri}) {
     .get('/catalogers', getListOfCatalogers)
     .get('/correlationIds', getListOfCorrelationIds)
     .get('/list', getListOfLogs)
-    .get('/:correlationId', checkId, getLogs)
+    .get('/:correlationId', checkCorrelationId, getLogs)
     .get('/', doLogsQuery)
-    .put('/:correlationId', checkId, protectLog)
-    .delete('/:correlationId', checkId, removeLog);
+    .put('/:correlationId', checkCorrelationId, protectLog)
+    .delete('/:correlationId', checkCorrelationId, removeLog);
 
   async function doLogsQuery(req, res, next) {
     logger.verbose('routes/logs doLogsQuery');

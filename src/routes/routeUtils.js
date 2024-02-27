@@ -47,8 +47,8 @@ export function checkAcceptHeader(req, res, next) {
   return next();
 }
 
-export function checkId(req, res, next) {
-  logger.debug(`routesUtils:checkId: id: ${req.params.correlationId}`);
+export function checkCorrelationId(req, res, next) {
+  logger.debug(`routesUtils:checkCorrelationId: id: ${req.params.correlationId}`);
   if (!uuidValidate(req.params.id) || uuidVersion(req.params.correlationId) !== 4) {
     return res.status(httpStatus.BAD_REQUEST).send('Malformed correlation id');
   }

@@ -34,7 +34,7 @@ import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/bulk';
-import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils';
+import {authorizeKVPOnly, checkCorrelationId, checkContentType} from './routeUtils';
 import {checkQueryParams} from './queryUtils';
 import {inspect} from 'util';
 
@@ -48,12 +48,12 @@ export default async function ({mongoUri, amqpUrl, recordType}) {
     .use(authorizeKVPOnly)
     .use(checkQueryParams)
     .get('/', doQuery)
-    .get('/content/:correlationId', checkId, readContent)
-    .get('/state/:correlationId', checkId, getState)
-    .put('/state/:correlationId', checkId, updateState)
-    .delete('/:correlationId', checkId, remove)
-    .delete('/content/:correlationId', checkId, removeContent)
-    .post('/record/:correlationId', checkContentType, checkId, bodyParser.text({limit: '5MB', type: '*/*'}), addRecordToBulk)
+    .get('/content/:correlationId', checkCorrelationId, readContent)
+    .get('/state/:correlationId', checkCorrelationId, getState)
+    .put('/state/:correlationId', checkCorrelationId, updateState)
+    .delete('/:correlationId', checkCorrelationId, remove)
+    .delete('/content/:correlationId', checkCorrelationId, removeContent)
+    .post('/record/:correlationId', checkContentType, checkCorrelationId, bodyParser.text({limit: '5MB', type: '*/*'}), addRecordToBulk)
     .post('/', checkContentType, create);
 
   // POST remove - body: list of record database ids - pFixType: DELET
