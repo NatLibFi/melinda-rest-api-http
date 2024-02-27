@@ -54,6 +54,7 @@ export default async function ({mongoUri, amqpUrl, recordType}) {
     .delete('/:correlationId', checkCorrelationId, remove)
     .delete('/content/:correlationId', checkCorrelationId, removeContent)
     .post('/record/:correlationId', checkContentType, checkCorrelationId, bodyParser.text({limit: '5MB', type: '*/*'}), addRecordToBulk)
+    .post('/fix/', bodyParser.text({limit: '5MB', type: '*/*'}), fix)
     .post('/', checkContentType, create);
 
   // POST remove - body: list of record database ids - pFixType: DELET
@@ -94,6 +95,33 @@ export default async function ({mongoUri, amqpUrl, recordType}) {
 
       logger.debug('Invalid operation');
       throw new HttpError(httpStatus.BAD_REQUEST, 'Invalid operation');
+    } catch (error) {
+      if (error instanceof HttpError) {
+        res.status(error.status).send(error.payload);
+        return;
+      }
+      return next(error);
+    }
+  }
+
+  async function fix(req, res, next) {
+    try {
+      logger.silly('routes/Bulk fix');
+      const {operationSettings} = Service.validateQueryParamsFix(req.query, req.user.id);
+      logger.debug(`Fix: operationSettings: ${JSON.stringify(operationSettings)}`);
+      logger.debug(JSON.stringify(req.body));
+
+      const params = {
+        correlationId: uuid(),
+        cataloger: Service.checkCataloger(req.user.id, req.query.pCatalogerIn),
+        oCatalogerIn: req.user.id,
+        operation: OPERATIONS.FIX,
+        operationSettings,
+        data: req.body
+      };
+
+      const response = await Service.createFix(params);
+      res.json(response);
     } catch (error) {
       if (error instanceof HttpError) {
         res.status(error.status).send(error.payload);

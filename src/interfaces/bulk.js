@@ -38,7 +38,7 @@ export default async function ({mongoUri, amqpUrl}) {
   const mongoOperator = await mongoFactory(mongoUri, 'bulk');
   const amqpOperator = await amqpFactory(amqpUrl, true);
 
-  return {create, addRecord, getState, updateState, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
+  return {create, createFix, addRecord, getState, updateState, doQuery, readContent, remove, removeContent, validateQueryParams, validateQueryParamsFix, checkCataloger};
 
   async function create({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, operationSettings, stream}) {
     const result = await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, operationSettings, prio: false});
@@ -60,8 +60,80 @@ export default async function ({mongoUri, amqpUrl}) {
     return setStateResult;
   }
 
+  async function createFix({correlationId, cataloger, oCatalogerIn, operation, recordLoadParams, operationSettings, data, stream = undefined}) {
+    logger.debug(`${JSON.stringify.operationSettings}`);
+    const recordList = getRecordList(data);
+    // We always create a noStreamBulk
+    const result = await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, recordLoadParams, stream, operationSettings, prio: false});
+    logger.debug(`CreateBulk result: ${JSON.stringify(result)}`);
+    // If we had a noStream bulk (with no data)
+    if (operationSettings.noStream === true) {
+      logger.verbose(`NoStream bulk fix ready to receive records ${correlationId}!`);
+      return result;
+    }
+    // If we had a stream bulk (with data)
+    logger.debug(` ---- Adding recordIds to bulk fix ${correlationId} ----`);
+    const addResult = await addRecordListToFixPump({correlationId, recordList});
+    logger.verbose(`RecordIds added for ${correlationId}: ${addResult}!`);
+    logger.debug(` ---------------------`);
+    logger.silly(`Updating current state of ${correlationId} to ${QUEUE_ITEM_STATE.VALIDATOR.PENDING_VALIDATION}`);
+    const setStateResult = await mongoOperator.setState({correlationId, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_VALIDATION});
+    logger.silly(JSON.stringify(setStateResult));
+    const resultCorrelationId = setStateResult.value?.correlationId || undefined;
+    logger.silly(`resultCorrelationId: ${resultCorrelationId}`);
+    if (!resultCorrelationId) {
+      throw new HttpError(httpStatus.INTERNAL_SERVER_ERROR, `Could not update state for correlationId ${correlationId}. Result: ${JSON.stringify(setStateResult)}`);
+    }
+    return setStateResult;
+  }
+
+  function getRecordList(data) {
+    // Let's validate this data too
+    const recordList = data.split('\n');
+    logger.debug(`We have ${recordList.length} recordIds`);
+    return recordList;
+  }
+
+  async function addRecordListToFixPump({correlationId, recordList}) {
+    const [recordId, ...rest] = recordList;
+    if (recordId !== undefined) {
+      await addRecordToFix({correlationId, recordId, stream: true});
+      return addRecordListToFixPump({correlationId, recordList: rest});
+    }
+    return;
+  }
+
+  async function addRecordToFix({correlationId, recordId, stream = false}) {
+    logger.debug(`Adding ${recordId} to ${correlationId}`);
+    const addBlobSizeResult = await mongoOperator.addBlobSize({correlationId});
+    logger.silly(`addBlobSizeResult: ${JSON.stringify(addBlobSizeResult)}`);
+    const queueItem = addBlobSizeResult.value;
+
+    if (!queueItem) {
+      throw new HttpError(httpStatus.NOT_FOUND, `Invalid queueItem ${correlationId} for adding recordIds`);
+    }
+
+    // addBlobSize already checked the queueItemState, so this should not happen ever
+    if (queueItem.queueItemState !== QUEUE_ITEM_STATE.VALIDATOR.WAITING_FOR_RECORDS) {
+      throw new HttpError(httpStatus.BAD_REQUEST, `Invalid state (${queueItem.queueItemState}) for adding records in queueItem ${correlationId}`);
+    }
+
+    const {operation, cataloger, operationSettings, blobSize} = queueItem;
+    const currentSequence = blobSize + 1;
+    const headers = {correlationId, operation, cataloger, operationSettings, id: recordId};
+
+    logger.debug(`Adding record ${currentSequence} for ${correlationId}`);
+
+    const queue = `${QUEUE_ITEM_STATE.VALIDATOR.PENDING_VALIDATION}.${correlationId}`;
+    await amqpOperator.sendToQueue({queue, correlationId, headers, data: undefined});
+    if (stream === false) {
+      return {status: httpStatus.CREATED, payload: `Record has been added to bulk ${correlationId} that has currently ${currentSequence} records`};
+    }
+    return true;
+  }
+
   // eslint-disable-next-line max-statements
-  async function addRecord({correlationId, contentType, data}) {
+  async function addRecord({correlationId, contentType, operation, data}) {
     // asses rabbit queue for correlationId
 
     // addBlobSize increases blobSize by 1 and returns the queueItem if there's a queueItem in state WAITING_FOR_RECORDS for correlationId
@@ -78,28 +150,29 @@ export default async function ({mongoUri, amqpUrl}) {
       throw new HttpError(httpStatus.BAD_REQUEST, `Invalid state (${queueItem.queueItemState}) for adding records in queueItem ${correlationId}`);
     }
 
-    if (data) {
+    if ([OPERATIONS.CREATE, OPERATIONS.UPDATE].includes(operation)) {
+      if (data) {
+        const type = contentType;
+        const {conversionFormat} = CONTENT_TYPES.find(({contentType, allowBulk}) => contentType === type && allowBulk === true);
 
-      const type = contentType;
-      const {conversionFormat} = CONTENT_TYPES.find(({contentType, allowBulk}) => contentType === type && allowBulk === true);
+        if (!conversionFormat) {
+          throw new HttpError(httpStatus.UNSUPPORTED_MEDIA_TYPE, `Invalid content-type`);
+        }
 
-      if (!conversionFormat) {
-        throw new HttpError(httpStatus.UNSUPPORTED_MEDIA_TYPE, `Invalid content-type`);
+        const {operation, cataloger, operationSettings, blobSize} = queueItem;
+        const currentSequence = blobSize + 1;
+        const headers = {correlationId, operation, format: conversionFormat, cataloger, operationSettings, recordMetadata: {blobSequence: currentSequence}};
+
+        logger.debug(`Adding record ${currentSequence} for ${correlationId}`);
+
+        const queue = `${QUEUE_ITEM_STATE.VALIDATOR.PENDING_VALIDATION}.${correlationId}`;
+        await amqpOperator.sendToQueue({queue, correlationId, headers, data});
+
+        return {status: httpStatus.CREATED, payload: `Record has been added to bulk ${correlationId} that has currently ${currentSequence} records`};
       }
-
-      const {operation, cataloger, operationSettings, blobSize} = queueItem;
-      const currentSequence = blobSize + 1;
-      const headers = {correlationId, operation, format: conversionFormat, cataloger, operationSettings, recordMetadata: {blobSequence: currentSequence}};
-
-      logger.debug(`Adding record ${currentSequence} for ${correlationId}`);
-
-      const queue = `${QUEUE_ITEM_STATE.VALIDATOR.PENDING_VALIDATION}.${correlationId}`;
-      await amqpOperator.sendToQueue({queue, correlationId, headers, data});
-
-      return {status: httpStatus.CREATED, payload: `Record has been added to bulk ${correlationId} that has currently ${currentSequence} records`};
+      throw new HttpError(httpStatus.BAD_REQUEST, 'No record.');
     }
-
-    throw new HttpError(httpStatus.BAD_REQUEST, 'No record.');
+    throw new HttpError(httpStatus.BAD_REQUEST, `Wrong operation ${operation}.`);
   }
 
   async function getState(params) {
@@ -344,6 +417,29 @@ export default async function ({mongoUri, amqpUrl}) {
     };
 
     return operationSettings;
+  }
+
+  function validateQueryParamsFix(queryParams) {
+    logger.silly(`bulk/validateQueryParamsFix: queryParams: ${JSON.stringify(queryParams)}`);
+
+    const operation = OPERATIONS.FIX;
+
+    const recordLoadParams = {
+      pActiveLibrary: queryParams.pActiveLibrary,
+      pFixType: queryParams.pFixType,
+      pCatalogerIn: queryParams.pCatalogerIn || null
+    };
+
+    const noStream = queryParams.noStream ? parseBoolean(queryParams.noStream) : false;
+    const operationSettings = {
+      noStream,
+      noop: queryParams.noop === undefined ? false : parseBoolean(queryParams.noop),
+      validate: queryParams.validate === undefined ? true : parseBoolean(queryParams.validate),
+      prio: false
+    };
+
+    logger.debug(`noStream: ${noStream}, operationSettings: ${JSON.stringify(operationSettings)}`);
+    return {operation, recordLoadParams, noStream, operationSettings};
   }
 
   function checkCataloger(id, paramsId) {
