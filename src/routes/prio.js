@@ -61,7 +61,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       .get('/prio/', authorizeKVPOnly, getPrioLogs)
       .post('/', authorizeKVPOnly, checkContentType, createResource)
       .post('/:id', authorizeKVPOnly, checkContentType, updateResource)
-      // .post('/remove/:id', removeResource)
+      .post('/remove/:id', removeResource)
       // .post('/recover/:id', recoverResource)
       .post('/fix/:id', authorizeKVPOnly, fixResource);
   }
@@ -80,7 +80,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       .get('/prio/', authorizeKVPOnly, getPrioLogs)
       .post('/', checkContentType, createResource)
       .post('/:id', checkContentType, updateResource)
-      //.post('/remove/:id', removeResource)
+      .post('/remove/:id', removeResource)
       //.post('/recover/:id', recoverResource)
       .post('/fix/:id', authorizeKVPOnly, fixResource);
   }
@@ -93,7 +93,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     .get('/prio/', authorizeKVPOnly, getPrioLogs)
     .post('/', checkContentType, createResource)
     .post('/:id', checkContentType, updateResource)
-    //.post('remove/:id', removeResource)
+    .post('remove/:id', removeResource)
     //.post('recover/:id', recoverResource)
     .post('/fix/:id', authorizeKVPOnly, fixResource);
 
@@ -261,7 +261,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
         fixType: pFixType
       };
 
-      const {messages, id} = await Service.fix({
+      const {messages} = await Service.fix({
         id: req.params.id,
         cataloger: sanitizeCataloger(req.user, req.query.cataloger),
         oCatalogerIn: req.user.id,
@@ -272,10 +272,43 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       });
 
       logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
+      return res.status(httpStatus.OK).json(messages);
 
-      // Note: noops return OK even if they fail marc-record-validate validations
-      return res.status(httpStatus.OK).set('Record-ID', id)
-        .json(messages);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
+  }
+
+  async function removeResource(req, res, next) {
+    logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
+    logger.silly('routes/Prio fixResource');
+    logger.debug(`Remove fix request for ${req.params.id}, ${JSON.stringify(req.query)}`);
+    try {
+      const correlationId = uuid();
+
+      const operationSettings = {
+        noop: parseBoolean(req.query.noop),
+        // Prio always validates
+        validate: true,
+        prio: true,
+        fixType: 'DELET'
+      };
+
+      const {messages} = await Service.fix({
+        id: req.params.id,
+        cataloger: sanitizeCataloger(req.user, req.query.cataloger),
+        oCatalogerIn: req.user.id,
+        operationSettings,
+        correlationId
+        // data: req.body
+      });
+
+      logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
+      return res.status(httpStatus.OK).json(messages);
+
     } catch (error) {
       if (error instanceof HttpError) {
         return res.status(error.status).send(error.payload);
