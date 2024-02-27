@@ -38,7 +38,7 @@ import createService from '../interfaces/prio';
 import httpStatus from 'http-status';
 import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger} from './routeUtils';
 import {CONTENT_TYPES, DEFAULT_ACCEPT} from '../config';
-import {checkQueryParams} from './queryUtils';
+import {checkQueryParams, checkId} from './queryUtils';
 
 // eslint-disable-next-line no-unused-vars
 export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite}) => {
@@ -57,13 +57,13 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     return new Router()
       .use(passport.authenticate('melinda', {session: false}))
       .use(checkQueryParams)
-      .get('/:id', checkAcceptHeader, readResource)
+      .get('/:id', checkId, checkAcceptHeader, readResource)
       .get('/prio/', authorizeKVPOnly, getPrioLogs)
       .post('/', authorizeKVPOnly, checkContentType, createResource)
-      .post('/:id', authorizeKVPOnly, checkContentType, updateResource)
-      .post('/remove/:id', removeResource)
-      .post('/restore/:id', restoreResource)
-      .post('/fix/:id', authorizeKVPOnly, fixResource);
+      .post('/:id', checkId, authorizeKVPOnly, checkContentType, updateResource)
+      .post('/remove/:id', checkId, removeResource)
+      .post('/restore/:id', checkId, restoreResource)
+      .post('/fix/:id', authorizeKVPOnly, checkId, fixResource);
   }
 
   // Require authentication before reading if requireAuthForRead is true
@@ -72,26 +72,26 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     return new Router()
       .use(passport.authenticate('melinda', {session: false}))
       .use(checkQueryParams)
-      .get('/:id', checkAcceptHeader, readResource)
+      .get('/:id', checkAcceptHeader, checkId, readResource)
       .get('/prio/', authorizeKVPOnly, getPrioLogs)
       .post('/', checkContentType, createResource)
-      .post('/:id', checkContentType, updateResource)
-      .post('/remove/:id', removeResource)
-      .post('/restore/:id', restoreResource)
-      .post('/fix/:id', authorizeKVPOnly, fixResource);
+      .post('/:id', checkContentType, checkId, updateResource)
+      .post('/remove/:id', checkId, removeResource)
+      .post('/restore/:id', checkId, restoreResource)
+      .post('/fix/:id', authorizeKVPOnly, checkId, fixResource);
   }
 
   //logger.verbose(`Requiring authentication only for writing`);
   return new Router()
     .use(checkQueryParams)
-    .get('/:id', checkAcceptHeader, readResource)
+    .get('/:id', checkAcceptHeader, checkId, readResource)
     .use(passport.authenticate('melinda', {session: false}))
     .get('/prio/', authorizeKVPOnly, getPrioLogs)
     .post('/', checkContentType, createResource)
-    .post('/:id', checkContentType, updateResource)
-    .post('/remove/:id', removeResource)
-    .post('/restore/:id', restoreResource)
-    .post('/fix/:id', authorizeKVPOnly, fixResource);
+    .post('/:id', checkContentType, checkId, updateResource)
+    .post('/remove/:id', checkId, removeResource)
+    .post('/restore/:id', checkId, restoreResource)
+    .post('/fix/:id', authorizeKVPOnly, checkId, fixResource);
 
   async function readResource(req, res, next) {
     logger.debug(`Request from ${req?.user?.id || 'N/A'}`);

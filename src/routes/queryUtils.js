@@ -5,6 +5,16 @@ import {QUEUE_ITEM_STATE, LOG_ITEM_TYPE} from '@natlibfi/melinda-rest-api-common
 
 const logger = createLogger();
 
+export function checkId(req, res, next) {
+  const {id} = req.params;
+  if (!(/^[0-9]{9}$/u).test(id)) {
+    return res.status(httpStatus.BAD_REQUEST).json(`Invalid id ${id}`);
+  }
+  logger.debug(`Id ${id} is OK.`);
+  return next();
+}
+
+
 // eslint-disable-next-line complexity
 export function checkQueryParams(req, res, next) {
   const queryParams = req.query;
