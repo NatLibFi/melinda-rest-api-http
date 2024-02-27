@@ -11,9 +11,7 @@ export function checkQueryParams(req, res, next) {
 
   logger.debug(`Checking query params: ${JSON.stringify(queryParams)}`);
   const failedParams = [
-    {name: 'id', value: queryParams.id ? uuidValidate(queryParams.id) && uuidVersion(queryParams.id) === 4 : true},
-    // correlationId is checked as LogQueryParameters below
-    //{name: 'correlationId', value: queryParams.correlationId ? uuidValidate(queryParams.correlationId) && uuidVersion(queryParams.correlationId) === 4 : true},
+    {name: 'correlationId', value: queryParams.correlationId ? uuidValidate(queryParams.correlationId) && uuidVersion(queryParams.correlationId) === 4 : true},
     {name: 'pOldNew', value: queryParams.pOldNew ? (/^(?<pOldNew>NEW|OLD)$/u).test(queryParams.pOldNew) : true},
     {name: 'pActiveLibrary', value: queryParams.pActiveLibrary ? (/^FIN\d\d$/u).test(queryParams.pActiveLibrary) : true},
     {name: 'noStream', value: queryParams.noStream ? (/^(?:1|0|true|false)$/ui).test(queryParams.noStream) : true},
