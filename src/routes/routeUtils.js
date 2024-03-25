@@ -6,6 +6,21 @@ import {version as uuidVersion, validate as uuidValidate} from 'uuid';
 
 const logger = createLogger();
 
+export function authorizeKVPOnlyCheck(requireAuth = false) {
+  return function (req, res, next) {
+    if (!requireAuth) {
+      logger.debug(`Our setup is ${requireAuth} - authorization not required`);
+      return next();
+    }
+    logger.debug(`Our setup is ${requireAuth} - checking ${JSON.stringify(req.user.id)} for KVP-authorization: ${req.user.authorization}`);
+    if (req.user.authorization.includes('KVP')) {
+      logger.debug(`We have user with KVP-authorization`);
+      return next();
+    }
+    return res.status(httpStatus.FORBIDDEN).send('User credentials do not have permission to use this endpoint');
+  };
+}
+
 export function authorizeKVPOnly(req, res, next) {
   logger.debug(`Checking ${JSON.stringify(req.user.id)} for KVP-authorization: ${req.user.authorization}`);
   if (req.user.authorization.includes('KVP')) {
@@ -23,7 +38,7 @@ export function sanitizeCataloger(passportCataloger, queryCataloger) {
     return {id: queryCataloger, authorization};
   }
 
-  if (!authorization.includes('KVP') && queryCataloger !== undefined) { // eslint-disable-line functional/no-conditional-statements
+  if (!authorization.includes('KVP') && queryCataloger !== undefined) {
     throw new HttpError(httpStatus.FORBIDDEN, 'Account has no permission to do this request');
   }
 
@@ -47,9 +62,9 @@ export function checkAcceptHeader(req, res, next) {
   return next();
 }
 
-export function checkId(req, res, next) {
-  logger.debug(`routesUtils:checkId: id: ${req.params.id}`);
-  if (!uuidValidate(req.params.id) || uuidVersion(req.params.id) !== 4) {
+export function checkCorrelationId(req, res, next) {
+  logger.debug(`routesUtils:checkCorrelationId: id: ${req.params.correlationId}`);
+  if (!uuidValidate(req.params.id) || uuidVersion(req.params.correlationId) !== 4) {
     return res.status(httpStatus.BAD_REQUEST).send('Malformed correlation id');
   }
 

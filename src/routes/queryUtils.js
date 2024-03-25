@@ -5,14 +5,44 @@ import {QUEUE_ITEM_STATE, LOG_ITEM_TYPE} from '@natlibfi/melinda-rest-api-common
 
 const logger = createLogger();
 
+export function checkIdFOO(requireId = true, requireValidId = true) {
+  return function (req, res, next) {
+    logger.debug(`Check if id is required`);
+    if (!requireId && !requireValidId) {
+      return next();
+    }
+    const {id} = req.params;
+    if (!id || !(/^[0-9]{9}$/u).test(id)) {
+      return res.status(httpStatus.BAD_REQUEST).json(`Invalid id ${id}`);
+    }
+    logger.debug(`Id ${id} is OK.`);
+    return next();
+  };
+}
+
+export function checkIdBAR(req, res, next) {
+  logger.debug(`Check if id is required`);
+  const {id} = req.params;
+  if (!id || !(/^[0-9]{9}$/u).test(id)) {
+    return res.status(httpStatus.BAD_REQUEST).json(`Invalid id ${id}`);
+  }
+  logger.debug(`Id ${id} is OK.`);
+  return next();
+}
+
+export function checkId(req, res, next) {
+  const {id} = req.params;
+  logger.debug(`Id ${id} for ${JSON.stringify(req.params)}is OK.`);
+  return next();
+}
+
+// eslint-disable-next-line complexity
 export function checkQueryParams(req, res, next) {
   const queryParams = req.query;
 
   logger.debug(`Checking query params: ${JSON.stringify(queryParams)}`);
   const failedParams = [
-    {name: 'id', value: queryParams.id ? uuidValidate(queryParams.id) && uuidVersion(queryParams.id) === 4 : true},
-    // correlationId is checked as LogQueryParameters below
-    //{name: 'correlationId', value: queryParams.correlationId ? uuidValidate(queryParams.correlationId) && uuidVersion(queryParams.correlationId) === 4 : true},
+    {name: 'correlationId', value: queryParams.correlationId ? uuidValidate(queryParams.correlationId) && uuidVersion(queryParams.correlationId) === 4 : true},
     {name: 'pOldNew', value: queryParams.pOldNew ? (/^(?<pOldNew>NEW|OLD)$/u).test(queryParams.pOldNew) : true},
     {name: 'pActiveLibrary', value: queryParams.pActiveLibrary ? (/^FIN\d\d$/u).test(queryParams.pActiveLibrary) : true},
     {name: 'noStream', value: queryParams.noStream ? (/^(?:1|0|true|false)$/ui).test(queryParams.noStream) : true},
@@ -25,6 +55,7 @@ export function checkQueryParams(req, res, next) {
     {name: 'pRejectFile', value: queryParams.pRejectFile ? (/^[a-z|A-Z|0-9|/|.|_|-]{0,100}$/u).test(queryParams.pRejectFile) : true},
     {name: 'pLogFile', value: queryParams.pLogFile ? (/^[a-z|A-Z|0-9|/|.|_|-]{0,100}$/u).test(queryParams.pLogFile) : true},
     {name: 'pCatalogerIn', value: queryParams.pCatalogerIn ? (/^[A-Z|0-9|_|-]{0,10}$/u).test(queryParams.pCatalogerIn) : true},
+    {name: 'pFixType', value: queryParams.pFixType ? (/^[A-Z|0-9|_|-]{0,10}$/u).test(queryParams.pFixType) : true},
     {name: 'creationTime', value: queryParams.creationTime ? checkTimeFormat(queryParams.creationTime) : true},
     {name: 'modificationTime', value: queryParams.modificationTime ? checkTimeFormat(queryParams.modificationTime) : true},
     {name: 'queueItemState', value: queryParams.queueItemState ? checkQueueItemState(queryParams.queueItemState) : true},

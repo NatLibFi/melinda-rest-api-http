@@ -4,7 +4,7 @@
 *
 * RESTful API for Melinda
 *
-* Copyright (C) 2018-2019, 2023 University Of Helsinki (The National Library Of Finland)
+* Copyright (C) 2018-2019, 2023-2024 University Of Helsinki (The National Library Of Finland)
 *
 * This file is part of melinda-rest-api-http
 *
@@ -36,32 +36,16 @@ import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import createService from '../interfaces/prio';
 import httpStatus from 'http-status';
-import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger} from './routeUtils';
+import {checkAcceptHeader, checkContentType, sanitizeCataloger, authorizeKVPOnlyCheck} from './routeUtils';
 import {CONTENT_TYPES, DEFAULT_ACCEPT} from '../config';
-import {checkQueryParams} from './queryUtils';
+import {checkQueryParams, checkId} from './queryUtils';
 
 // eslint-disable-next-line no-unused-vars
-export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite}) => {
+export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead = false, requireKVPForWrite = false}) => {
   const logger = createLogger();
-  //const apiDoc = fs.readFileSync(path.join(__dirname, '..', 'api.yaml'), 'utf8');
   const Service = await createService({
     sruUrl, amqpUrl, mongoUri, pollWaitTime
   });
-
-  //logger.debug(`Read: ${requireAuthForRead} write: ${requireKVPForWrite}`);
-  // Require KVP authentication for creates/updates if requireKVPForWrite is true
-  // Note: this also requires general authentication for read
-
-  if (requireKVPForWrite) {
-    logger.verbose(`Requiring authentication for reading and KVP authentication for writing`);
-    return new Router()
-      .use(passport.authenticate('melinda', {session: false}))
-      .use(checkQueryParams)
-      .get('/:id', checkAcceptHeader, readResource)
-      .get('/prio/', authorizeKVPOnly, getPrioLogs)
-      .post('/', authorizeKVPOnly, checkContentType, createResource)
-      .post('/:id', authorizeKVPOnly, checkContentType, updateResource);
-  }
 
   // Require authentication before reading if requireAuthForRead is true
   if (requireAuthForRead) {
@@ -70,27 +54,26 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       .use(passport.authenticate('melinda', {session: false}))
       .use(checkQueryParams)
       .get('/:id', checkAcceptHeader, readResource)
-      .get('/prio/', authorizeKVPOnly, getPrioLogs)
-      .post('/', checkContentType, createResource)
-      .post('/:id', checkContentType, updateResource);
+      //.get('/prio/', authorizeKVPOnlyCheck(true), getPrioLogs)
+      .post('/', authorizeKVPOnlyCheck(requireKVPForWrite), checkContentType, createResource)
+      .post('/:id', authorizeKVPOnlyCheck(requireKVPForWrite), checkContentType, updateResource)
+      .post('/remove/:id', authorizeKVPOnlyCheck(requireKVPForWrite), removeResource)
+      .post('/restore/:id', authorizeKVPOnlyCheck(requireKVPForWrite), restoreResource)
+      .post('/fix/:id', authorizeKVPOnlyCheck(true), checkId, fixResource);
   }
 
-  //logger.verbose(`Requiring authentication only for writing`);
+  //Require authentication only for writing
   return new Router()
     .use(checkQueryParams)
     .get('/:id', checkAcceptHeader, readResource)
-    //.get('/apidoc/', serveApiDoc)
     .use(passport.authenticate('melinda', {session: false}))
-    .get('/prio/', authorizeKVPOnly, getPrioLogs)
-    .post('/', checkContentType, createResource)
-    .post('/:id', checkContentType, updateResource);
-
-  /*
-    function serveApiDoc(req, res) {
-    res.set('Content-Type', 'application/yaml');
-    res.send(apiDoc);
-  }
-  */
+    //.get('/prio/', authorizeKVPOnlyCheck(true), getPrioLogs)
+    .post('/', checkContentType, authorizeKVPOnlyCheck(requireKVPForWrite), createResource)
+    .post('/:id', checkContentType, authorizeKVPOnlyCheck(requireKVPForWrite), updateResource)
+    .post('/remove/:id', authorizeKVPOnlyCheck(requireKVPForWrite), removeResource)
+    .post('/restore/:id', authorizeKVPOnlyCheck(requireKVPForWrite), restoreResource)
+    // Require KVP-authorization always for using generic fixes
+    .post('/fix/:id', authorizeKVPOnlyCheck(true), fixResource);
 
   async function readResource(req, res, next) {
     logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
@@ -240,11 +223,115 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     }
   }
 
-  async function getPrioLogs(req, res) {
+  async function fixResource(req, res, next) {
     logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
-    logger.silly('routes/Bulk doQuery');
-    const response = await Service.doQuery(req.query);
-    res.json(response);
+    logger.silly('routes/Prio fixResource');
+    logger.debug(`Fix request for ${req.params.id}, ${JSON.stringify(req.query)}`);
+    try {
+      const correlationId = uuid();
+      const pFixType = req?.query?.pFixType || undefined;
+
+      if (!pFixType) {
+        throw new HttpError(httpStatus.BAD_REQUEST, `pFixType for generic fix missing`);
+      }
+
+      const operationSettings = {
+        noop: parseBoolean(req.query.noop),
+        // Prio always validates
+        validate: true,
+        prio: true,
+        fixType: pFixType
+      };
+
+      const {messages} = await Service.fix({
+        id: req.params.id,
+        cataloger: sanitizeCataloger(req.user, req.query.cataloger),
+        oCatalogerIn: req.user.id,
+        //        pFixType,
+        operationSettings,
+        correlationId
+        // data: req.body
+      });
+
+      logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
+      return res.status(httpStatus.OK).json(messages);
+
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
+  }
+
+  async function removeResource(req, res, next) {
+    logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
+    logger.silly('routes/Prio fixResource');
+    logger.debug(`Remove fix request for ${req.params.id}, ${JSON.stringify(req.query)}`);
+    try {
+      const correlationId = uuid();
+
+      const operationSettings = {
+        noop: parseBoolean(req.query.noop),
+        // Prio always validates
+        validate: true,
+        prio: true,
+        fixType: 'DELET'
+      };
+
+      const {messages} = await Service.fix({
+        id: req.params.id,
+        cataloger: sanitizeCataloger(req.user, req.query.cataloger),
+        oCatalogerIn: req.user.id,
+        operationSettings,
+        correlationId
+        // data: req.body
+      });
+
+      logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
+      return res.status(httpStatus.OK).json(messages);
+
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
+  }
+
+  async function restoreResource(req, res, next) {
+    logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
+    logger.silly('routes/Prio fixResource');
+    logger.debug(`Restore fix request for ${req.params.id}, ${JSON.stringify(req.query)}`);
+    try {
+      const correlationId = uuid();
+
+      const operationSettings = {
+        noop: parseBoolean(req.query.noop),
+        // Prio always validates
+        validate: true,
+        prio: true,
+        fixType: 'UNDEL'
+      };
+
+      const {messages} = await Service.fix({
+        id: req.params.id,
+        cataloger: sanitizeCataloger(req.user, req.query.cataloger),
+        oCatalogerIn: req.user.id,
+        operationSettings,
+        correlationId
+        // data: req.body
+      });
+
+      logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
+      return res.status(httpStatus.OK).json(messages);
+
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
   }
 
   function getConversionFormat(type) {
@@ -252,5 +339,15 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     return conversionFormat;
   }
 
+
+  // get prioLogs doesn't work as the router interprets /prio/-path as a recordId
+  /*
+  async function getPrioLogs(req, res) {
+    logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
+    logger.silly('routes/Bulk doQuery');
+    const response = await Service.doQuery(req.query);
+    res.json(response);
+  }
+  */
 
 };

@@ -3,7 +3,7 @@ import passport from 'passport';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {checkQueryParams} from './queryUtils';
-import {authorizeKVPOnly, checkId} from './routeUtils';
+import {authorizeKVPOnly, checkCorrelationId} from './routeUtils';
 import createService from '../interfaces/logs';
 
 export default async function ({mongoUri}) {
@@ -18,10 +18,10 @@ export default async function ({mongoUri}) {
     .get('/catalogers', getListOfCatalogers)
     .get('/correlationIds', getListOfCorrelationIds)
     .get('/list', getListOfLogs)
-    .get('/:id', checkId, getLogs)
+    .get('/:correlationId', checkCorrelationId, getLogs)
     .get('/', doLogsQuery)
-    .put('/:id', checkId, protectLog)
-    .delete('/:id', checkId, removeLog);
+    .put('/:correlationId', checkCorrelationId, protectLog)
+    .delete('/:correlationId', checkCorrelationId, removeLog);
 
   async function doLogsQuery(req, res, next) {
     logger.verbose('routes/logs doLogsQuery');
@@ -44,7 +44,7 @@ export default async function ({mongoUri}) {
     logger.verbose('routes/logs getLogs');
     try {
       logger.debug(`We have a correlationId: ${req.params.id}`);
-      const response = await Service.getLogs({correlationId: req.params.id});
+      const response = await Service.getLogs({correlationId: req.params.correlationId});
       logger.debug(`Response: ${JSON.stringify(response)}`);
       //res.status(response.status).json(response.payload);
       res.json(response);
@@ -112,7 +112,7 @@ export default async function ({mongoUri}) {
   async function protectLog(req, res, next) {
     logger.verbose('routes/logs protectLog');
     try {
-      const correlationId = req.params.id;
+      const {correlationId} = req.params;
       const {blobSequence} = req.query || false;
       logger.debug(`We have a correlationId: ${correlationId}${blobSequence ? `, blobSequence: ${blobSequence}` : ''}`);
       const response = await Service.protectLog(correlationId, blobSequence);
@@ -130,7 +130,7 @@ export default async function ({mongoUri}) {
   async function removeLog(req, res, next) {
     logger.verbose('routes/logs removeLog');
     try {
-      const correlationId = req.params.id;
+      const {correlationId} = req.params;
       const {force} = req.query || 0;
       logger.debug(`We have a correlationId: ${correlationId}`);
       const response = await Service.removeLog(correlationId, parseBoolean(force));

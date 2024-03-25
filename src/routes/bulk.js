@@ -34,7 +34,7 @@ import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/bulk';
-import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils';
+import {authorizeKVPOnly, checkCorrelationId, checkContentType} from './routeUtils';
 import {checkQueryParams} from './queryUtils';
 import {inspect} from 'util';
 
@@ -48,13 +48,21 @@ export default async function ({mongoUri, amqpUrl, recordType}) {
     .use(authorizeKVPOnly)
     .use(checkQueryParams)
     .get('/', doQuery)
-    .get('/content/:id', checkId, readContent)
-    .get('/state/:id', checkId, getState)
-    .put('/state/:id', checkId, updateState)
-    .delete('/:id', checkId, remove)
-    .delete('/content/:id', checkId, removeContent)
-    .post('/record/:id', checkContentType, checkId, bodyParser.text({limit: '5MB', type: '*/*'}), addRecordToBulk)
+    .get('/content/:correlationId', checkCorrelationId, readContent)
+    .get('/state/:correlationId', checkCorrelationId, getState)
+    .put('/state/:correlationId', checkCorrelationId, updateState)
+    .delete('/:correlationId', checkCorrelationId, remove)
+    .delete('/content/:correlationId', checkCorrelationId, removeContent)
+    .post('/record/:correlationId', checkContentType, checkCorrelationId, bodyParser.text({limit: '5MB', type: '*/*'}), addRecordToBulk)
+    .post('/fix/', bodyParser.text({limit: '5MB', type: '*/*'}), fix)
     .post('/', checkContentType, create);
+
+  // POST remove - body: list of record database ids - pFixType: DELET
+  // POST recover - body: list of record database ids - pFixType: UNDEL
+  // POST fix - body: list of record database ids - pFixType: param
+
+  // Add here optional prio-parameter
+  // Add here possibility for non-KVP-users to run prio, no-stream-bulk
 
   async function create(req, res, next) {
     try {
@@ -87,6 +95,33 @@ export default async function ({mongoUri, amqpUrl, recordType}) {
 
       logger.debug('Invalid operation');
       throw new HttpError(httpStatus.BAD_REQUEST, 'Invalid operation');
+    } catch (error) {
+      if (error instanceof HttpError) {
+        res.status(error.status).send(error.payload);
+        return;
+      }
+      return next(error);
+    }
+  }
+
+  async function fix(req, res, next) {
+    try {
+      logger.silly('routes/Bulk fix');
+      const {operationSettings} = Service.validateQueryParamsFix(req.query, req.user.id);
+      logger.debug(`Fix: operationSettings: ${JSON.stringify(operationSettings)}`);
+      logger.debug(JSON.stringify(req.body));
+
+      const params = {
+        correlationId: uuid(),
+        cataloger: Service.checkCataloger(req.user.id, req.query.pCatalogerIn),
+        oCatalogerIn: req.user.id,
+        operation: OPERATIONS.FIX,
+        operationSettings,
+        data: req.body
+      };
+
+      const response = await Service.createFix(params);
+      res.json(response);
     } catch (error) {
       if (error instanceof HttpError) {
         res.status(error.status).send(error.payload);
