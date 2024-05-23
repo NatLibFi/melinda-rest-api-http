@@ -14,7 +14,7 @@
 		"url": "git@github.com:natlibfi/melinda-rest-api-http.git"
 	},
 	"license": "MIT",
-	"version": "3.3.7-alpha.5",
+	"version": "3.3.7-alpha.6",
 	"main": "dist/index.js",
 	"engines": {
 		"node": ">=18"
