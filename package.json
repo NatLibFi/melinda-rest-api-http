@@ -35,7 +35,7 @@
 		"@natlibfi/melinda-backend-commons": "^2.3.1",
 		"@natlibfi/melinda-commons": "^13.0.16",
 		"@natlibfi/melinda-rest-api-commons": "^4.1.8",
-		"@natlibfi/passport-melinda-aleph": "^3.0.1",
+		"@natlibfi/passport-melinda-aleph": "^2.0.4",
 		"@natlibfi/sru-client": "^6.0.13",
 		"body-parser": "^1.20.2",
 		"express": "^4.19.2",
