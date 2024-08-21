@@ -93,9 +93,9 @@ jobs:
     steps:
       - name: Production bib webhook
         uses: joelwmale/webhook-action@master
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/main'
         with:
-          url: ${{ secrets.WEBHOOK_URL_BIB_PROD_FROM_MASTER }}
+          url: ${{ secrets.WEBHOOK_URL_BIB_PROD_FROM_MAIN }}
           body: '{}'
       - name: Production aut-names webhook
         uses: joelwmale/webhook-action@master
