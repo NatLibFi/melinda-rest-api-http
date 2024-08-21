@@ -63,16 +63,14 @@ export function checkContentType(req, res, next) {
   logger.debug(`routesUtils:checkContentType: Found defined contentType: ${JSON.stringify(result)}`);
 
   if ((/^\/bulk[/?]/u).test(req.originalUrl)) {
-    logger.debug(`Checking contentType for bulk (${req.originalUrl}`);
+    logger.debug(`Checking contentType for bulk (path: ${req.originalUrl})`);
     if (!result || result.allowBulk === false) {
       return res.status(httpStatus.UNSUPPORTED_MEDIA_TYPE).send('Invalid content-type');
     }
     return next();
   }
 
-  logger.debug(`Checking contentType for prio (${req.originalUrl}`);
-
-  logger.debug('Checking contentType for prio');
+  logger.debug(`Checking contentType for prio (path: ${req.originalUrl})`);
   if (!result || result.allowPrio === false) {
     return res.status(httpStatus.UNSUPPORTED_MEDIA_TYPE).send('Invalid content-type');
   }
