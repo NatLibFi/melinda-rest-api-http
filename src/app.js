@@ -37,6 +37,8 @@ export default async function ({
 
     app.use(createExpressLogger());
 
+    logger.debug(`xServiceURL: ${xServiceURL}`);
+
     passport.use(new AlephStrategy({
       xServiceURL, userLibrary,
       ownAuthzURL, ownAuthzApiKey

@@ -443,10 +443,11 @@ export default async function ({mongoUri, amqpUrl}) {
   }
 
   function checkCataloger(id, paramsId) {
-    if (paramsId !== undefined) {
+    if (paramsId !== undefined && paramsId !== '0' && paramsId !== 'false') {
+      logger.debug(`Using cataloger given in parameters.`);
       return paramsId;
     }
-
+    logger.debug(`No cataloger given in parameters, using user's id as cataloger.`);
     return id;
   }
 }
