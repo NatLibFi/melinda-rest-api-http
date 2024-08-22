@@ -347,7 +347,7 @@ export default async function ({mongoUri, amqpUrl}) {
   }
 
   function checkCataloger(id, paramsId) {
-    if (paramsId !== undefined && paramsId !== '0' && paramsId !== 'false') {
+    if (paramsId !== undefined && paramsId !== 'undefined' && paramsId !== '0' && paramsId !== 'false') {
       logger.debug(`Using cataloger given in parameters.`);
       return paramsId;
     }
