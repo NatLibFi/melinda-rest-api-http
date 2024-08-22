@@ -24,7 +24,7 @@ export function checkQueryParams(req, res, next) {
     {name: 'skipNoChangeUpdates', value: queryParams.skipNoChangeUpdates ? (/^(?:1|0|true|false)$/ui).test(queryParams.skipNoChangeUpdates) : true},
     {name: 'pRejectFile', value: queryParams.pRejectFile ? (/^[a-z|A-Z|0-9|/|.|_|-]{0,100}$/u).test(queryParams.pRejectFile) : true},
     {name: 'pLogFile', value: queryParams.pLogFile ? (/^[a-z|A-Z|0-9|/|.|_|-]{0,100}$/u).test(queryParams.pLogFile) : true},
-    {name: 'pCatalogerIn', value: queryParams.pCatalogerIn ? (/^(?:0|false|[A-Z|0-9|_|-]{0,10}$)/u).test(queryParams.pCatalogerIn) : true},
+    {name: 'pCatalogerIn', value: queryParams.pCatalogerIn ? (/^(?:0|false|undefined|[A-Z|0-9|_|-]{0,10}$)/u).test(queryParams.pCatalogerIn) : true},
     {name: 'creationTime', value: queryParams.creationTime ? checkTimeFormat(queryParams.creationTime) : true},
     {name: 'modificationTime', value: queryParams.modificationTime ? checkTimeFormat(queryParams.modificationTime) : true},
     {name: 'queueItemState', value: queryParams.queueItemState ? checkQueueItemState(queryParams.queueItemState) : true},
