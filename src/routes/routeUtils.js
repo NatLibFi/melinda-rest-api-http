@@ -19,14 +19,23 @@ export function authorizeKVPOnly(req, res, next) {
 export function sanitizeCataloger(passportCataloger, queryCataloger) {
   const {id, authorization} = passportCataloger;
 
-  if (authorization.includes('KVP') && queryCataloger) {
-    return {id: queryCataloger, authorization};
+  // Handle nullValue -strings as undefined
+  const nullValuePattern = /^(?<nullValues>0|false|null|undefined)$/ui;
+  const cleanedQueryCataloger = queryCataloger === undefined || nullValuePattern.test(queryCataloger) ? undefined : queryCataloger;
+
+  logger.debug(`QueryCataloger: ${queryCataloger} -> cleanedQueryCataloger: ${cleanedQueryCataloger}`);
+
+  // KVP-users can use random strings as cataloger-ids
+  if (authorization.includes('KVP') && cleanedQueryCataloger) {
+    return {id: cleanedQueryCataloger, authorization};
   }
 
-  if (!authorization.includes('KVP') && queryCataloger !== undefined) { // eslint-disable-line functional/no-conditional-statements
+  // Non-KVP-users cannot use random strings as cataloger-ids
+  if (!authorization.includes('KVP') && cleanedQueryCataloger !== undefined) { // eslint-disable-line functional/no-conditional-statements
     throw new HttpError(httpStatus.FORBIDDEN, 'Account has no permission to do this request');
   }
 
+  // No Cataloger given in parameters
   return {id, authorization};
 }
 
