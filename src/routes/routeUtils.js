@@ -31,7 +31,7 @@ export function sanitizeCataloger(passportCataloger, queryCataloger) {
   }
 
   // Non-KVP-users cannot use random strings as cataloger-ids
-  if (!authorization.includes('KVP') && cleanedQueryCataloger !== undefined) { // eslint-disable-line functional/no-conditional-statements
+  if (!authorization.includes('KVP') && cleanedQueryCataloger !== undefined && cleanedQueryCataloger !== id) {
     throw new HttpError(httpStatus.FORBIDDEN, 'Account has no permission to do this request');
   }
 
