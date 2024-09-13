@@ -5,6 +5,7 @@ import {QUEUE_ITEM_STATE, LOG_ITEM_TYPE} from '@natlibfi/melinda-rest-api-common
 
 const logger = createLogger();
 
+// eslint-disable-next-line complexity
 export function checkQueryParams(req, res, next) {
   const queryParams = req.query;
 
@@ -28,6 +29,7 @@ export function checkQueryParams(req, res, next) {
     {name: 'creationTime', value: queryParams.creationTime ? checkTimeFormat(queryParams.creationTime) : true},
     {name: 'modificationTime', value: queryParams.modificationTime ? checkTimeFormat(queryParams.modificationTime) : true},
     {name: 'queueItemState', value: queryParams.queueItemState ? checkQueueItemState(queryParams.queueItemState) : true},
+    {name: 'fixType', value: queryParams.fixType ? (/^(?:0|false|undefined|[A-Z|0-9|_|-]{0,10}$)/u).test(queryParams.fixType) : true},
     ...checkLogQuerryParams(queryParams),
     ...checkLimitAndSkip(queryParams),
     ...checkShowParams(queryParams),
