@@ -21,6 +21,7 @@ export function checkQueryParams(req, res, next) {
     {name: 'unique', value: queryParams.unique ? (/^(?:1|0|true|false)$/ui).test(queryParams.unique) : true},
     {name: 'merge', value: queryParams.merge ? (/^(?:1|0|true|false)$/ui).test(queryParams.merge) : true},
     {name: 'validate', value: queryParams.validate ? (/^(?:1|0|true|false)$/ui).test(queryParams.validate) : true},
+    {name: 'skipLowValidation', value: queryParams.skipLowValidation ? (/^(?:1|0|true|false)$/ui).test(queryParams.skipLowValidation) : true},
     {name: 'failOnError', value: queryParams.failOnError ? (/^(?:1|0|true|false)$/ui).test(queryParams.failOnError) : true},
     {name: 'skipNoChangeUpdates', value: queryParams.skipNoChangeUpdates ? (/^(?:1|0|true|false)$/ui).test(queryParams.skipNoChangeUpdates) : true},
     {name: 'pRejectFile', value: queryParams.pRejectFile ? (/^[a-z|A-Z|0-9|/|.|_|-]{0,100}$/u).test(queryParams.pRejectFile) : true},
