@@ -111,6 +111,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
         noop: parseBoolean(req.query.noop),
         // Prio always validates
         validate: true,
+        skipLowValidation: req.query.skipLowValidation === undefined ? false : parseBoolean(req.query.skipLowValidation),
         // failOnError is n/a for prio single record jobs
         failOnError: null,
         // Prio forces updates as default, even if the update would not make changes to the database record
@@ -181,6 +182,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
         noop: parseBoolean(req.query.noop),
         // Prio always validates
         validate: true,
+        skipLowValidation: req.query.skipLowValidation === undefined ? false : parseBoolean(req.query.skipLowValidation),
         // failOnError is n/a for prio single record jobs
         failOnError: null,
         // Prio forces updates as default, even if the update would not make changes to the database record
@@ -236,6 +238,8 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
 
       const operationSettings = {
         fixType,
+        // Note: skipLowValidation does not currently work - fixes are not validated
+        // skipLowValidation: req.query.skipLowValidation === undefined ? false : parseBoolean(req.query.skipLowValidation),
         noop: parseBoolean(req.query.noop),
         // Prio always validates
         validate: true,

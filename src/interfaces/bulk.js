@@ -317,6 +317,8 @@ export default async function ({mongoUri, amqpUrl}) {
     const paramValidate = queryParams.validate ? parseBoolean(queryParams.validate) : undefined;
     const paramUnique = queryParams.unique ? parseBoolean(queryParams.unique) : undefined;
     const paramMerge = queryParams.merge ? parseBoolean(queryParams.merge) : undefined;
+    const paramSkipLowValidation = queryParams.skipLowValidation ? parseBoolean(queryParams.skipLowValidateLow) : undefined;
+
 
     if (paramValidate === false && (paramUnique || paramMerge)) {
       logger.debug(`Query parameter validate=0 is not valid with query parameters unique=1 and/or merge=1`);
@@ -337,6 +339,7 @@ export default async function ({mongoUri, amqpUrl}) {
       unique: paramUnique === undefined ? noStream : paramUnique,
       merge: paramMerge === undefined ? false : paramMerge,
       validate: paramValidate === undefined ? noStream : paramValidate,
+      skipLowValidation: paramSkipLowValidation === undefined ? false : paramSkipLowValidation,
       failOnError: queryParams.failOnError === undefined ? false : parseBoolean(queryParams.failOnError),
       // bulk skips changes that won't change the database record as default
       skipNoChangeUpdates: queryParams.skipNoChangeUpdates === undefined ? true : parseBoolean(queryParams.skipNoChangeUpdates),
