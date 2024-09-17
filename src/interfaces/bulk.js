@@ -339,6 +339,7 @@ export default async function ({mongoUri, amqpUrl}) {
       unique: paramUnique === undefined ? noStream : paramUnique,
       merge: paramMerge === undefined ? false : paramMerge,
       validate: paramValidate === undefined ? noStream : paramValidate,
+      // Note: currently bulk skips LOW validation all the time, because cataloger.authorization is not forwarded in bulk
       skipLowValidation: paramSkipLowValidation === undefined ? false : paramSkipLowValidation,
       failOnError: queryParams.failOnError === undefined ? false : parseBoolean(queryParams.failOnError),
       // bulk skips changes that won't change the database record as default
