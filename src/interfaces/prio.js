@@ -17,7 +17,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   const mongoOperator = await mongoFactory(mongoUri, 'prio');
   const sruClient = createSruClient({url: sruUrl, recordSchema: 'marcxml'});
 
-  return {read, create, update, doQuery};
+  return {read, create, update, fix, doQuery};
 
   async function read({id, format}) {
     logger.info(`Reading record ${id} / ${format}`);
@@ -101,6 +101,42 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     // Note: if validator changed the operation -> this errors currently
     throw new HttpError(status, payload || '');
   }
+
+
+  async function fix({id, cataloger, oCatalogerIn, operationSettings, correlationId}) {
+    validateRequestId(id);
+    logger.info(`Creating FIX (${operationSettings.fixType}) task for record ${id} / ${correlationId}`);
+    const operation = OPERATIONS.FIX;
+    logger.debug(`operation: ${operation}`);
+    const headers = {
+      correlationId,
+      operation,
+      id,
+      cataloger,
+      operationSettings
+    };
+
+    logger.verbose(`Creating Mongo queue item for fixing record ${id} / ${correlationId}`);
+
+    await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, operationSettings});
+    const responseData = await handleRequest({correlationId, headers, data: {}});
+    const {status, payload} = responseData;
+
+    logger.silly(`prio/fix response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
+    logger.debug(`status: ${status}, ${payload}`);
+
+    cleanMongo(correlationId);
+
+    // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
+    // eslint-disable-next-line no-extra-parens
+    if (status === 'FIXED' || status === 'SKIPPED') {
+      return {status, messages: payload, id: payload.databaseId};
+    }
+
+    // Note: if validator changed the operation -> this errors currently
+    throw new HttpError(status, payload || '');
+  }
+
 
   // cleanMongo cleans the actual MongoCollection ('prio'), logCollection ('logPrio') retains all items
   async function cleanMongo(correlationId) {

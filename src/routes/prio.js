@@ -14,7 +14,7 @@ import {CONTENT_TYPES, DEFAULT_ACCEPT} from '../config';
 import {checkQueryParams} from './queryUtils';
 
 // eslint-disable-next-line no-unused-vars
-export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite}) => {
+export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite, fixTypes}) => {
   const logger = createLogger();
   //const apiDoc = fs.readFileSync(path.join(__dirname, '..', 'api.yaml'), 'utf8');
   const Service = await createService({
@@ -32,6 +32,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       .use(checkQueryParams)
       .get('/:id', checkAcceptHeader, readResource)
       .get('/prio/', authorizeKVPOnly, getPrioLogs)
+      .post('/fix/:id', authorizeKVPOnly, fixResource)
       .post('/', authorizeKVPOnly, checkContentType, createResource)
       .post('/:id', authorizeKVPOnly, checkContentType, updateResource);
   }
@@ -44,6 +45,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       .use(checkQueryParams)
       .get('/:id', checkAcceptHeader, readResource)
       .get('/prio/', authorizeKVPOnly, getPrioLogs)
+      .post('/fix/:id', fixResource)
       .post('/', checkContentType, createResource)
       .post('/:id', checkContentType, updateResource);
   }
@@ -55,6 +57,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     //.get('/apidoc/', serveApiDoc)
     .use(passport.authenticate('melinda', {session: false}))
     .get('/prio/', authorizeKVPOnly, getPrioLogs)
+    .post('/fix/:id', fixResource)
     .post('/', checkContentType, createResource)
     .post('/:id', checkContentType, updateResource);
 
@@ -108,6 +111,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
         noop: parseBoolean(req.query.noop),
         // Prio always validates
         validate: true,
+        skipLowValidation: req.query.skipLowValidation === undefined ? false : parseBoolean(req.query.skipLowValidation),
         // failOnError is n/a for prio single record jobs
         failOnError: null,
         // Prio forces updates as default, even if the update would not make changes to the database record
@@ -178,6 +182,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
         noop: parseBoolean(req.query.noop),
         // Prio always validates
         validate: true,
+        skipLowValidation: req.query.skipLowValidation === undefined ? false : parseBoolean(req.query.skipLowValidation),
         // failOnError is n/a for prio single record jobs
         failOnError: null,
         // Prio forces updates as default, even if the update would not make changes to the database record
@@ -198,6 +203,55 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
         operationSettings,
         correlationId,
         data: req.body
+      });
+
+      logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
+
+      // Note: noops return OK even if they fail marc-record-validate validations
+      return res.status(httpStatus.OK).set('Record-ID', id)
+        .json(messages);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
+  }
+
+  async function fixResource(req, res, next) {
+    logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
+    logger.silly('routes/Prio fixResource');
+    try {
+      const correlationId = uuid();
+
+      const {fixType} = req.query;
+
+      if (fixType === undefined) {
+        throw new HttpError(httpStatus.BAD_REQUEST, `Fix requests require fixType.`);
+      }
+
+      logger.debug(`FixTypes from config: ${JSON.stringify(fixTypes)}`);
+
+      if (!fixTypes.includes(fixType)) {
+        throw new HttpError(httpStatus.BAD_REQUEST, `Invalid fixType ${fixType}.`);
+      }
+
+      const operationSettings = {
+        fixType,
+        // Note: skipLowValidation does not currently work - fixes are not validated
+        // skipLowValidation: req.query.skipLowValidation === undefined ? false : parseBoolean(req.query.skipLowValidation),
+        noop: parseBoolean(req.query.noop),
+        // Prio always validates
+        validate: true,
+        prio: true
+      };
+
+      const {messages, id} = await Service.fix({
+        id: req.params.id,
+        cataloger: sanitizeCataloger(req.user, req.query.cataloger),
+        oCatalogerIn: req.user.id,
+        operationSettings,
+        correlationId
       });
 
       logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);

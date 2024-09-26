@@ -5,6 +5,7 @@ import {QUEUE_ITEM_STATE, LOG_ITEM_TYPE} from '@natlibfi/melinda-rest-api-common
 
 const logger = createLogger();
 
+// eslint-disable-next-line complexity
 export function checkQueryParams(req, res, next) {
   const queryParams = req.query;
 
@@ -20,6 +21,7 @@ export function checkQueryParams(req, res, next) {
     {name: 'unique', value: queryParams.unique ? (/^(?:1|0|true|false)$/ui).test(queryParams.unique) : true},
     {name: 'merge', value: queryParams.merge ? (/^(?:1|0|true|false)$/ui).test(queryParams.merge) : true},
     {name: 'validate', value: queryParams.validate ? (/^(?:1|0|true|false)$/ui).test(queryParams.validate) : true},
+    {name: 'skipLowValidation', value: queryParams.skipLowValidation ? (/^(?:1|0|true|false)$/ui).test(queryParams.skipLowValidation) : true},
     {name: 'failOnError', value: queryParams.failOnError ? (/^(?:1|0|true|false)$/ui).test(queryParams.failOnError) : true},
     {name: 'skipNoChangeUpdates', value: queryParams.skipNoChangeUpdates ? (/^(?:1|0|true|false)$/ui).test(queryParams.skipNoChangeUpdates) : true},
     {name: 'pRejectFile', value: queryParams.pRejectFile ? (/^[a-z|A-Z|0-9|/|.|_|-]{0,100}$/u).test(queryParams.pRejectFile) : true},
@@ -28,6 +30,7 @@ export function checkQueryParams(req, res, next) {
     {name: 'creationTime', value: queryParams.creationTime ? checkTimeFormat(queryParams.creationTime) : true},
     {name: 'modificationTime', value: queryParams.modificationTime ? checkTimeFormat(queryParams.modificationTime) : true},
     {name: 'queueItemState', value: queryParams.queueItemState ? checkQueueItemState(queryParams.queueItemState) : true},
+    {name: 'fixType', value: queryParams.fixType ? (/^(?:0|false|undefined|[A-Z|0-9|_|-]{0,10}$)/u).test(queryParams.fixType) : true},
     ...checkLogQuerryParams(queryParams),
     ...checkLimitAndSkip(queryParams),
     ...checkShowParams(queryParams),

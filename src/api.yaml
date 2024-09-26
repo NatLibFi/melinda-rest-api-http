@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: 'Melinda REST API for ILS integration '
-  version: '2.2'
+  version: '2.3'
 tags:
   - name: /
     description: Operate on single bibliographic records
@@ -9,6 +9,8 @@ tags:
     description: >-
       Operate on bibliographic records in bulk format. Also admin operations for
       operating on bib records in bulk format.
+  - name: /fix/
+    description: Fix operations on single bibliographic records
   - name: /prio/
     description: Admin operations for operating on single bibliographic records
   - name: /logs/
@@ -48,6 +50,12 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: cataloger
+          description: >-
+            Cataloger name to use while operating on a record. Note: requires admin rights to use
+          in: query
+          schema:
+            type: string
       requestBody:
         description: Contains a single record
         required: true
@@ -119,6 +127,78 @@ paths:
           description: The request is in a format that is not supported
         '422':
           description: The record does not pass validation, or is not parseable
+  /fix/{id}:
+    post:
+      summary: Run a fix operation on a single record
+      tags:
+        - /fix/
+      parameters:
+        - name: id
+          description: The identifier of the record that's going to be updated by the fix operation
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/databaseIdNonEmpty'
+        - name: fixType
+          description: >-
+            Fix operation to run. Usually available fixTypes:
+            UNDEL for restoring a removed record,
+            DELET for removing a record
+          required: true
+          in: query
+          schema:
+            type: string
+        - name: cataloger
+          description: >-
+              Cataloger name to use while operating on a record. Note: requires admin rights to use
+          in: query
+          schema:
+            type: string
+        - name: noop
+          description: Do not actually do the update the record.
+          in: query
+          schema:
+            type: boolean
+            default: false
+      security:
+        - httpBasic: []
+      responses:
+        '200':
+          description: >-
+            The record was succesfully updated. (Unless parameter **noop** was
+            set to true, or parameter **skipNoChangeUpdate** was set to true and
+            the update would have resulted in no changes in the datastore
+            record.)
+          headers:
+            Record-ID:
+              description: Identifier for the updated record in the datastore
+              schema:
+                $ref: '#/components/schemas/databaseIdNonEmpty'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/recordResponseItemFor200Update'
+        '400':
+          description: >-
+            The request id invalid or the record data is malformed or has
+            missmach content-type, or the parameters are invalid
+        '401':
+          description: Credentials are invalid or missing
+        '403':
+          description: >-
+            The credentials are not authorized for this operation, i.e. the user
+            does not have the permission to change the owner metadata of the
+            record
+        '404':
+          description: The record does not exist
+        '408':
+          description: The request has timed out
+        '409':
+          description: The request contains out of date record data
+        '415':
+          description: The request is in a format that is not supported
+        '422':
+          description: The record does not pass validation
   /{id}:
     post:
       summary: Update a record
@@ -151,6 +231,12 @@ paths:
           schema:
             type: boolean
             default: false
+        - name: cataloger
+          description: >-
+            Cataloger name to use while operating on a record. Note: requires admin rights to use
+          in: query
+          schema:
+            type: string
       requestBody:
         description: Contains a single record
         required: true

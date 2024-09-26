@@ -36,3 +36,4 @@ export const CONTENT_TYPES = [
 
 export const DEFAULT_ACCEPT = readEnvironmentVariable('DEFAULT_ACCEPT', {defaultValue: 'application/json'});
 
+export const fixTypes = readEnvironmentVariable('FIX_TYPES', {defaultValue: ['DELET', 'UNDEL']});
