@@ -25,7 +25,7 @@ Melinda REST API for ILS integration
 | FIX_TYPES             | No        | UNDEL,DELET
 
 ### ApiDoc
-https://rest.api.melinda-test.kansalliskirjasto.fi/apidoc/v1/bib/
+https://bib-rest.api.melinda.kansalliskirjasto.fi/swagger/
 
 ## License and copyright
 
