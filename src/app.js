@@ -4,7 +4,7 @@ import httpStatus from 'http-status';
 import passport from 'passport';
 import {Error as ApiError} from '@natlibfi/melinda-commons';
 import {createLogger, createExpressLogger} from '@natlibfi/melinda-backend-commons';
-import AlephStrategy from '@natlibfi/passport-melinda-aleph';
+import {AlephStrategy} from '@natlibfi/passport-melinda-aleph';
 import {logError} from '@natlibfi/melinda-rest-api-commons';
 import {createApiDocRouter, createBulkRouter, createLogsRouter, createPrioRouter} from './routes';
 
