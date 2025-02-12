@@ -52,7 +52,7 @@ export default async function ({mongoUri, amqpUrl}) {
     logger.silly(`Updating current state of ${correlationId} to ${QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING}`);
     const setStateResult = await mongoOperator.setState({correlationId, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
     logger.silly(JSON.stringify(setStateResult));
-    const resultCorrelationId = setStateResult.value?.correlationId || undefined;
+    const resultCorrelationId = setStateResult.value?.correlationId || setStateResult.correlationId || undefined;
     logger.silly(`resultCorrelationId: ${resultCorrelationId}`);
     if (!resultCorrelationId) {
       throw new HttpError(httpStatus.INTERNAL_SERVER_ERROR, `Could not update state for correlationId ${correlationId}. Result: ${JSON.stringify(setStateResult)}`);
@@ -67,7 +67,7 @@ export default async function ({mongoUri, amqpUrl}) {
     // addBlobSize increases blobSize by 1 and returns the queueItem if there's a queueItem in state WAITING_FOR_RECORDS for correlationId
     const addBlobSizeResult = await mongoOperator.addBlobSize({correlationId});
     logger.silly(`addBlobSizeResult: ${JSON.stringify(addBlobSizeResult)}`);
-    const queueItem = addBlobSizeResult.value;
+    const queueItem = addBlobSizeResult.value || addBlobSizeResult;
 
     if (!queueItem) {
       throw new HttpError(httpStatus.NOT_FOUND, `Invalid queueItem ${correlationId} for adding records`);
@@ -123,7 +123,9 @@ export default async function ({mongoUri, amqpUrl}) {
 
   async function updateState({correlationId, state}) {
     logger.debug(`Updating current state of ${correlationId} to ${state}`);
-    const {value} = await mongoOperator.setState({correlationId, state});
+    //const {value} = await mongoOperator.setState({correlationId, state});
+    const setStateResult = await mongoOperator.setState({correlationId, state});
+    const value = setStateResult.value || setStateResult;
     if (value) {
       const {queueItemState, modificationTime} = value;
       return {status: httpStatus.OK, payload: {correlationId, queueItemState, modificationTime}};
