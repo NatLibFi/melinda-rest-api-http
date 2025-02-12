@@ -15,7 +15,7 @@ export default async function ({
   sruUrl, amqpUrl, mongoUri,
   pollWaitTime, recordType,
   requireAuthForRead, requireKVPForWrite,
-  fixTypes
+  fixTypes, allowedLibs
 }) {
   const logger = createLogger();
   const server = await initExpress();
@@ -46,11 +46,11 @@ export default async function ({
     }));
 
     app.use(passport.initialize());
-    app.use('/bulk', passport.authenticate('melinda', {session: false}), await createBulkRouter({mongoUri, amqpUrl, recordType})); // Must be here to avoid bodyparser
+    app.use('/bulk', passport.authenticate('melinda', {session: false}), await createBulkRouter({mongoUri, amqpUrl, recordType, allowedLibs})); // Must be here to avoid bodyparser
     app.use(bodyParser.text({limit: '5MB', type: '*/*'}));
     app.use('/apidoc', createApiDocRouter());
     app.use('/logs', passport.authenticate('melinda', {session: false}), await createLogsRouter({mongoUri}));
-    app.use('/', await createPrioRouter({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite, fixTypes}));
+    app.use('/', await createPrioRouter({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite, fixTypes, allowedLibs}));
     app.use(handleError);
 
     return app.listen(httpPort, () => logger.info(`Started Melinda REST API for ${recordType} records in port ${httpPort}`));

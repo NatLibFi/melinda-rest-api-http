@@ -22,7 +22,8 @@ Melinda REST API for ILS integration
 | REQUIRE_AUTH_FOR_READ | No        | false                        |
 | REQUIRE_KVP_FOR_WRITE | No        | false                        |
 | DEFAULT_ACCEPT        | No        | application/json             |
-| FIX_TYPES             | No        | UNDEL,DELET
+| FIX_TYPES             | No        | UNDEL,DELET                  |
+| ALLOWED_LIBS          | No        | []                           |
 
 ### ApiDoc
 https://bib-rest.api.melinda.kansalliskirjasto.fi/swagger/

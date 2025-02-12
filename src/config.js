@@ -37,3 +37,6 @@ export const CONTENT_TYPES = [
 export const DEFAULT_ACCEPT = readEnvironmentVariable('DEFAULT_ACCEPT', {defaultValue: 'application/json'});
 
 export const fixTypes = readEnvironmentVariable('FIX_TYPES', {defaultValue: ['DELET', 'UNDEL']});
+
+// We default allowedLibs to empty array for backwards compatibility, as it is anyways checked in aleph-record-load-api
+export const allowedLibs = readEnvironmentVariable('ALLOWED_LIBS', {defaultValue: []});

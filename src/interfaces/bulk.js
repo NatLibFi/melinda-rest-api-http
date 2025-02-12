@@ -33,7 +33,7 @@ import {CONTENT_TYPES} from '../config';
 import {generateQuery, generateShowParams} from './utils';
 // import {inspect} from 'util';
 
-export default async function ({mongoUri, amqpUrl}) {
+export default async function ({mongoUri, amqpUrl, allowedLibs}) {
   const logger = createLogger();
   const mongoOperator = await mongoFactory(mongoUri, 'bulk');
   const amqpOperator = await amqpFactory(amqpUrl, true);
@@ -266,8 +266,15 @@ export default async function ({mongoUri, amqpUrl}) {
     return recordStatuses;
   }
 
+  // eslint-disable-next-line max-statements
   function validateQueryParams(queryParams) {
     logger.silly(`bulk/validateQueryParams: queryParams: ${JSON.stringify(queryParams)}`);
+
+    // Note: for backwards compatibility, if we have default empty allowedLibs, we do note check lib here (aleph-record-load-api handles it later)
+    if (queryParams.pActiveLibrary && allowedLibs.length > 0 && !allowedLibs.includes(queryParams.pActiveLibrary)) {
+      logger.debug(`Invalid pActiveLibrary parameter '${queryParams.pActiveLibrary} - not included in ${JSON.stringify(allowedLibs)}`);
+      throw new HttpError(httpStatus.BAD_REQUEST, `Invalid pActiveLibrary parameter '${queryParams.pActiveLibrary}'`);
+    }
 
     if (queryParams.pOldNew && queryParams.pActiveLibrary) {
       const {pOldNew} = queryParams;
@@ -277,6 +284,7 @@ export default async function ({mongoUri, amqpUrl}) {
         throw new HttpError(httpStatus.BAD_REQUEST, `Invalid pOldNew query parameter '${pOldNew}'. (Valid values: OLD/NEW)`);
       }
 
+      // DEVELOP: if we want to use FIX operation for bulk, we'll need to handle this choice differently
       const operation = pOldNew === 'NEW' ? OPERATIONS.CREATE : OPERATIONS.UPDATE;
 
       const recordLoadParams = {
