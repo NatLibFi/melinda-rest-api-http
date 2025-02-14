@@ -4,5 +4,5 @@ coverage
 dist
 .nyc_output
 .vscode
-.env
+.env*
 tmp/
