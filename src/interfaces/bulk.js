@@ -33,7 +33,7 @@ import {CONTENT_TYPES} from '../config';
 import {generateQuery, generateShowParams} from './utils';
 // import {inspect} from 'util';
 
-export default async function ({mongoUri, amqpUrl}) {
+export default async function ({mongoUri, amqpUrl, allowedLibs}) {
   const logger = createLogger();
   const mongoOperator = await mongoFactory(mongoUri, 'bulk');
   const amqpOperator = await amqpFactory(amqpUrl, true);
@@ -52,7 +52,7 @@ export default async function ({mongoUri, amqpUrl}) {
     logger.silly(`Updating current state of ${correlationId} to ${QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING}`);
     const setStateResult = await mongoOperator.setState({correlationId, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
     logger.silly(JSON.stringify(setStateResult));
-    const resultCorrelationId = setStateResult.value?.correlationId || undefined;
+    const resultCorrelationId = setStateResult.value?.correlationId || setStateResult.correlationId || undefined;
     logger.silly(`resultCorrelationId: ${resultCorrelationId}`);
     if (!resultCorrelationId) {
       throw new HttpError(httpStatus.INTERNAL_SERVER_ERROR, `Could not update state for correlationId ${correlationId}. Result: ${JSON.stringify(setStateResult)}`);
@@ -67,7 +67,7 @@ export default async function ({mongoUri, amqpUrl}) {
     // addBlobSize increases blobSize by 1 and returns the queueItem if there's a queueItem in state WAITING_FOR_RECORDS for correlationId
     const addBlobSizeResult = await mongoOperator.addBlobSize({correlationId});
     logger.silly(`addBlobSizeResult: ${JSON.stringify(addBlobSizeResult)}`);
-    const queueItem = addBlobSizeResult.value;
+    const queueItem = addBlobSizeResult.value || addBlobSizeResult;
 
     if (!queueItem) {
       throw new HttpError(httpStatus.NOT_FOUND, `Invalid queueItem ${correlationId} for adding records`);
@@ -123,7 +123,9 @@ export default async function ({mongoUri, amqpUrl}) {
 
   async function updateState({correlationId, state}) {
     logger.debug(`Updating current state of ${correlationId} to ${state}`);
-    const {value} = await mongoOperator.setState({correlationId, state});
+    //const {value} = await mongoOperator.setState({correlationId, state});
+    const setStateResult = await mongoOperator.setState({correlationId, state});
+    const value = setStateResult.value || setStateResult;
     if (value) {
       const {queueItemState, modificationTime} = value;
       return {status: httpStatus.OK, payload: {correlationId, queueItemState, modificationTime}};
@@ -264,8 +266,15 @@ export default async function ({mongoUri, amqpUrl}) {
     return recordStatuses;
   }
 
+  // eslint-disable-next-line max-statements
   function validateQueryParams(queryParams) {
     logger.silly(`bulk/validateQueryParams: queryParams: ${JSON.stringify(queryParams)}`);
+
+    // Note: for backwards compatibility, if we have default empty allowedLibs, we do note check lib here (aleph-record-load-api handles it later)
+    if (queryParams.pActiveLibrary && allowedLibs.length > 0 && !allowedLibs.includes(queryParams.pActiveLibrary)) {
+      logger.debug(`Invalid pActiveLibrary parameter '${queryParams.pActiveLibrary} - not included in ${JSON.stringify(allowedLibs)}`);
+      throw new HttpError(httpStatus.BAD_REQUEST, `Invalid pActiveLibrary parameter '${queryParams.pActiveLibrary}'`);
+    }
 
     if (queryParams.pOldNew && queryParams.pActiveLibrary) {
       const {pOldNew} = queryParams;
@@ -275,6 +284,7 @@ export default async function ({mongoUri, amqpUrl}) {
         throw new HttpError(httpStatus.BAD_REQUEST, `Invalid pOldNew query parameter '${pOldNew}'. (Valid values: OLD/NEW)`);
       }
 
+      // DEVELOP: if we want to use FIX operation for bulk, we'll need to handle this choice differently
       const operation = pOldNew === 'NEW' ? OPERATIONS.CREATE : OPERATIONS.UPDATE;
 
       const recordLoadParams = {

@@ -10,11 +10,11 @@ import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils';
 import {checkQueryParams} from './queryUtils';
 import {inspect} from 'util';
 
-export default async function ({mongoUri, amqpUrl, recordType}) {
+export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
   const logger = createLogger();
 
   const OPERATION_TYPES = [OPERATIONS.CREATE, OPERATIONS.UPDATE];
-  const Service = await createService({mongoUri, amqpUrl});
+  const Service = await createService({mongoUri, amqpUrl, allowedLibs});
 
   return new Router()
     .use(authorizeKVPOnly)
@@ -31,6 +31,7 @@ export default async function ({mongoUri, amqpUrl, recordType}) {
   async function create(req, res, next) {
     try {
       logger.silly('routes/Bulk create');
+      // DEVELOP: why we pass req.user.id here?
       const {operation, recordLoadParams, noStream, operationSettings} = Service.validateQueryParams(req.query, req.user.id);
 
       // We have match and merge settings just for bib records in validator
