@@ -24,6 +24,7 @@ export function checkQueryParams(req, res, next) {
     {name: 'skipLowValidation', value: queryParams.skipLowValidation ? (/^(?:1|0|true|false)$/ui).test(queryParams.skipLowValidation) : true},
     {name: 'failOnError', value: queryParams.failOnError ? (/^(?:1|0|true|false)$/ui).test(queryParams.failOnError) : true},
     {name: 'skipNoChangeUpdates', value: queryParams.skipNoChangeUpdates ? (/^(?:1|0|true|false)$/ui).test(queryParams.skipNoChangeUpdates) : true},
+    {name: 'maatchFailuresAsNew', value: queryParams.matchFailuresAsNew ? (/^(?:1|0|true|false)$/ui).test(queryParams.matchFailuresAsNew) : true},
     {name: 'pRejectFile', value: queryParams.pRejectFile ? (/^[a-z|A-Z|0-9|/|.|_|-]{0,100}$/u).test(queryParams.pRejectFile) : true},
     {name: 'pLogFile', value: queryParams.pLogFile ? (/^[a-z|A-Z|0-9|/|.|_|-]{0,100}$/u).test(queryParams.pLogFile) : true},
     {name: 'pCatalogerIn', value: queryParams.pCatalogerIn ? (/^(?:0|false|undefined|[A-Z|0-9|_|-]{0,10}$)/u).test(queryParams.pCatalogerIn) : true},

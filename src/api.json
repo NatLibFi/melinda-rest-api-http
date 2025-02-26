@@ -71,6 +71,14 @@
             }
           },
           {
+            "name": "matchFailuresAsNew",
+            "description": "Handle merge jobs where are all matches fail matchValidation as new.",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "cataloger",
             "description": "Cataloger name to use while operating on a record. Note: requires admin rights to use",
             "in": "query",
@@ -307,6 +315,14 @@
             "schema": {
               "type": "boolean",
               "default": false
+            }
+          },
+          {
+            "name": "matchFailuresAsNew",
+            "description": "Handle merge jobs where are all matches fail matchValidation as new.",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
             }
           },
           {
