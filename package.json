@@ -14,7 +14,7 @@
 		"url": "git@github.com:natlibfi/melinda-rest-api-http.git"
 	},
 	"license": "MIT",
-	"version": "3.4.1",
+	"version": "3.5.0-alpha.1",
 	"main": "dist/index.js",
 	"engines": {
 		"node": ">=18"
@@ -44,7 +44,7 @@
 		"mongo-sanitize": "^1.1.0",
 		"nodemon": "^3.1.9",
 		"passport": "^0.7.0",
-		"uuid": "^11.0.5"
+		"uuid": "^11.1.0"
 	},
 	"devDependencies": {
 		"@babel/cli": "^7.26.4",
