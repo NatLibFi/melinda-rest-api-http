@@ -33,9 +33,8 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     return setStateResult;
   }
 
-  // eslint-disable-next-line max-statements
+  // DEVELOP: syncronize addRecord and addRecords
   async function addRecord({correlationId, contentType, data}) {
-    // asses rabbit queue for correlationId
 
     // addBlobSize increases blobSize by 1 and returns the queueItem if there's a queueItem in state WAITING_FOR_RECORDS for correlationId
     const addBlobSizeResult = await mongoOperator.addBlobSize({correlationId});
@@ -75,24 +74,60 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     throw new HttpError(httpStatus.BAD_REQUEST, 'No record.');
   }
 
+  // DEVELOP: syncronize addRecord and addRecords
   async function addRecords({correlationId, contentType, data}) {
+
+    if (!data) {
+      throw new HttpError(httpStatus.BAD_REQUEST, 'No records.');
+    }
 
     // get conversionFormat and check that we have contentType that can be handled - this might be a duplicate check?
     // NOTE: currently we handle just application/json for addRecords (array of marc-record-js)!
     // DEVELOP: handling MARCXML and marc21
     const conversionFormat = getConversionFormatForAddRecords(contentType);
 
-    function getConversionFormatForAddRecords(contentType) {
-      const type = contentType;
-      const {conversionFormat} = CONTENT_TYPES.find(({contentType, allowAddRecords}) => contentType === type && allowAddRecords === true);
-      if (!conversionFormat) {
-        throw new HttpError(httpStatus.UNSUPPORTED_MEDIA_TYPE, `Invalid content-type`);
-      }
-      return conversionFormat;
-    }
-
     // get QueueItem and check that its in WAITING_FOR_RECORDS state
     const queueItem = await getQueueItemForAddRecords();
+    const {operation, cataloger, operationSettings, blobSize} = queueItem;
+
+
+    // parse data to an array
+    // NOTE: this works just for application/json arrays of marc-record-js
+    // DEVELOP: handle MARCXML, marc21 and alephSequential
+    // DEVELOP: use splitter (toMarcRecords from melinda-rest-api-validator)
+    // check that array size is not greater than CHUNK_SIZE
+
+    const dataArray = parseDataAndCheckArray(data);
+    const dataSize = dataArray.length;
+    // eslint-disable-next-line functional/no-let
+    let currentSequence = blobSize;
+
+    dataArray.forEach(async (data) => {
+      currentSequence += 1;
+      const headers = {correlationId, operation, format: conversionFormat, cataloger, operationSettings, recordMetadata: {blobSequence: currentSequence}};
+
+      logger.debug(`Adding record ${currentSequence} for ${correlationId}`);
+
+      const queue = `${QUEUE_ITEM_STATE.VALIDATOR.PENDING_VALIDATION}.${correlationId}`;
+      await amqpOperator.sendToQueue({queue, correlationId, headers, data});
+    });
+
+    const setBlobSizeResult = await mongoOperator.setBlobSize({correlationId, blobSize: currentSequence});
+    logger.silly(`setBlobSizeResult: ${JSON.stringify(setBlobSizeResult)}`);
+
+    return {status: httpStatus.CREATED, payload: `Records (${dataSize}) have been added to bulk ${correlationId} that has currently ${currentSequence} records`};
+
+    function getConversionFormatForAddRecords(contentType) {
+      logger.silly(`contentType: ${contentType}`);
+      const type = contentType;
+      const conversionFormatResult = CONTENT_TYPES.find(({contentType, allowAddRecords}) => contentType === type && allowAddRecords === true);
+      logger.silly(`conversionFormatResult: ${JSON.stringify(conversionFormatResult)}`);
+      if (!conversionFormatResult) {
+        throw new HttpError(httpStatus.UNSUPPORTED_MEDIA_TYPE, `Invalid content-type`);
+      }
+      const {conversionFormat} = conversionFormatResult;
+      return conversionFormat;
+    }
 
     async function getQueueItemForAddRecords() {
       logger.debug(`Getting current state of${correlationId}`);
@@ -109,47 +144,14 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
       return queueItem;
     }
 
-    if (data) {
-
-      // parse data to an array
-      // NOTE: this works just for application/json arrays of marc-record-js
-      // DEVELOP: handle MARCXML, marc21 and alephSequential
-      // DEVELOP: use splitter (toMarcRecords from melinda-rest-api-validator)
-      const dataArray = parseDataAndCheckArray(data);
-
-      // check that array size is not greater than CHUNK_SIZE
-      const dataSize = dataArray.length;
-      if (dataSize > CHUNK_SIZE) {
-        throw new HttpError(httpStatus.BAD_REQUEST, `Too many (more than ${CHUNK_SIZE}) records`);
-      }
-
-      const {operation, cataloger, operationSettings, blobSize} = queueItem;
-
-      // eslint-disable-next-line functional/no-let
-      let currentSequence = blobSize;
-
-      await dataArray.forEach(async data => {
-        currentSequence += 1;
-        const headers = {correlationId, operation, format: conversionFormat, cataloger, operationSettings, recordMetadata: {blobSequence: currentSequence}};
-
-        logger.debug(`Adding record ${currentSequence} for ${correlationId}`);
-
-        const queue = `${QUEUE_ITEM_STATE.VALIDATOR.PENDING_VALIDATION}.${correlationId}`;
-        await amqpOperator.sendToQueue({queue, correlationId, headers, data});
-
-      });
-
-      const setBlobSizeResult = await mongoOperator.setBlobSize({correlationId, blobSize: currentSequence});
-      logger.silly(`setBlobSizeResult: ${JSON.stringify(setBlobSizeResult)}`);
-
-      return {status: httpStatus.CREATED, payload: `Records ${dataSize} have been added to bulk ${correlationId} that has currently ${currentSequence} records`};
-    }
-
-    throw new HttpError(httpStatus.BAD_REQUEST, 'No records.');
-
     function parseDataAndCheckArray(data) {
       const dataArray = parseData(data);
       if (Array.isArray(dataArray)) {
+        // check that array size is not greater than CHUNK_SIZE
+        const dataSize = dataArray.length;
+        if (dataSize > CHUNK_SIZE) {
+          throw new HttpError(httpStatus.BAD_REQUEST, `Too many (more than ${CHUNK_SIZE}) records (${dataSize})`);
+        }
         return dataArray;
       }
       throw new HttpError(httpStatus.BAD_REQUEST, `Input is not a valid array of marc-record-js`);
@@ -167,8 +169,6 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
       }
 
     }
-
-
   }
 
 
