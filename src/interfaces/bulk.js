@@ -1,34 +1,7 @@
-/**
-*
-* @licstart  The following is the entire license notice for the JavaScript code in this file.
-*
-* RESTful API for Melinda
-*
-* Copyright (C) 2018-2023 University Of Helsinki (The National Library Of Finland)
-*
-* This file is part of melinda-rest-api-http
-** melinda-rest-api-http program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License as
-* published by the Free Software Foundation, either version 3 of the
-* License, or (at your option) any later version.
-*
-* melinda-rest-api-http is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-* @licend  The above is the entire license notice
-* for the JavaScript code in this file.
-*
-*/
-
 import httpStatus from 'http-status';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
-import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
+import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS, CHUNK_SIZE} from '@natlibfi/melinda-rest-api-commons';
 import {CONTENT_TYPES} from '../config';
 import {generateQuery, generateShowParams} from './utils';
 // import {inspect} from 'util';
@@ -38,7 +11,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
   const mongoOperator = await mongoFactory(mongoUri, 'bulk');
   const amqpOperator = await amqpFactory(amqpUrl, true);
 
-  return {create, addRecord, getState, updateState, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
+  return {create, addRecord, addRecords, getState, updateState, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
 
   async function create({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, operationSettings, stream}) {
     const result = await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, operationSettings, prio: false});
@@ -60,9 +33,8 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     return setStateResult;
   }
 
-  // eslint-disable-next-line max-statements
+  // DEVELOP: syncronize addRecord and addRecords
   async function addRecord({correlationId, contentType, data}) {
-    // asses rabbit queue for correlationId
 
     // addBlobSize increases blobSize by 1 and returns the queueItem if there's a queueItem in state WAITING_FOR_RECORDS for correlationId
     const addBlobSizeResult = await mongoOperator.addBlobSize({correlationId});
@@ -101,6 +73,104 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
 
     throw new HttpError(httpStatus.BAD_REQUEST, 'No record.');
   }
+
+  // DEVELOP: syncronize addRecord and addRecords
+  async function addRecords({correlationId, contentType, data}) {
+
+    if (!data) {
+      throw new HttpError(httpStatus.BAD_REQUEST, 'No records.');
+    }
+
+    // get conversionFormat and check that we have contentType that can be handled - this might be a duplicate check?
+    // NOTE: currently we handle just application/json for addRecords (array of marc-record-js)!
+    // DEVELOP: handling MARCXML and marc21
+    const conversionFormat = getConversionFormatForAddRecords(contentType);
+
+    // get QueueItem and check that its in WAITING_FOR_RECORDS state
+    const queueItem = await getQueueItemForAddRecords();
+    const {operation, cataloger, operationSettings, blobSize} = queueItem;
+
+
+    // parse data to an array
+    // NOTE: this works just for application/json arrays of marc-record-js
+    // DEVELOP: handle MARCXML, marc21 and alephSequential
+    // DEVELOP: use splitter (toMarcRecords from melinda-rest-api-validator)
+    // check that array size is not greater than CHUNK_SIZE
+
+    const dataArray = parseDataAndCheckArray(data);
+    const dataSize = dataArray.length;
+    // eslint-disable-next-line functional/no-let
+    let currentSequence = blobSize;
+
+    dataArray.forEach(async (data) => {
+      currentSequence += 1;
+      const headers = {correlationId, operation, format: conversionFormat, cataloger, operationSettings, recordMetadata: {blobSequence: currentSequence}};
+
+      logger.debug(`Adding record ${currentSequence} for ${correlationId}`);
+
+      const queue = `${QUEUE_ITEM_STATE.VALIDATOR.PENDING_VALIDATION}.${correlationId}`;
+      await amqpOperator.sendToQueue({queue, correlationId, headers, data});
+    });
+
+    const setBlobSizeResult = await mongoOperator.setBlobSize({correlationId, blobSize: currentSequence});
+    logger.silly(`setBlobSizeResult: ${JSON.stringify(setBlobSizeResult)}`);
+
+    return {status: httpStatus.CREATED, payload: `Records (${dataSize}) have been added to bulk ${correlationId} that has currently ${currentSequence} records`};
+
+    function getConversionFormatForAddRecords(contentType) {
+      logger.silly(`contentType: ${contentType}`);
+      const type = contentType;
+      const conversionFormatResult = CONTENT_TYPES.find(({contentType, allowAddRecords}) => contentType === type && allowAddRecords === true);
+      logger.silly(`conversionFormatResult: ${JSON.stringify(conversionFormatResult)}`);
+      if (!conversionFormatResult) {
+        throw new HttpError(httpStatus.UNSUPPORTED_MEDIA_TYPE, `Invalid content-type`);
+      }
+      const {conversionFormat} = conversionFormatResult;
+      return conversionFormat;
+    }
+
+    async function getQueueItemForAddRecords() {
+      logger.debug(`Getting current state of${correlationId}`);
+      const queueItem = await mongoOperator.queryById({correlationId, checkModTime: false});
+      logger.silly(`Result from query: ${JSON.stringify(queueItem)}`);
+
+      if (!queueItem) {
+        throw new HttpError(httpStatus.NOT_FOUND, `Invalid queueItem ${correlationId} for adding records`);
+      }
+
+      if (queueItem.queueItemState !== QUEUE_ITEM_STATE.VALIDATOR.WAITING_FOR_RECORDS) {
+        throw new HttpError(httpStatus.BAD_REQUEST, `Invalid state (${queueItem.queueItemState}) for adding records in queueItem ${correlationId}`);
+      }
+      return queueItem;
+    }
+
+    function parseDataAndCheckArray(data) {
+      const dataArray = parseData(data);
+      if (Array.isArray(dataArray)) {
+        // check that array size is not greater than CHUNK_SIZE
+        const dataSize = dataArray.length;
+        if (dataSize > CHUNK_SIZE) {
+          throw new HttpError(httpStatus.BAD_REQUEST, `Too many (more than ${CHUNK_SIZE}) records (${dataSize})`);
+        }
+        return dataArray;
+      }
+      throw new HttpError(httpStatus.BAD_REQUEST, `Input is not a valid array of marc-record-js`);
+    }
+
+    function parseData(data) {
+      try {
+        logger.debug(`data: ${data}`);
+        const dataArray = JSON.parse(data);
+        logger.debug(`dataArray: ${JSON.stringify(dataArray)}`);
+        return dataArray;
+      } catch (error) {
+        logger.debug(`Parsing data errored ${error}`);
+        throw new HttpError(httpStatus.BAD_REQUEST, error.message);
+      }
+
+    }
+  }
+
 
   async function getState(params) {
     logger.debug(`Getting current state of ${params.correlationId}`);
@@ -370,3 +440,4 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     return id;
   }
 }
+

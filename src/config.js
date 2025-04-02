@@ -27,11 +27,12 @@ export const recordType = readEnvironmentVariable('RECORD_TYPE', {defaultValue: 
 export const requireAuthForRead = readEnvironmentVariable('REQUIRE_AUTH_FOR_READ', {defaultValue: false, format: v => parseBoolean(v)});
 export const requireKVPForWrite = readEnvironmentVariable('REQUIRE_KVP_FOR_WRITE', {defaultValue: false, format: v => parseBoolean(v)});
 
+// NOTE: currently only application/json is allowed for adding records by chunk
 export const CONTENT_TYPES = [
-  {contentType: 'application/json', conversionFormat: CONVERSION_FORMATS.JSON, allowPrio: true, allowBulk: true},
-  {contentType: 'application/marc', conversionFormat: CONVERSION_FORMATS.ISO2709, allowPrio: true, allowBulk: true},
-  {contentType: 'application/xml', conversionFormat: CONVERSION_FORMATS.MARCXML, allowPrio: true, allowBulk: true},
-  {contentType: 'application/alephseq', conversionFormat: CONVERSION_FORMATS.ALEPHSEQ, allowPrio: false, allowBulk: true}
+  {contentType: 'application/json', conversionFormat: CONVERSION_FORMATS.JSON, allowPrio: true, allowBulk: true, allowAddRecords: true},
+  {contentType: 'application/marc', conversionFormat: CONVERSION_FORMATS.ISO2709, allowPrio: true, allowBulk: true, allowAddRecords: false},
+  {contentType: 'application/xml', conversionFormat: CONVERSION_FORMATS.MARCXML, allowPrio: true, allowBulk: true, allowAddRecords: false},
+  {contentType: 'application/alephseq', conversionFormat: CONVERSION_FORMATS.ALEPHSEQ, allowPrio: false, allowBulk: true, allowAddRecords: false}
 ];
 
 export const DEFAULT_ACCEPT = readEnvironmentVariable('DEFAULT_ACCEPT', {defaultValue: 'application/json'});
