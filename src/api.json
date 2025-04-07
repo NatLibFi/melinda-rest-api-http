@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Melinda REST API for ILS integration ",
-    "version": "2.3"
+    "version": "2.4"
   },
   "tags": [
     {
@@ -853,6 +853,49 @@
               },
               "example": {
                 "$ref": "#/components/examples/ISO2709"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/bulk/records/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "description": "Queue item identifier (correlationId)",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/correlationId"
+          }
+        }
+      ],
+      "post": {
+        "summary": "Add a records (max 100) to a bulk job",
+        "tags": [
+          "/bulk/"
+        ],
+        "security": [
+          {
+            "httpBasic": []
+          }
+        ],
+        "requestBody": {
+          "description": "Array that contains several records",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/marcRecord"
+                }
               }
             }
           }

@@ -25,6 +25,7 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
     .put('/state/:id', checkId, updateState)
     .delete('/:id', checkId, remove)
     .delete('/content/:id', checkId, removeContent)
+    .post('/records/:id', checkContentType, checkId, bodyParser.text({limit: '5MB', type: '*/*'}), addRecordsToBulk)
     .post('/record/:id', checkContentType, checkId, bodyParser.text({limit: '5MB', type: '*/*'}), addRecordToBulk)
     .post('/', checkContentType, create);
 
@@ -91,6 +92,30 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
       return next(error);
     }
   }
+
+  async function addRecordsToBulk(req, res, next) {
+    logger.debug('routes/Bulk addRecordsToBulk');
+
+    try {
+      const correlationId = req.params.id;
+      const contentType = req.headers['content-type'];
+      const data = req.body;
+      logger.silly(`Data from request body: ${data}`);
+      const response = await Service.addRecords({correlationId, contentType, data});
+
+      res.status(response.status).json(response.payload);
+    } catch (error) {
+      logger.debug('routes/Bulk addRecordsToBulk - error');
+
+      if (error instanceof HttpError) {
+        res.status(error.status).send(error.payload);
+        return;
+      }
+
+      return next(error);
+    }
+  }
+
 
   async function doQuery(req, res, next) {
     try {
