@@ -8,6 +8,7 @@ import {v4 as uuid} from 'uuid';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import createService from '../interfaces/prio';
+import {createService as createBulkService} from '../interfaces/bulk'
 import httpStatus from 'http-status';
 import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger} from './routeUtils';
 import {CONTENT_TYPES, DEFAULT_ACCEPT} from '../config';
@@ -20,6 +21,8 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
   const Service = await createService({
     sruUrl, amqpUrl, mongoUri, pollWaitTime
   });
+  // check that we get a working mongo?
+  const prioChunkService = await createBulkService({mongoUri, amqpUrl, allowedLibs});
 
   //logger.debug(`Read: ${requireAuthForRead} write: ${requireKVPForWrite}`);
   // Require KVP authentication for creates/updates if requireKVPForWrite is true
@@ -33,6 +36,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       .get('/:id', checkAcceptHeader, readResource)
       .get('/prio/', authorizeKVPOnly, getPrioLogs)
       .post('/fix/:id', authorizeKVPOnly, fixResource)
+      .post('/priochunk/', checkContentType, createOrUpdateResources)
       .post('/', authorizeKVPOnly, checkContentType, createResource)
       .post('/:id', authorizeKVPOnly, checkContentType, updateResource);
   }
@@ -46,6 +50,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       .get('/:id', checkAcceptHeader, readResource)
       .get('/prio/', authorizeKVPOnly, getPrioLogs)
       .post('/fix/:id', fixResource)
+      .post('/priochunk/', checkContentType, createOrUpdateResources)
       .post('/', checkContentType, createResource)
       .post('/:id', checkContentType, updateResource);
   }
@@ -58,6 +63,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     .use(passport.authenticate('melinda', {session: false}))
     .get('/prio/', authorizeKVPOnly, getPrioLogs)
     .post('/fix/:id', fixResource)
+    .post('/priochunk/', checkContentType, createOrUpdateResources)
     .post('/', checkContentType, createResource)
     .post('/:id', checkContentType, updateResource);
 
@@ -214,6 +220,52 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     } catch (error) {
       if (error instanceof HttpError) {
         return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
+  }
+
+  async function createOrUpdateResources(req, res, next) {
+    try {
+      logger.silly('routes/prio createOrUpdateResources');
+      // DEVELOP: why we pass req.user.id here?
+      // prioChunk is always stream
+      const noStream = false;
+      // prioChunk recordLoadParams should not be available from queryParams
+      // prioChunk operationSetting? we should have always validate=1 at least
+      const {operation, recordLoadParams, operationSettings} = prioChunkService.validateQueryParams(req.query, req.user.id);
+
+
+      // We have match and merge settings just for bib records in validator
+      if (recordType !== 'bib' && (operationSettings.unique || operationSettings.merge)) {
+        throw new HttpError(httpStatus.BAD_REQUEST, `Unique and merge can only be used for bib records, use unique=0`);
+      }
+
+      const params = {
+        correlationId: uuid(),
+        cataloger: prioChunkService.checkCataloger(req.user.id, req.query.pCatalogerIn),
+        oCatalogerIn: req.user.id,
+        contentType: req.headers['content-type'],
+        operation,
+        recordLoadParams,
+        operationSettings,
+        stream: noStream ? false : req
+      };
+
+      logger.silly('Params done');
+      logger.silly(`Params: ${inspect(params)}`);
+      if (params.operation && OPERATION_TYPES.includes(params.operation)) {
+        const response = await Service.create(params);
+        res.json(response);
+        return;
+      }
+
+      logger.debug('Invalid operation');
+      throw new HttpError(httpStatus.BAD_REQUEST, 'Invalid operation');
+    } catch (error) {
+      if (error instanceof HttpError) {
+        res.status(error.status).send(error.payload);
+        return;
       }
       return next(error);
     }
