@@ -39,23 +39,6 @@ export function sanitizeCataloger(passportCataloger, queryCataloger) {
   return {id, authorization};
 }
 
-// Note: checkAcceptHeader currently works only for prio
-// Note: checkAcceptHeader always errors if accept-header has several accepted types
-
-export function checkAcceptHeader(req, res, next) {
-  logger.debug(`routesUtils:checkAcceptHeader: accept: ${req.headers.accept}`);
-
-  if (req.headers.accept === '*/*') {
-    return next();
-  }
-
-  if (req.headers.accept === undefined || !CONTENT_TYPES.find(({contentType, allowPrio}) => contentType === req.headers.accept && allowPrio === true)) {
-    return res.status(httpStatus.UNSUPPORTED_MEDIA_TYPE).send('Invalid Accept header');
-  }
-
-  return next();
-}
-
 export function checkId(req, res, next) {
   logger.debug(`routesUtils:checkId: id: ${req.params.id}`);
   if (!uuidValidate(req.params.id) || uuidVersion(req.params.id) !== 4) {

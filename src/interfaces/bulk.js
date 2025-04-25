@@ -2,11 +2,11 @@ import httpStatus from 'http-status';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS, CHUNK_SIZE} from '@natlibfi/melinda-rest-api-commons';
-import {CONTENT_TYPES} from '../config';
+import {CONTENT_TYPES, allowedLibs, defaultLibrary} from '../config';
 import {generateQuery, generateShowParams} from './utils';
 // import {inspect} from 'util';
 
-export default async function ({mongoUri, amqpUrl, allowedLibs}) {
+export default async function ({mongoUri, amqpUrl}) {
   const logger = createLogger();
   const mongoOperator = await mongoFactory(mongoUri, 'bulk');
   const amqpOperator = await amqpFactory(amqpUrl, true);
@@ -337,8 +337,11 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
   }
 
   // eslint-disable-next-line max-statements
-  function validateQueryParams(queryParams) {
-    logger.silly(`bulk/validateQueryParams: queryParams: ${JSON.stringify(queryParams)}`);
+  function validateQueryParams({queryParams, settings = {}}) {
+    logger.debug(`bulk/validateQueryParams: queryParams: ${JSON.stringify(queryParams)}`);
+    logger.debug(`bulk/validateQueryParams: settings.prio: ${JSON.stringify(settings.prio)}`);
+    logger.debug(`bulk/validateQueryParams: settings.chunk: ${JSON.stringify(settings.chunk)}`);
+    logger.debug(`bulk/validateQueryParams: settings.operation: ${JSON.stringify(settings.operation)}`);
 
     // Note: for backwards compatibility, if we have default empty allowedLibs, we do note check lib here (aleph-record-load-api handles it later)
     if (queryParams.pActiveLibrary && allowedLibs.length > 0 && !allowedLibs.includes(queryParams.pActiveLibrary)) {
@@ -346,19 +349,39 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
       throw new HttpError(httpStatus.BAD_REQUEST, `Invalid pActiveLibrary parameter '${queryParams.pActiveLibrary}'`);
     }
 
-    if (queryParams.pOldNew && queryParams.pActiveLibrary) {
-      const {pOldNew} = queryParams;
+    // If we do not get pActiveLibrary from queryParams, let's default to defaultLibrary
+    const pActiveLibrary = queryParams.pActiveLibrary ? queryParams.pActiveLibrary : defaultLibrary;
 
-      if (pOldNew !== 'NEW' && pOldNew !== 'OLD') {
-        logger.debug(`bulk/validateQueryParams: invalid pOldNew: ${JSON.stringify(pOldNew)}`);
-        throw new HttpError(httpStatus.BAD_REQUEST, `Invalid pOldNew query parameter '${pOldNew}'. (Valid values: OLD/NEW)`);
+    // If we do not get pOldNew from queryParams, let's get in from operation
+    // DEVELOP: what if settings.operation & queryParam.pOldNew are a mismatch?
+    const pOldNew = queryParams.pOldNew ? queryParams.pOldNew : getPOldNew(settings.operation);
+
+    function getPOldNew(operation) {
+      if (!operation) {
+        return undefined;
       }
+      if (operation === OPERATIONS.CREATE) {
+        return 'NEW';
+      }
+      if (operation === OPERATIONS.UPDATE) {
+        return 'OLD';
+      }
+    }
 
-      // DEVELOP: if we want to use FIX operation for bulk, we'll need to handle this choice differently
-      const operation = pOldNew === 'NEW' ? OPERATIONS.CREATE : OPERATIONS.UPDATE;
+    if (pOldNew !== 'NEW' && pOldNew !== 'OLD') {
+      logger.debug(`bulk/validateQueryParams: invalid pOldNew: ${JSON.stringify(pOldNew)}`);
+      throw new HttpError(httpStatus.BAD_REQUEST, `Invalid pOldNew query parameter '${pOldNew}'. (Valid values: OLD/NEW)`);
+    }
+
+    // DEVELOP: if we want to use FIX operation for bulk, we'll need to handle this choice differently
+    const operation = pOldNew === 'NEW' ? OPERATIONS.CREATE : OPERATIONS.UPDATE;
+
+
+    // Existence of pOldNew indicates we're creating a CREATE/UPDATE bulk job
+    if (pOldNew) {
 
       const recordLoadParams = {
-        pActiveLibrary: queryParams.pActiveLibrary,
+        pActiveLibrary,
         pOldNew,
         pRejectFile: queryParams.pRejectFile || null,
         pLogFile: queryParams.pLogFile || null,
@@ -373,6 +396,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
       return {operation, recordLoadParams, noStream, operationSettings};
     }
 
+    // Existence of queryParam.status indicates we're setting a state
     if (queryParams.status) {
       const validStates = ['PENDING_VALIDATION', 'DONE', 'ABORT'];
 
@@ -387,7 +411,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     throw new HttpError(httpStatus.BAD_REQUEST, 'Missing one or more mandatory query parameters. (pActiveLibrary, pOldNew or status)');
   }
 
-  function validateAndGetOperationSettings(queryParams, noStream) {
+  function validateAndGetOperationSettings(queryParams, noStream, prio = false, chunk = false) {
 
     // NOTE: failOnError currently works on for splitting streamBulk stream to records, not for other validations
     // should these be in config.js ?
@@ -411,21 +435,23 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     }
 
     // noStream == batchBulk:   validate & unique are as default true
+    // !noStream && prio == prioChunk: validate & unique are as default true
     // !noStream == streamBulk: validate & unique are as default false
 
     const operationSettings = {
       noStream,
       noop: queryParams.noop === undefined ? false : parseBoolean(queryParams.noop),
-      unique: paramUnique === undefined ? noStream : paramUnique,
+      unique: paramUnique === undefined ? noStream || prio : paramUnique,
       merge: paramMerge === undefined ? false : paramMerge,
-      validate: paramValidate === undefined ? noStream : paramValidate,
+      validate: paramValidate === undefined ? noStream || prio : paramValidate,
       // Note: currently bulk skips LOW validation all the time, because cataloger.authorization is not forwarded in bulk
       skipLowValidation: paramSkipLowValidation === undefined ? false : paramSkipLowValidation,
       failOnError: queryParams.failOnError === undefined ? false : parseBoolean(queryParams.failOnError),
       // bulk skips changes that won't change the database record as default
       skipNoChangeUpdates: queryParams.skipNoChangeUpdates === undefined ? true : parseBoolean(queryParams.skipNoChangeUpdates),
       matchFailuresAsNew: paramMatchFailuresAsNew,
-      prio: false
+      chunk,
+      prio
     };
 
     return operationSettings;

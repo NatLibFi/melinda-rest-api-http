@@ -27,13 +27,30 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
     .delete('/content/:id', checkId, removeContent)
     .post('/records/:id', checkContentType, checkId, bodyParser.text({limit: '5MB', type: '*/*'}), addRecordsToBulk)
     .post('/record/:id', checkContentType, checkId, bodyParser.text({limit: '5MB', type: '*/*'}), addRecordToBulk)
-    .post('/', checkContentType, create);
+    .post('/create/', checkContentType, createCreate)
+    .post('/update/', checkContentType, createUpdate)
+    .post('/', checkContentType, createBoth);
 
-  async function create(req, res, next) {
+
+  function createUpdate(req, res, next) {
+    return create({operation: OPERATIONS.UPDATE}, req, res, next);
+  }
+
+  function createCreate(req, res, next) {
+    return create({operation: OPERATIONS.CREATE}, req, res, next);
+  }
+
+  function createBoth(req, res, next) {
+    return create({operation: undefined}, req, res, next);
+  }
+
+
+  async function create(settings, req, res, next) {
     try {
-      logger.silly('routes/Bulk create');
+      logger.silly(`routes/Bulk create: ${JSON.stringify(settings)}`);
       // DEVELOP: why we pass req.user.id here?
-      const {operation, recordLoadParams, noStream, operationSettings} = Service.validateQueryParams(req.query, req.user.id);
+      //function validateQueryParams({queryParams, prio, chunk, operation}) {
+      const {operation, recordLoadParams, noStream, operationSettings} = Service.validateQueryParams({queryParams: req.query, user: req.user.id, settings});
 
       // We have match and merge settings just for bib records in validator
       if (recordType !== 'bib' && (operationSettings.unique || operationSettings.merge)) {
@@ -150,7 +167,7 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
   async function updateState(req, res, next) {
     logger.debug('routes/Bulk updateStatus');
     try {
-      const {state} = Service.validateQueryParams(req.query);
+      const {state} = Service.validateQueryParams({queryParams: req.query});
       const response = await Service.updateState({correlationId: req.params.id, state});
       res.status(response.status).json(response.payload);
     } catch (error) {
