@@ -17,7 +17,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   const mongoOperator = await mongoFactory(mongoUri, 'prio');
   const sruClient = createSruClient({url: sruUrl, recordSchema: 'marcxml'});
 
-  return {read, create, update, fix, createChunk, doQuery};
+  return {read, create, update, fix, createOrUpdateChunk, doQuery};
 
   async function read({id, format}) {
     logger.info(`Reading record ${id} / ${format}`);
@@ -102,7 +102,8 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     throw new HttpError(status, payload || '');
   }
 
-  async function createChunk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, operationSettings, stream}) {
+  // eslint-disable-next-line max-statements
+  async function createOrUpdateChunk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, operationSettings, stream}) {
     logger.debug(`prio: createChunk`);
     logger.debug(`${correlationId}, ${cataloger}, ${oCatalogerIn}, ${operation}, ${contentType}, ${JSON.stringify(recordLoadParams)}, ${JSON.stringify(operationSettings)}`);
 
@@ -119,13 +120,29 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.silly(JSON.stringify(setStateResult));
     const resultCorrelationId = setStateResult.value?.correlationId || setStateResult.correlationId || undefined;
     logger.silly(`resultCorrelationId: ${resultCorrelationId}`);
-
-    // DEVELOP poll results!
-
     if (!resultCorrelationId) {
       throw new HttpError(httpStatus.INTERNAL_SERVER_ERROR, `Could not update state for correlationId ${correlationId}. Result: ${JSON.stringify(setStateResult)}`);
     }
-    return setStateResult;
+
+    const responseData = await checkAndGetResponse({correlationId});
+    logger.debug(`${JSON.stringify(responseData)}`);
+
+    const {status, payload} = responseData;
+
+    logger.silly(`prio/createOrUpdateChunk response from checkAndGetResponse: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
+    logger.debug(`status: ${status}, ${payload}`);
+
+    cleanMongo(correlationId);
+
+    //DEVELOP handling prioChunk response!
+
+    // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
+    // eslint-disable-next-line no-extra-parens
+    if (status === 'UPDATED' || status === 'SKIPPED') {
+      return {status, messages: payload, id: payload.databaseId};
+    }
+
+    throw new HttpError(status, payload || '');
   }
 
 
@@ -185,11 +202,15 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     }
   }
 
+  // Send single record request to amqp and poll for response
   async function handleRequest({correlationId, headers, data}) {
     logger.silly(`interfaces/prio/create/handleRequest`);
     // {queue, correlationId, headers, data}
     await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
+    return checkAndGetResponse({correlationId});
+  }
 
+  async function checkAndGetResponse({correlationId}) {
     logger.verbose(`interfaces/prio/create/handleRequest: Waiting response to id: ${correlationId}`);
     const responseData = await check(correlationId);
 
@@ -201,6 +222,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     return responseData;
   }
+
 
   function getRecord(id) {
     return new Promise((resolve, reject) => {
@@ -237,7 +259,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     throw new HttpError(httpStatus.BAD_REQUEST, `Invalid request id ${id}`);
   }
 
-  // Loop
+  // Loop - poll for response from mongo
   async function check(correlationId, queueItemState = '', wait = false) {
     if (wait) {
       await setTimeoutPromise(pollWaitTime);
@@ -290,19 +312,22 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
   function getResponseDataForError(result) {
-
     const recordResponses = result.records ? result.records : [];
-    // prio assumes we had only one record, so we send back just the first recordResponse
-    // if we will later allow prio to have more than one record, this needs to be fixed
-    const [firstRecordResponse] = recordResponses;
     logger.debug(`We have recordResponses (${recordResponses.length}): ${JSON.stringify(recordResponses)}`);
+
+    const [firstRecordResponse] = recordResponses;
     logger.silly(`First recordResponse: ${JSON.stringify(firstRecordResponse)}`);
 
+    // for normal prio send back just the first recordResponse
+    // for prioChunk send back all recordResponses
+    const recordResponse = result.operationSettings.chunk ? recordResponses : firstRecordResponse;
     logger.debug(`QueueItemState is ERROR, errorStatus: ${result.errorStatus} errorMessage: ${result.errorMessage}`);
+
     const errorStatus = result.errorStatus || httpStatus.INTERNAL_SERVER_ERROR;
     const responsePayload = {message: result.errorMessage} || {message: 'unknown error'};
     const responsePayloadAndStatus = {...responsePayload, status: errorStatus};
-    return {status: errorStatus, payload: firstRecordResponse || responsePayloadAndStatus};
+
+    return {status: errorStatus, payload: recordResponse || responsePayloadAndStatus};
   }
 
   function getResponseDataForDone(result) {
@@ -311,10 +336,11 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     const [firstRecordResponse] = recordResponses;
     logger.debug(`We have recordResponses (${recordResponses.length}): ${JSON.stringify(recordResponses)}`);
     logger.silly(`First recordResponse: ${JSON.stringify(firstRecordResponse)}`);
-    const {recordStatus} = firstRecordResponse;
+    const recordResponse = result.operationSettings.chunk ? recordResponses : firstRecordResponse;
+    const recordStatus = result.operationSettings.chunk ? httpStatus.OK : firstRecordResponse.recordStatus;
     // prio assumes we had only one record, so we send back just the first recordResponse
     // if we will later allow prio to have more than one record, this needs to be fixed
-    return {status: recordStatus, payload: firstRecordResponse};
+    return {status: recordStatus, payload: recordResponse};
   }
 
   function doQuery(incomingParams) {

@@ -5,11 +5,9 @@ import {v4 as uuid} from 'uuid';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import createService from '../interfaces/prio';
-import {default as createBulkService} from '../interfaces/bulk';
 import httpStatus from 'http-status';
 import {authorizeKVPOnly, checkContentType, sanitizeCataloger} from './routeUtils';
-import {CONTENT_TYPES, DEFAULT_ACCEPT} from '../config';
-import {checkQueryParams, checkCataloger} from './queryUtils';
+import {checkQueryParams, checkCataloger, getOperationSettingsForPrio, validateQueryParamsForCreateAndUpdate, checkAcceptHeaderForPrio, getTypes, getConversionFormat} from './queryUtils';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons/';
 
 export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite, fixTypes, allowedLibs}) => {
@@ -17,11 +15,6 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
   // Note: prio Service doesn'y know allowedLibs!
   const Service = await createService({
     sruUrl, amqpUrl, mongoUri, pollWaitTime, allowedLibs
-  });
-
-  // check that we get a working mongo? is it the same here for prio and bulk?
-  const prioChunkBulkService = await createBulkService({
-    mongoUri, amqpUrl, allowedLibs
   });
 
   //logger.debug(`Read: ${requireAuthForRead} write: ${requireKVPForWrite}`);
@@ -178,45 +171,6 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
 
   }
 
-  function getOperationSettingsForPrio({queryParams, settings}) {
-
-    const operationSettings = {
-      unique: getUnique({queryParams, settings}),
-      merge: queryParams.merge === undefined ? false : parseBoolean(queryParams.merge), // UPDATE + CREATE
-      noop: parseBoolean(queryParams.noop), // UPDATE + CREATE
-      // Prio always validates
-      validate: true, // UPDATE + CREATE
-      skipLowValidation: queryParams.skipLowValidation === undefined ? false : parseBoolean(queryParams.skipLowValidation), // UPDATE + CREATE
-      // failOnError is n/a for prio single record jobs
-      failOnError: null, // UPDATE + CREATE
-      // Prio forces updates as default, even if the update would not make changes to the database record
-      skipNoChangeUpdates: queryParams.skipNoChangeUpdates === undefined ? false : parseBoolean(queryParams.skipNoChangeUpdates), // UPDATE + CREATE
-      matchFailuresAsNew: queryParams.matchFailuresAsNew === undefined ? undefined : parseBoolean(queryParams.matchFailuresAsNew), // CREATE
-      prio: true // UPDATE + CREATE
-    };
-
-    // We have match and merge settings just for bib records in validator
-    if (recordType !== 'bib' && (operationSettings.unique || operationSettings.merge)) {
-      throw new HttpError(httpStatus.BAD_REQUEST, `Unique and merge can only be used for bib records, use unique=0`);
-    }
-
-    // Merge requires unique for CREATEs (unique in non-applicaple for UPDATEs)
-    if (settings.operation === OPERATIONS.CREATE && operationSettings.merge && operationSettings.unique === false) {
-      throw new HttpError(httpStatus.BAD_REQUEST, `Merge cannot be used with unique set as **false**`);
-    }
-
-    return operationSettings;
-
-    function getUnique({queryParams, settings}) {
-      if (settings?.operation === OPERATIONS.CREATE) {
-        return queryParams.unique === undefined ? true : parseBoolean(queryParams.unique); // CREATE
-      }
-      // unique is non-applicable for UPDATEs
-      return null;
-    }
-
-  }
-
   function createChunkResources(req, res, next) {
     return createOrUpdateResources({operation: OPERATIONS.CREATE}, req, res, next);
   }
@@ -236,8 +190,8 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       // prioChunk recordLoadParams should not be available from queryParams
       // prioChunk operationSetting? we should have always validate=1 at least
       // validateAndGetOperationSettings({queryParams, settings: {noStream, prio, chunk, operation}) {
-      // function validateQueryParamsForCreateAndUpdate({queryParams, settings: {prio, chunk}) {
-      const {operation, recordLoadParams, operationSettings} = prioChunkBulkService.validateQueryParamsForCreateAndUpdate({queryParams: req.query, settings: {prio, chunk, operation: settings.operation, noStream}});
+      // function validateQueryParamsForCreateAndUpdate({queryParams, settings: {prio, chunk, operation, noStream}) {
+      const {operation, recordLoadParams, operationSettings} = validateQueryParamsForCreateAndUpdate({queryParams: req.query, settings: {prio, chunk, operation: settings.operation, noStream}});
 
       // We have match and merge settings just for bib records in validator
       if (recordType !== 'bib' && (operationSettings.unique || operationSettings.merge)) {
@@ -264,7 +218,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
         throw new HttpError(httpStatus.BAD_REQUEST, 'Invalid operation');
       }
 
-      const response = await prioChunkBulkService.create(params);
+      const response = await Service.createOrUpdateChunk(params);
       res.json(response);
       return;
 
@@ -332,67 +286,5 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     const response = await Service.doQuery(req.query);
     res.json(response);
   }
-
-  function getConversionFormat(type) {
-    logger.debug(`prio/getConversionFormat: CONTENT_TYPES: ${JSON.stringify(CONTENT_TYPES)}, type: ${JSON.stringify(type)}`);
-    const {conversionFormat} = CONTENT_TYPES.find(({contentType}) => contentType === type);
-    return conversionFormat;
-  }
-
-
-  function getTypes(acceptHeaders) {
-    logger.silly(`${acceptHeaders}`);
-
-    // We can use DEFAULT_ACCEPT, if accept headers do not exist
-    if (acceptHeaders === undefined) {
-      logger.debug(`Accept header ${acceptHeaders}, using DEFAULT_ACCEPT: ${DEFAULT_ACCEPT}`);
-      return [DEFAULT_ACCEPT];
-    }
-
-    // Accept header example: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-    // DEVELOP: handle q's in accept headers, now we use just first valid type from list
-    const acceptHeaderContents = acceptHeaders.split(',').map(acceptHeaderContent => acceptHeaderContent.split(';')[0]);
-    logger.silly(`acceptHeaderContents: ${JSON.stringify(acceptHeaderContents)}`);
-
-    logger.silly(`CONTENT_TYPES: ${JSON.stringify(CONTENT_TYPES)}`);
-
-    // get valid contentTypes
-    const validContentTypes = acceptHeaderContents.filter(acceptHeaderContent => CONTENT_TYPES.find(({contentType, allowPrio}) => acceptHeaderContent === contentType && allowPrio === true));
-    logger.silly(`valid contentTypes: ${JSON.stringify(validContentTypes)} (${validContentTypes.length})`);
-
-    if (validContentTypes.length > 0) {
-      logger.debug(`Accept header ${acceptHeaders} contains valid types (${validContentTypes.length}): ${JSON.stringify(validContentTypes)}`);
-      return validContentTypes;
-    }
-
-    // We can use DEFAULT_ACCEPT, if accept headers contain wildcard
-    if (acceptHeaderContents.includes('*/*')) {
-      logger.debug(`Accept header ${acceptHeaders}, contains wildcard, use DEFAULT_ACCEPT: ${DEFAULT_ACCEPT}`);
-      return [DEFAULT_ACCEPT];
-    }
-
-    logger.debug(`No valid contentTypes found`);
-    return [];
-  }
-
-  // Note: checkAcceptHeader currently works only for prio, and only for record data in succesfull request responses
-  // Note/DEVELOP: we are not returning asked type for errors etc.!
-  async function checkAcceptHeaderForPrio(req, res, next) {
-    logger.debug(`routesUtils:checkAcceptHeader: accept: ${req.headers.accept}`);
-
-    // Undefined accept header is okay, we'll use default type
-    if (req.headers.accept === undefined) {
-      return next;
-    }
-
-    const validTypes = await getTypes(req.headers.accept);
-    logger.debug(`We got ${validTypes.length}: ${JSON.stringify(validTypes)} accepted types from Accept header`);
-
-    if (validTypes.length > 0) {
-      return next();
-    }
-    return res.status(httpStatus.UNSUPPORTED_MEDIA_TYPE).send('Invalid Accept header');
-  }
-
 
 };

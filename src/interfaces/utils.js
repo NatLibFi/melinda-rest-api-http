@@ -91,14 +91,3 @@ export function generateShowParams({showAll = 0, showOperations = undefined, sho
 
   return Object.assign(...paramsArray);
 }
-
-
-/*
-export function generateShowParams({showAll = 0, showOperations = 0, showOperationSettings = 0, showRecordLoadParams = 0, showImportJobState = 0}) {
-  if (parseBoolean(showAll)) {
-    return {showOperations: 1, showOperationSettings: 1, showRecordLoadParams: 1, showImportJobState: 1};
-  }
-
-  return {showOperations, showOperationSettings, showRecordLoadParams, showImportJobState};
-}
-*/
