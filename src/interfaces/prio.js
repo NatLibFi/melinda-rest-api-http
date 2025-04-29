@@ -17,7 +17,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   const mongoOperator = await mongoFactory(mongoUri, 'prio');
   const sruClient = createSruClient({url: sruUrl, recordSchema: 'marcxml'});
 
-  return {read, create, update, fix, doQuery};
+  return {read, create, update, fix, createChunk, doQuery};
 
   async function read({id, format}) {
     logger.info(`Reading record ${id} / ${format}`);
@@ -100,6 +100,32 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // Note: if validator changed the operation -> this errors currently
     throw new HttpError(status, payload || '');
+  }
+
+  async function createChunk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, operationSettings, stream}) {
+    logger.debug(`prio: createChunk`);
+    logger.debug(`${correlationId}, ${cataloger}, ${oCatalogerIn}, ${operation}, ${contentType}, ${JSON.stringify(recordLoadParams)}, ${JSON.stringify(operationSettings)}`);
+
+    const result = await mongoOperator.createChunk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, operationSettings, prio: true, chunk: true});
+    logger.silly(result);
+    if (!stream) {
+      logger.verbose(`prioChunk should have content in stream, noStream is not usable with prioChunki`);
+      throw new HttpError(httpStatus.BAD_REQUEST, 'prioChunk missing stream');
+    }
+
+    logger.verbose(`Stream uploaded for ${correlationId}!`);
+    logger.silly(`Updating current state of ${correlationId} to ${QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING}`);
+    const setStateResult = await mongoOperator.setState({correlationId, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
+    logger.silly(JSON.stringify(setStateResult));
+    const resultCorrelationId = setStateResult.value?.correlationId || setStateResult.correlationId || undefined;
+    logger.silly(`resultCorrelationId: ${resultCorrelationId}`);
+
+    // DEVELOP poll results!
+
+    if (!resultCorrelationId) {
+      throw new HttpError(httpStatus.INTERNAL_SERVER_ERROR, `Could not update state for correlationId ${correlationId}. Result: ${JSON.stringify(setStateResult)}`);
+    }
+    return setStateResult;
   }
 
 

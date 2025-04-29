@@ -7,7 +7,7 @@ import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/bulk';
 import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils';
-import {checkQueryParams} from './queryUtils';
+import {checkQueryParams, checkCataloger} from './queryUtils';
 import {inspect} from 'util';
 
 export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
@@ -48,9 +48,8 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
   async function create(settings, req, res, next) {
     try {
       logger.silly(`routes/Bulk create: ${JSON.stringify(settings)}`);
-      // DEVELOP: why we pass req.user.id here?
-      //function validateQueryParams({queryParams, prio, chunk, operation}) {
-      const {operation, recordLoadParams, noStream, operationSettings} = Service.validateQueryParams({queryParams: req.query, user: req.user.id, settings});
+      //function validateQueryParamsForCreateAndUpdate({queryParams, settings: {prio, chunk, operation, noStream}}) {
+      const {operation, recordLoadParams, noStream, operationSettings} = Service.validateQueryParamsForCreateAndUpdate({queryParams: req.query, settings});
 
       // We have match and merge settings just for bib records in validator
       if (recordType !== 'bib' && (operationSettings.unique || operationSettings.merge)) {
@@ -59,7 +58,7 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
 
       const params = {
         correlationId: uuid(),
-        cataloger: Service.checkCataloger(req.user.id, req.query.pCatalogerIn),
+        cataloger: checkCataloger(req.user.id, req.query.pCatalogerIn),
         oCatalogerIn: req.user.id,
         contentType: req.headers['content-type'],
         operation,
@@ -167,7 +166,7 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
   async function updateState(req, res, next) {
     logger.debug('routes/Bulk updateStatus');
     try {
-      const {state} = Service.validateQueryParams({queryParams: req.query});
+      const {state} = validateQueryParamsForUpdateState({queryParams: req.query});
       const response = await Service.updateState({correlationId: req.params.id, state});
       res.status(response.status).json(response.payload);
     } catch (error) {
@@ -222,6 +221,17 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
       }
 
       return next(error);
+    }
+  }
+
+  function validateQueryParamsForUpdateState(queryParams) {
+    if (queryParams.status) {
+      const validStates = ['PENDING_VALIDATION', 'DONE', 'ABORT'];
+
+      if (validStates.includes(queryParams.status)) {
+        return {state: queryParams.status};
+      }
+      throw new HttpError(httpStatus.BAD_REQUEST, 'Invalid status query parameter!');
     }
   }
 }

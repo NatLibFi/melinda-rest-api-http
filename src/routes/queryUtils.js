@@ -1,7 +1,9 @@
 import httpStatus from 'http-status';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {version as uuidVersion, validate as uuidValidate} from 'uuid';
-import {QUEUE_ITEM_STATE, LOG_ITEM_TYPE} from '@natlibfi/melinda-rest-api-commons';
+import {QUEUE_ITEM_STATE, LOG_ITEM_TYPE, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
+import {allowedLibs, defaultLibrary} from '../config';
+import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 
 const logger = createLogger();
 
@@ -148,5 +150,195 @@ export function checkQueryParams(req, res, next) {
       {name: 'noIds', value: queryParams.noIds ? (/^(?:1|0|true|false)$/ui).test(queryParams.noIds) : true}
     ];
   }
-
 }
+
+// query parameters for bulk and prioChunk creates and updates
+export function validateQueryParamsForCreateAndUpdate({queryParams, settings = {}}) {
+  // queryParams from request from user
+  logger.debug(`bulk/validateQueryParamsForCreateAndUpdate: queryParams: ${JSON.stringify(queryParams)}`);
+  // settings from API itself
+  logger.debug(`bulk/validateQueryParamsForCreateAndUpdate: settings: ${JSON.stringify(settings)}`);
+
+  const pActiveLibrary = handlePActiveLibrary(queryParams.pActiveLibrary);
+  const {operation, pOldNew} = handleOperationAndPOldNew(settings.operation, queryParams.pOldNew);
+  const noStream = handleNoStream(queryParams.noStream, settings.noStream);
+  const updatedSettings = {
+    ...settings,
+    prio: settings.prio === undefined ? false : settings.prio
+  };
+
+  const operationSettings = handleOperationSettings({queryParams, noStream, settings: updatedSettings});
+
+  const recordLoadParams = {
+    pActiveLibrary,
+    pOldNew,
+    pRejectFile: queryParams.pRejectFile || null,
+    pLogFile: queryParams.pLogFile || null,
+    pCatalogerIn: queryParams.pCatalogerIn || null
+  };
+
+  logger.debug(`operation: ${operation}, recordLoadParameters: ${JSON.stringify(recordLoadParams)}, noStream: ${noStream}, operationSettings: ${JSON.stringify(operationSettings)}`);
+  return {operation, recordLoadParams, noStream, operationSettings};
+
+
+  function handleNoStream(queryNoStream, settingsNoStream) {
+    logger.debug(`Handling noStream from query '${queryNoStream}' and from API ${settingsNoStream}`);
+
+    if (queryNoStream === undefined && settingsNoStream === undefined) {
+      // noStream defaults to false
+      return false;
+    }
+
+    if (queryNoStream !== undefined && settingsNoStream === undefined) {
+      return parseBoolean(queryNoStream);
+    }
+
+    if (queryNoStream === undefined && settingsNoStream !== undefined) {
+      return settingsNoStream;
+    }
+
+    if (queryNoStream !== undefined && settingsNoStream !== undefined) {
+      if (settingsNoStream === parseBoolean(queryNoStream)) {
+        return settingsNoStream;
+      }
+      throw new HttpError(httpStatus.BAD_REQUEST, `Invalid noStream parameter '${queryNoStream}'`);
+    }
+    throw new HttpError(httpStatus.INTERNAL_SERVER_ERROR, `Something wrong with noStream from query '${queryNoStream}' and from API ${settingsNoStream}`);
+  }
+
+  function handlePActiveLibrary(pActiveLibrary) {
+    // use default_library if we do not have pActiveLibrary from query - is this a risk?
+    if (!pActiveLibrary) {
+      logger.debug(`No pActiveLibrary parameter using default library ${defaultLibrary}`);
+      return defaultLibrary;
+    }
+
+    // Note: for backwards compatibility, if we have default empty allowedLibs, we do not check lib here (aleph-record-load-api handles it later)
+    if (allowedLibs.length > 0 && !allowedLibs.includes(pActiveLibrary)) {
+      logger.debug(`Invalid pActiveLibrary parameter '${pActiveLibrary} - not included in ${JSON.stringify(allowedLibs)}`);
+      throw new HttpError(httpStatus.BAD_REQUEST, `Invalid pActiveLibrary parameter '${pActiveLibrary}'`);
+    }
+
+    return pActiveLibrary;
+  }
+
+  function handleOperationAndPOldNew(operation, pOldNew) {
+    // If we do not get pOldNew from queryParams, let's get in from operation
+    // should we be able to get operation from queryParameters (instead of pOldNew)?
+    logger.debug(`operation from API: ${operation}, pOldNew from user: ${pOldNew}`);
+
+    if (operation === undefined && pOldNew === undefined) {
+      throw new HttpError(httpStatus.BAD_REQUEST, 'Missing mandatory query parameter pOldNew');
+    }
+
+    if (pOldNew !== undefined && !['NEW', 'OLD'].includes(pOldNew)) {
+      logger.debug(`bulk/validateQueryParamsForCreateAndUpdate: invalid pOldNew: ${JSON.stringify(pOldNew)}`);
+      throw new HttpError(httpStatus.BAD_REQUEST, `Invalid pOldNew query parameter '${pOldNew}'. (Valid values: OLD/NEW)`);
+    }
+
+    /*
+        if (queryOperation !== undefined && ![OPERATIONS.CREATE, OPERATIONS.UPDATE].includes(queryOperation)) {
+          logger.debug(`bulk/validateQueryParamsForCreateAndUpdate: invalid operation from query: ${JSON.stringify(operation)}`);
+          throw new HttpError(httpStatus.BAD_REQUEST, `Invalid operation parameter '${operation}'. (Valid values: UPDATE/CREATE)`);
+        }
+      */
+
+    if (operation !== undefined && ![OPERATIONS.CREATE, OPERATIONS.UPDATE].includes(operation)) {
+      logger.debug(`bulk/validateQueryParamsForCreateAndUpdate: invalid operation from API itself: ${JSON.stringify(operation)}`);
+      throw new HttpError(httpStatus.INTERNAL_SERVER_ERROR, `Invalid operation '${operation}'.`);
+    }
+
+    if (operation === undefined || pOldNew === undefined) {
+      logger.debug(`No comparison needed, operation or pOldNew undefined. Operation: '${operation}' pOldNew: '${pOldNew}'`);
+      return {
+        operation: operation === undefined ? getOperationFromPOldNew(pOldNew) : operation,
+        pOldNew: pOldNew === undefined ? getPOldNewFromOperation(operation) : pOldNew
+      };
+    }
+
+    if (operation === OPERATIONS.CREATE && pOldNew === 'NEW') {
+      return {operation, pOldNew};
+    }
+
+    if (operation === OPERATIONS.UPDATE && pOldNew === 'OLD') {
+      return {operation, pOldNew};
+    }
+
+    throw new HttpError(httpStatus.INTERNAL_SERVER_ERROR, `Invalid operation/pOldNew combination: operation: '${operation}' pOldNew: '${pOldNew}'.`);
+
+    function getPOldNewFromOperation(operation) {
+      if (operation === OPERATIONS.CREATE) {
+        return 'NEW';
+      }
+      if (operation === OPERATIONS.UPDATE) {
+        return 'OLD';
+      }
+    }
+
+    function getOperationFromPOldNew(pOldNew) {
+      if (pOldNew === 'NEW') {
+        return OPERATIONS.CREATE;
+      }
+      if (pOldNew === 'OLD') {
+        return OPERATIONS.UPDATE;
+      }
+    }
+  }
+
+  function handleOperationSettings({queryParams, noStream, settings}) {
+    // NOTE: failOnError currently works on for splitting streamBulk stream to records, not for other validations
+    // should these be in config.js ?
+
+    logger.debug(`QueryParams for validating and getting operationSettings: ${JSON.stringify(queryParams)}, noStream: ${noStream}, settings: ${JSON.stringify(settings)}`);
+
+    const paramValidate = queryParams.validate ? parseBoolean(queryParams.validate) : undefined;
+    const paramUnique = queryParams.unique ? parseBoolean(queryParams.unique) : undefined;
+    const paramMerge = queryParams.merge ? parseBoolean(queryParams.merge) : undefined;
+    const paramSkipLowValidation = queryParams.skipLowValidation ? parseBoolean(queryParams.skipLowValidateLow) : undefined;
+    const paramMatchFailuresAsNew = queryParams.matchFailuresAsNew ? parseBoolean(queryParams.matchFailuresAsNew) : undefined;
+
+    if (paramValidate === false && (paramUnique || paramMerge)) {
+      logger.debug(`Query parameter validate=0 is not valid with query parameters unique=1 and/or merge=1`);
+      throw new HttpError(httpStatus.BAD_REQUEST, `Query parameter validate=0 is not valid with query parameters unique=1 and/or merge=1`);
+    }
+
+    if (paramUnique === false && paramMerge) {
+      logger.debug(`Query parameter unique=0 is not valid with query parameter merge=1`);
+      throw new HttpError(httpStatus.BAD_REQUEST, `Query parameter unique=0 is not valid with query parameter merge=1`);
+    }
+
+    // noStream == batchBulk:   validate & unique are as default true
+    // !noStream && prio == prioChunk: validate & unique are as default true
+    // !noStream == streamBulk: validate & unique are as default false
+
+    const operationSettings = {
+      noStream,
+      noop: queryParams.noop === undefined ? false : parseBoolean(queryParams.noop),
+      unique: paramUnique === undefined ? noStream || settings.prio : paramUnique,
+      merge: paramMerge === undefined ? false : paramMerge,
+      validate: paramValidate === undefined ? noStream || settings.prio : paramValidate,
+      // Note: currently bulk skips LOW validation all the time, because cataloger.authorization is not forwarded in bulk
+      skipLowValidation: paramSkipLowValidation === undefined ? false : paramSkipLowValidation,
+      failOnError: queryParams.failOnError === undefined ? false : parseBoolean(queryParams.failOnError),
+      // bulk skips changes that won't change the database record as default
+      skipNoChangeUpdates: queryParams.skipNoChangeUpdates === undefined ? true : parseBoolean(queryParams.skipNoChangeUpdates),
+      matchFailuresAsNew: paramMatchFailuresAsNew,
+      chunk: settings.chunk,
+      prio: settings.prio
+    };
+
+    return operationSettings;
+  }
+}
+
+// DEVELOP: add authorization, deduplicate code (same kind of stuff in prio: sanitizeCataloger)
+// Could we get cataloger also as queryParam.cataloger in addition to pCatalogerIn
+export function checkCataloger(id, paramsId) {
+  if (paramsId !== undefined && paramsId !== 'undefined' && paramsId !== '0' && paramsId !== 'false') {
+    logger.debug(`Using cataloger given in parameters.`);
+    return paramsId;
+  }
+  logger.debug(`No cataloger given in parameters, using user's id as cataloger.`);
+  return id;
+}
+

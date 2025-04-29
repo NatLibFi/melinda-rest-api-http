@@ -1,8 +1,8 @@
 import httpStatus from 'http-status';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
-import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS, CHUNK_SIZE} from '@natlibfi/melinda-rest-api-commons';
-import {CONTENT_TYPES, allowedLibs, defaultLibrary} from '../config';
+import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, CHUNK_SIZE} from '@natlibfi/melinda-rest-api-commons';
+import {CONTENT_TYPES} from '../config';
 import {generateQuery, generateShowParams} from './utils';
 // import {inspect} from 'util';
 
@@ -11,9 +11,12 @@ export default async function ({mongoUri, amqpUrl}) {
   const mongoOperator = await mongoFactory(mongoUri, 'bulk');
   const amqpOperator = await amqpFactory(amqpUrl, true);
 
-  return {create, addRecord, addRecords, getState, updateState, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
+  return {create, addRecord, addRecords, getState, updateState, doQuery, readContent, remove, removeContent};
 
   async function create({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, operationSettings, stream}) {
+    logger.debug(`Bulk: create`);
+    // We create also prioChunks using this - let's see about that prio!
+    logger.debug(`${correlationId}, ${cataloger}, ${oCatalogerIn}, ${operation}, ${contentType}, ${JSON.stringify(recordLoadParams)}, ${JSON.stringify(operationSettings)}`);
     const result = await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, operationSettings, prio: false});
     if (!stream) {
       logger.verbose(`NoStream bulk ready to receive records ${correlationId}!`);
@@ -334,136 +337,6 @@ export default async function ({mongoUri, amqpUrl}) {
 
     logger.silly(JSON.stringify(recordStatuses));
     return recordStatuses;
-  }
-
-  // eslint-disable-next-line max-statements
-  function validateQueryParams({queryParams, settings = {}}) {
-    logger.debug(`bulk/validateQueryParams: queryParams: ${JSON.stringify(queryParams)}`);
-    logger.debug(`bulk/validateQueryParams: settings.prio: ${JSON.stringify(settings.prio)}`);
-    logger.debug(`bulk/validateQueryParams: settings.chunk: ${JSON.stringify(settings.chunk)}`);
-    logger.debug(`bulk/validateQueryParams: settings.operation: ${JSON.stringify(settings.operation)}`);
-
-    // Note: for backwards compatibility, if we have default empty allowedLibs, we do note check lib here (aleph-record-load-api handles it later)
-    if (queryParams.pActiveLibrary && allowedLibs.length > 0 && !allowedLibs.includes(queryParams.pActiveLibrary)) {
-      logger.debug(`Invalid pActiveLibrary parameter '${queryParams.pActiveLibrary} - not included in ${JSON.stringify(allowedLibs)}`);
-      throw new HttpError(httpStatus.BAD_REQUEST, `Invalid pActiveLibrary parameter '${queryParams.pActiveLibrary}'`);
-    }
-
-    // If we do not get pActiveLibrary from queryParams, let's default to defaultLibrary
-    const pActiveLibrary = queryParams.pActiveLibrary ? queryParams.pActiveLibrary : defaultLibrary;
-
-    // If we do not get pOldNew from queryParams, let's get in from operation
-    // DEVELOP: what if settings.operation & queryParam.pOldNew are a mismatch?
-    const pOldNew = queryParams.pOldNew ? queryParams.pOldNew : getPOldNew(settings.operation);
-
-    function getPOldNew(operation) {
-      if (!operation) {
-        return undefined;
-      }
-      if (operation === OPERATIONS.CREATE) {
-        return 'NEW';
-      }
-      if (operation === OPERATIONS.UPDATE) {
-        return 'OLD';
-      }
-    }
-
-    if (pOldNew !== 'NEW' && pOldNew !== 'OLD') {
-      logger.debug(`bulk/validateQueryParams: invalid pOldNew: ${JSON.stringify(pOldNew)}`);
-      throw new HttpError(httpStatus.BAD_REQUEST, `Invalid pOldNew query parameter '${pOldNew}'. (Valid values: OLD/NEW)`);
-    }
-
-    // DEVELOP: if we want to use FIX operation for bulk, we'll need to handle this choice differently
-    const operation = pOldNew === 'NEW' ? OPERATIONS.CREATE : OPERATIONS.UPDATE;
-
-
-    // Existence of pOldNew indicates we're creating a CREATE/UPDATE bulk job
-    if (pOldNew) {
-
-      const recordLoadParams = {
-        pActiveLibrary,
-        pOldNew,
-        pRejectFile: queryParams.pRejectFile || null,
-        pLogFile: queryParams.pLogFile || null,
-        pCatalogerIn: queryParams.pCatalogerIn || null
-      };
-
-      const noStream = queryParams.noStream ? parseBoolean(queryParams.noStream) : false;
-
-      const operationSettings = validateAndGetOperationSettings(queryParams, noStream);
-      logger.debug(`noStream: ${noStream}, operationSettings: ${JSON.stringify(operationSettings)}`);
-
-      return {operation, recordLoadParams, noStream, operationSettings};
-    }
-
-    // Existence of queryParam.status indicates we're setting a state
-    if (queryParams.status) {
-      const validStates = ['PENDING_VALIDATION', 'DONE', 'ABORT'];
-
-      if (validStates.includes(queryParams.status)) {
-        return {state: queryParams.status};
-      }
-
-      throw new HttpError(httpStatus.BAD_REQUEST, 'Invalid status query parameter!');
-    }
-
-    logger.debug(`bulk/validateQueryParams: mandatory query param missing: pOldNew: ${JSON.stringify(queryParams.pOldNew)}, pActiveLibrary: ${JSON.stringify(queryParams.pActiveLibrary)}`);
-    throw new HttpError(httpStatus.BAD_REQUEST, 'Missing one or more mandatory query parameters. (pActiveLibrary, pOldNew or status)');
-  }
-
-  function validateAndGetOperationSettings(queryParams, noStream, prio = false, chunk = false) {
-
-    // NOTE: failOnError currently works on for splitting streamBulk stream to records, not for other validations
-    // should these be in config.js ?
-
-    logger.debug(`QueryParams for validating and getting operationSettings: ${JSON.stringify(queryParams)}`);
-
-    const paramValidate = queryParams.validate ? parseBoolean(queryParams.validate) : undefined;
-    const paramUnique = queryParams.unique ? parseBoolean(queryParams.unique) : undefined;
-    const paramMerge = queryParams.merge ? parseBoolean(queryParams.merge) : undefined;
-    const paramSkipLowValidation = queryParams.skipLowValidation ? parseBoolean(queryParams.skipLowValidateLow) : undefined;
-    const paramMatchFailuresAsNew = queryParams.matchFailuresAsNew ? parseBoolean(queryParams.matchFailuresAsNew) : undefined;
-
-    if (paramValidate === false && (paramUnique || paramMerge)) {
-      logger.debug(`Query parameter validate=0 is not valid with query parameters unique=1 and/or merge=1`);
-      throw new HttpError(httpStatus.BAD_REQUEST, `Query parameter validate=0 is not valid with query parameters unique=1 and/or merge=1`);
-    }
-
-    if (paramUnique === false && paramMerge) {
-      logger.debug(`Query parameter unique=0 is not valid with query parameter merge=1`);
-      throw new HttpError(httpStatus.BAD_REQUEST, `Query parameter unique=0 is not valid with query parameter merge=1`);
-    }
-
-    // noStream == batchBulk:   validate & unique are as default true
-    // !noStream && prio == prioChunk: validate & unique are as default true
-    // !noStream == streamBulk: validate & unique are as default false
-
-    const operationSettings = {
-      noStream,
-      noop: queryParams.noop === undefined ? false : parseBoolean(queryParams.noop),
-      unique: paramUnique === undefined ? noStream || prio : paramUnique,
-      merge: paramMerge === undefined ? false : paramMerge,
-      validate: paramValidate === undefined ? noStream || prio : paramValidate,
-      // Note: currently bulk skips LOW validation all the time, because cataloger.authorization is not forwarded in bulk
-      skipLowValidation: paramSkipLowValidation === undefined ? false : paramSkipLowValidation,
-      failOnError: queryParams.failOnError === undefined ? false : parseBoolean(queryParams.failOnError),
-      // bulk skips changes that won't change the database record as default
-      skipNoChangeUpdates: queryParams.skipNoChangeUpdates === undefined ? true : parseBoolean(queryParams.skipNoChangeUpdates),
-      matchFailuresAsNew: paramMatchFailuresAsNew,
-      chunk,
-      prio
-    };
-
-    return operationSettings;
-  }
-
-  function checkCataloger(id, paramsId) {
-    if (paramsId !== undefined && paramsId !== 'undefined' && paramsId !== '0' && paramsId !== 'false') {
-      logger.debug(`Using cataloger given in parameters.`);
-      return paramsId;
-    }
-    logger.debug(`No cataloger given in parameters, using user's id as cataloger.`);
-    return id;
   }
 }
 

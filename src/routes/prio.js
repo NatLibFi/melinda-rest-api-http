@@ -2,24 +2,25 @@ import {Router} from 'express';
 import {inspect} from 'util';
 import passport from 'passport';
 import {v4 as uuid} from 'uuid';
-import {createLogger, OPERATION_TYPES} from '@natlibfi/melinda-backend-commons';
+import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import createService from '../interfaces/prio';
 import {default as createBulkService} from '../interfaces/bulk';
 import httpStatus from 'http-status';
 import {authorizeKVPOnly, checkContentType, sanitizeCataloger} from './routeUtils';
 import {CONTENT_TYPES, DEFAULT_ACCEPT} from '../config';
-import {checkQueryParams} from './queryUtils';
-import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons/dist/constants';
+import {checkQueryParams, checkCataloger} from './queryUtils';
+import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons/';
 
 export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite, fixTypes, allowedLibs}) => {
   const logger = createLogger();
+  // Note: prio Service doesn'y know allowedLibs!
   const Service = await createService({
-    sruUrl, amqpUrl, mongoUri, pollWaitTime
+    sruUrl, amqpUrl, mongoUri, pollWaitTime, allowedLibs
   });
 
   // check that we get a working mongo? is it the same here for prio and bulk?
-  const prioChunkService = await createBulkService({
+  const prioChunkBulkService = await createBulkService({
     mongoUri, amqpUrl, allowedLibs
   });
 
@@ -60,7 +61,6 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
   return new Router()
     .use(checkQueryParams)
     .get('/:id', checkAcceptHeaderForPrio, readResource)
-    //.get('/apidoc/', serveApiDoc)
     .use(passport.authenticate('melinda', {session: false}))
     .get('/prio/', authorizeKVPOnly, getPrioLogs)
     .post('/fix/:id', fixResource)
@@ -97,9 +97,8 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
 
     try {
 
-      const conversionFormat = getConversionFormat(req.headers['content-type']);
       const correlationId = uuid();
-
+      const conversionFormat = getConversionFormat(req.headers['content-type']);
       const operationSettings = getOperationSettingsForPrio({queryParams: req.query, settings: {operation: OPERATIONS.CREATE}});
 
       const {messages, id, status} = await Service.create({
@@ -154,11 +153,6 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       const correlationId = uuid();
 
       const operationSettings = getOperationSettingsForPrio({queryParams: req.query, settings: {operation: OPERATIONS.UPDATE}});
-
-      // We have match and merge settings just for bib records in validator
-      if (recordType !== 'bib' && (operationSettings.unique || operationSettings.merge)) {
-        throw new HttpError(httpStatus.BAD_REQUEST, `Merge can only be used for bib records`);
-      }
 
       const {messages, id} = await Service.update({
         id: req.params.id,
@@ -235,16 +229,15 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
   async function createOrUpdateResources(settings, req, res, next) {
     try {
       logger.silly(`routes/prio createOrUpdateResources: settings: ${JSON.stringify(settings)}`);
-      // DEVELOP: why we pass req.user.id here?
       // prioChunk is always stream
       const noStream = false;
       const prio = true;
       const chunk = true;
       // prioChunk recordLoadParams should not be available from queryParams
       // prioChunk operationSetting? we should have always validate=1 at least
-      // validateAndGetOperationSettings(queryParams, noStream, prio = false, chunk = false) {
-      // function validateQueryParams(queryParams, prio, chunk) {
-      const {operation, recordLoadParams, operationSettings} = prioChunkService.validateQueryParams({queryParams: req.query, prio, chunk, operation: settings.operation, noStream});
+      // validateAndGetOperationSettings({queryParams, settings: {noStream, prio, chunk, operation}) {
+      // function validateQueryParamsForCreateAndUpdate({queryParams, settings: {prio, chunk}) {
+      const {operation, recordLoadParams, operationSettings} = prioChunkBulkService.validateQueryParamsForCreateAndUpdate({queryParams: req.query, settings: {prio, chunk, operation: settings.operation, noStream}});
 
       // We have match and merge settings just for bib records in validator
       if (recordType !== 'bib' && (operationSettings.unique || operationSettings.merge)) {
@@ -253,7 +246,8 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
 
       const params = {
         correlationId: uuid(),
-        cataloger: prioChunkService.checkCataloger(req.user.id, req.query.pCatalogerIn),
+        cataloger: checkCataloger(req.user.id, req.query.pCatalogerIn),
+        // Should we use whole cataloger with authorizations?
         oCatalogerIn: req.user.id,
         contentType: req.headers['content-type'],
         operation,
@@ -265,12 +259,12 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       logger.silly('Params done');
       logger.silly(`Params: ${inspect(params)}`);
 
-      if (params.operation && !OPERATION_TYPES.includes(params.operation)) {
+      if (params.operation && ![OPERATIONS.CREATE, OPERATIONS.UPDATE].includes(params.operation)) {
         logger.debug('Invalid operation');
         throw new HttpError(httpStatus.BAD_REQUEST, 'Invalid operation');
       }
 
-      const response = await prioChunkService.create(params);
+      const response = await prioChunkBulkService.create(params);
       res.json(response);
       return;
 
@@ -356,7 +350,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     }
 
     // Accept header example: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-    // DEVELOP: handle q's in accept headers
+    // DEVELOP: handle q's in accept headers, now we use just first valid type from list
     const acceptHeaderContents = acceptHeaders.split(',').map(acceptHeaderContent => acceptHeaderContent.split(';')[0]);
     logger.silly(`acceptHeaderContents: ${JSON.stringify(acceptHeaderContents)}`);
 
@@ -391,10 +385,10 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       return next;
     }
 
-    const acceptableTypes = await getTypes(req.headers.accept);
-    logger.debug(`We got ${acceptableTypes.length}: ${JSON.stringify(acceptableTypes)} accepted types from Accept header`);
+    const validTypes = await getTypes(req.headers.accept);
+    logger.debug(`We got ${validTypes.length}: ${JSON.stringify(validTypes)} accepted types from Accept header`);
 
-    if (acceptableTypes.length > 0) {
+    if (validTypes.length > 0) {
       return next();
     }
     return res.status(httpStatus.UNSUPPORTED_MEDIA_TYPE).send('Invalid Accept header');
