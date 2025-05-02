@@ -291,6 +291,8 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.debug(`Queue item ${result.correlationId}, state ${result.queueItemState} - Timeout!`);
     const errorMessage = result.errorMessage || 'Request timeout, try again later';
     throw new HttpError(httpStatus.REQUEST_TIMEOUT, errorMessage);
+
+    //throw new HttpError(httpStatus.INTERNAL_SERVER_ERROR, errorMessage);
   }
 
   // should we return also correlationId in prio?

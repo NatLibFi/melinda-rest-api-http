@@ -102,7 +102,6 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
         operationSettings,
         data: req.body
       });
-
       // create returns: {messages:<messages> id:<id>, status: CREATED/UPDATED}
       // logger.silly(`messages: ${inspect(messages, {colors: true, maxArrayLength: 3, depth: 1})}`);
       // logger.silly(`id: ${inspect(id, {colors: true, maxArrayLength: 3, depth: 1})}`);
