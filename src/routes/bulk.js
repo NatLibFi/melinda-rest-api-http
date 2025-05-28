@@ -7,7 +7,7 @@ import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/bulk';
 import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils';
-import {checkQueryParams, checkCataloger} from './queryUtils';
+import {checkQueryParams, checkCataloger, validateQueryParamsForCreateAndUpdate} from './queryUtils';
 import {inspect} from 'util';
 
 export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
@@ -49,7 +49,7 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
     try {
       logger.silly(`routes/Bulk create: ${JSON.stringify(settings)}`);
       //function validateQueryParamsForCreateAndUpdate({queryParams, settings: {prio, chunk, operation, noStream}}) {
-      const {operation, recordLoadParams, noStream, operationSettings} = Service.validateQueryParamsForCreateAndUpdate({queryParams: req.query, settings});
+      const {operation, recordLoadParams, noStream, operationSettings} = validateQueryParamsForCreateAndUpdate({queryParams: req.query, settings});
 
       // We have match and merge settings just for bib records in validator
       if (recordType !== 'bib' && (operationSettings.unique || operationSettings.merge)) {

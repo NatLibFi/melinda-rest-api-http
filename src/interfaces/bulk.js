@@ -15,7 +15,6 @@ export default async function ({mongoUri, amqpUrl}) {
 
   async function create({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, operationSettings, stream}) {
     logger.debug(`Bulk: create`);
-    // We create also prioChunks using this - let's see about that prio!
     logger.debug(`${correlationId}, ${cataloger}, ${oCatalogerIn}, ${operation}, ${contentType}, ${JSON.stringify(recordLoadParams)}, ${JSON.stringify(operationSettings)}`);
     const result = await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, operationSettings, prio: false});
     if (!stream) {

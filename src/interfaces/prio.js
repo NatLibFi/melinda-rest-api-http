@@ -14,7 +14,8 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   logger.debug(`Connecting prio to: ${amqpUrl} and ${mongoUri}`);
   const converter = conversions();
   const amqpOperator = await amqpFactory(amqpUrl, true);
-  const mongoOperator = await mongoFactory(mongoUri, 'prio');
+  const mongoPrioOperator = await mongoFactory(mongoUri, 'prio');
+  const mongoPrioChunkOperator = await mongoFactory(mongoUri, 'foobar');
   const sruClient = createSruClient({url: sruUrl, recordSchema: 'marcxml'});
 
   return {read, create, update, fix, createOrUpdateChunk, doQuery};
@@ -35,6 +36,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
   async function create({data, format, cataloger, oCatalogerIn, operationSettings, correlationId}) {
+    const mongoOperator = mongoPrioOperator;
     logger.info(`Creating CREATE task for a new record ${correlationId}`);
     logger.verbose('Sending a new record to queue');
     const operation = OPERATIONS.CREATE;
@@ -51,13 +53,13 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // handleRequest returns recordResponseItem as respenseData
 
-    const responseData = await handleRequest({correlationId, headers, data});
+    const responseData = await handleRequest({mongoOperator, correlationId, headers, data});
     const {status, payload} = responseData;
 
     logger.silly(`prio/create response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
     logger.debug(`status: ${status}, ${payload.databaseId}, ${JSON.stringify(payload)}`);
 
-    cleanMongo(correlationId);
+    cleanMongo(mongoOperator, correlationId);
 
     // eslint-disable-next-line no-extra-parens
     if (status === 'CREATED' || (operationSettings.merge && (status === 'UPDATED' || status === 'SKIPPED'))) {
@@ -69,6 +71,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
 
   async function update({id, data, format, cataloger, oCatalogerIn, operationSettings, correlationId}) {
+    const mongoOperator = mongoPrioOperator;
     validateRequestId(id);
     logger.info(`Creating UPDATE task for record ${id} / ${correlationId}`);
     const operation = OPERATIONS.UPDATE;
@@ -84,13 +87,13 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.verbose(`Creating Mongo queue item for record ${id} / ${correlationId}`);
 
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, operationSettings});
-    const responseData = await handleRequest({correlationId, headers, data});
+    const responseData = await handleRequest({mongoOperator, correlationId, headers, data});
     const {status, payload} = responseData;
 
     logger.silly(`prio/update response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
     logger.debug(`status: ${status}, ${payload}`);
 
-    cleanMongo(correlationId);
+    cleanMongo(mongoOperator, correlationId);
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
     // eslint-disable-next-line no-extra-parens
@@ -104,15 +107,16 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   // eslint-disable-next-line max-statements
   async function createOrUpdateChunk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, operationSettings, stream}) {
+    const mongoOperator = mongoPrioChunkOperator;
     logger.debug(`prio: createChunk`);
     logger.debug(`${correlationId}, ${cataloger}, ${oCatalogerIn}, ${operation}, ${contentType}, ${JSON.stringify(recordLoadParams)}, ${JSON.stringify(operationSettings)}`);
 
-    const result = await mongoOperator.createChunk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, operationSettings, prio: true, chunk: true});
-    logger.silly(result);
     if (!stream) {
       logger.verbose(`prioChunk should have content in stream, noStream is not usable with prioChunki`);
       throw new HttpError(httpStatus.BAD_REQUEST, 'prioChunk missing stream');
     }
+    const result = await mongoOperator.createPrioChunk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, operationSettings, prio: true, chunk: true});
+    logger.debug(`CreatePrioChunk result: ${JSON.stringify(result)}`);
 
     logger.verbose(`Stream uploaded for ${correlationId}!`);
     logger.silly(`Updating current state of ${correlationId} to ${QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING}`);
@@ -124,7 +128,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       throw new HttpError(httpStatus.INTERNAL_SERVER_ERROR, `Could not update state for correlationId ${correlationId}. Result: ${JSON.stringify(setStateResult)}`);
     }
 
-    const responseData = await checkAndGetResponse({correlationId});
+    const responseData = await checkAndGetResponse({mongoOperator, correlationId});
     logger.debug(`${JSON.stringify(responseData)}`);
 
     const {status, payload} = responseData;
@@ -132,7 +136,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.silly(`prio/createOrUpdateChunk response from checkAndGetResponse: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
     logger.debug(`status: ${status}, ${payload}`);
 
-    cleanMongo(correlationId);
+    cleanMongo(mongoOperator, correlationId);
 
     //DEVELOP handling prioChunk response!
 
@@ -147,6 +151,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
 
   async function fix({id, cataloger, oCatalogerIn, operationSettings, correlationId}) {
+    const mongoOperator = mongoPrioOperator;
     validateRequestId(id);
     logger.info(`Creating FIX (${operationSettings.fixType}) task for record ${id} / ${correlationId}`);
     const operation = OPERATIONS.FIX;
@@ -162,13 +167,13 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.verbose(`Creating Mongo queue item for fixing record ${id} / ${correlationId}`);
 
     await mongoOperator.createPrio({correlationId, cataloger: cataloger.id, oCatalogerIn, operation, operationSettings});
-    const responseData = await handleRequest({correlationId, headers, data: {}});
+    const responseData = await handleRequest({mongoOperator, correlationId, headers, data: {}});
     const {status, payload} = responseData;
 
     logger.silly(`prio/fix response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
     logger.debug(`status: ${status}, ${payload}`);
 
-    cleanMongo(correlationId);
+    cleanMongo(mongoOperator, correlationId);
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
     // eslint-disable-next-line no-extra-parens
@@ -182,7 +187,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
 
   // cleanMongo cleans the actual MongoCollection ('prio'), logCollection ('logPrio') retains all items
-  async function cleanMongo(correlationId) {
+  async function cleanMongo(mongoOperator, correlationId) {
     const result = await mongoOperator.queryById({correlationId, checkModTime: true});
     logger.silly(` ${inspect(result, {colors: true, maxArrayLength: 3, depth: 1})}}`);
 
@@ -203,16 +208,16 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
   // Send single record request to amqp and poll for response
-  async function handleRequest({correlationId, headers, data}) {
+  async function handleRequest({mongoOperator, correlationId, headers, data}) {
     logger.silly(`interfaces/prio/create/handleRequest`);
     // {queue, correlationId, headers, data}
     await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
-    return checkAndGetResponse({correlationId});
+    return checkAndGetResponse({mongoOperator, correlationId});
   }
 
-  async function checkAndGetResponse({correlationId}) {
+  async function checkAndGetResponse({mongoOperator, correlationId}) {
     logger.verbose(`interfaces/prio/create/handleRequest: Waiting response to id: ${correlationId}`);
-    const responseData = await check(correlationId);
+    const responseData = await check(mongoOperator, correlationId);
 
     // We get responseData (recordResponseItem of ??? for errors) from check
 
@@ -260,10 +265,10 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
   // Loop - poll for response from mongo
-  async function check(correlationId, queueItemState = '', wait = false) {
+  async function check(mongoOperator, correlationId, queueItemState = '', wait = false) {
     if (wait) {
       await setTimeoutPromise(pollWaitTime);
-      return check(correlationId, queueItemState);
+      return check(mongoOperator, correlationId, queueItemState);
     }
 
     // Check status and and also if process has timeouted
@@ -284,7 +289,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     }
 
     // queueItem state not DONE/ERROR/ABORT - loop back to check status
-    return check(correlationId, result.queueItemState, true);
+    return check(mongoOperator, correlationId, result.queueItemState, true);
   }
 
   function getResponseDataForAbort(result) {
@@ -345,7 +350,10 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     return {status: recordStatus, payload: recordResponse};
   }
 
+  // Note: do query works only for normal prio queueItems!
+  // There's no query for prioChunk!
   function doQuery(incomingParams) {
+    const mongoOperator = mongoPrioOperator;
     const params = generateQuery(incomingParams);
     const showParams = generateShowParams(incomingParams);
 
