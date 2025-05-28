@@ -115,6 +115,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       logger.verbose(`prioChunk should have content in stream, noStream is not usable with prioChunki`);
       throw new HttpError(httpStatus.BAD_REQUEST, 'prioChunk missing stream');
     }
+    logger.debug(`REMOVE: ${stream}`);
     const result = await mongoOperator.createPrioChunk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, operationSettings, prio: true, chunk: true});
     logger.debug(`CreatePrioChunk result: ${JSON.stringify(result)}`);
 
