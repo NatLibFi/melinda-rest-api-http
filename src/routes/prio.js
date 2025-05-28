@@ -7,10 +7,10 @@ import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import createService from '../interfaces/prio';
 import httpStatus from 'http-status';
 import {authorizeKVPOnly, checkContentType, sanitizeCataloger} from './routeUtils';
-import {checkQueryParams, checkCataloger, getOperationSettingsForPrio, validateQueryParamsForCreateAndUpdate, checkAcceptHeaderForPrio, getTypes, getConversionFormat} from './queryUtils';
+import {checkQueryParams, getOperationSettingsForPrio, checkAcceptHeaderForPrio, getTypes, getConversionFormat} from './queryUtils';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons/';
 
-export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite, fixTypes, allowedLibs}) => {
+export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, requireAuthForRead, requireKVPForWrite, fixTypes, allowedLibs}) => {
   const logger = createLogger();
   // Note: prio Service doesn'y know allowedLibs!
   const Service = await createService({
@@ -29,8 +29,6 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       .get('/:id', checkAcceptHeaderForPrio, readResource)
       .get('/prio/', authorizeKVPOnly, getPrioLogs)
       .post('/fix/:id', authorizeKVPOnly, fixResource)
-      .post('/priochunk/create/', checkContentType, createChunkResources)
-      .post('/priochunk/update/', checkContentType, updateChunkResources)
       .post('/', authorizeKVPOnly, checkContentType, createResource)
       .post('/:id', authorizeKVPOnly, checkContentType, updateResource);
   }
@@ -44,8 +42,6 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       .get('/:id', checkAcceptHeaderForPrio, readResource)
       .get('/prio/', authorizeKVPOnly, getPrioLogs)
       .post('/fix/:id', fixResource)
-      .post('/priochunk/create/', checkContentType, createChunkResources)
-      .post('/priochunk/update/', checkContentType, updateChunkResources)
       .post('/', checkContentType, createResource)
       .post('/:id', checkContentType, updateResource);
   }
@@ -57,8 +53,6 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     .use(passport.authenticate('melinda', {session: false}))
     .get('/prio/', authorizeKVPOnly, getPrioLogs)
     .post('/fix/:id', fixResource)
-    .post('/priochunk/create/', checkContentType, createChunkResources)
-    .post('/priochunk/update/', checkContentType, updateChunkResources)
     .post('/', checkContentType, createResource)
     .post('/:id', checkContentType, updateResource);
 
@@ -170,6 +164,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
 
   }
 
+  /*
   function createChunkResources(req, res, next) {
     return createOrUpdateResources({operation: OPERATIONS.CREATE}, req, res, next);
   }
@@ -206,6 +201,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
         operation,
         recordLoadParams,
         operationSettings,
+        data: req.body,
         stream: noStream ? false : req
       };
 
@@ -229,6 +225,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       return next(error);
     }
   }
+*/
 
   async function fixResource(req, res, next) {
     logger.debug(`Request from ${req?.user?.id || 'N/A'}`);

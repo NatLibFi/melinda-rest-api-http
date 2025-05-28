@@ -15,7 +15,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   const converter = conversions();
   const amqpOperator = await amqpFactory(amqpUrl, true);
   const mongoPrioOperator = await mongoFactory(mongoUri, 'prio');
-  const mongoPrioChunkOperator = await mongoFactory(mongoUri, 'foobar');
+  const mongoPrioChunkOperator = await mongoFactory(mongoUri, 'priochunk');
   const sruClient = createSruClient({url: sruUrl, recordSchema: 'marcxml'});
 
   return {read, create, update, fix, createOrUpdateChunk, doQuery};
@@ -115,7 +115,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       logger.verbose(`prioChunk should have content in stream, noStream is not usable with prioChunki`);
       throw new HttpError(httpStatus.BAD_REQUEST, 'prioChunk missing stream');
     }
-    logger.debug(`REMOVE: ${stream}`);
+    //logger.debug(`REMOVE: ${stream}`);
     const result = await mongoOperator.createPrioChunk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, operationSettings, prio: true, chunk: true});
     logger.debug(`CreatePrioChunk result: ${JSON.stringify(result)}`);
 
