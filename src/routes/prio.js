@@ -164,69 +164,6 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, requireAuthForRe
 
   }
 
-  /*
-  function createChunkResources(req, res, next) {
-    return createOrUpdateResources({operation: OPERATIONS.CREATE}, req, res, next);
-  }
-
-  function updateChunkResources(req, res, next) {
-    return createOrUpdateResources({operation: OPERATIONS.UPDATE}, req, res, next);
-  }
-
-  // eslint-disable-next-line max-statements
-  async function createOrUpdateResources(settings, req, res, next) {
-    try {
-      logger.silly(`routes/prio createOrUpdateResources: settings: ${JSON.stringify(settings)}`);
-      // prioChunk is always stream
-      const noStream = false;
-      const prio = true;
-      const chunk = true;
-      // prioChunk recordLoadParams should not be available from queryParams
-      // prioChunk operationSetting? we should have always validate=1 at least
-      // validateAndGetOperationSettings({queryParams, settings: {noStream, prio, chunk, operation}) {
-      // function validateQueryParamsForCreateAndUpdate({queryParams, settings: {prio, chunk, operation, noStream}) {
-      const {operation, recordLoadParams, operationSettings} = validateQueryParamsForCreateAndUpdate({queryParams: req.query, settings: {prio, chunk, operation: settings.operation, noStream}});
-
-      // We have match and merge settings just for bib records in validator
-      if (recordType !== 'bib' && (operationSettings.unique || operationSettings.merge)) {
-        throw new HttpError(httpStatus.BAD_REQUEST, `Unique and merge can only be used for bib records, use unique=0`);
-      }
-
-      const params = {
-        correlationId: uuid(),
-        cataloger: checkCataloger(req.user.id, req.query.pCatalogerIn),
-        // Should we use whole cataloger with authorizations?
-        oCatalogerIn: req.user.id,
-        contentType: req.headers['content-type'],
-        operation,
-        recordLoadParams,
-        operationSettings,
-        data: req.body,
-        stream: noStream ? false : req
-      };
-
-      logger.silly('Params done');
-      logger.silly(`Params: ${inspect(params)}`);
-
-      if (params.operation && ![OPERATIONS.CREATE, OPERATIONS.UPDATE].includes(params.operation)) {
-        logger.debug('Invalid operation');
-        throw new HttpError(httpStatus.BAD_REQUEST, 'Invalid operation');
-      }
-
-      const response = await Service.createOrUpdateChunk(params);
-      res.json(response);
-      return;
-
-    } catch (error) {
-      if (error instanceof HttpError) {
-        res.status(error.status).send(error.payload);
-        return;
-      }
-      return next(error);
-    }
-  }
-*/
-
   async function fixResource(req, res, next) {
     logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
     logger.silly('routes/Prio fixResource');
