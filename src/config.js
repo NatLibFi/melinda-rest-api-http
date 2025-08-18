@@ -41,3 +41,5 @@ export const fixTypes = readEnvironmentVariable('FIX_TYPES', {defaultValue: ['DE
 
 // We default allowedLibs to empty array for backwards compatibility, as it is anyways checked in aleph-record-load-api
 export const allowedLibs = readEnvironmentVariable('ALLOWED_LIBS', {defaultValue: []});
+
+export const ipWhiteList = readEnvironmentVariable('IP_WHITELIST', {defaultValue: [], format: v => JSON.parse(v)});
