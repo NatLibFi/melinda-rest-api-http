@@ -7,6 +7,7 @@ import {createLogger, createExpressLogger} from '@natlibfi/melinda-backend-commo
 import {AlephStrategy} from '@natlibfi/passport-melinda-aleph';
 import {logError} from '@natlibfi/melinda-rest-api-commons';
 import {createApiDocRouter, createBulkRouter, createLogsRouter, createPrioRouter} from './routes';
+import ipRangeCheck from 'ip-range-check';
 
 export default async function ({
   httpPort, enableProxy,
@@ -15,7 +16,7 @@ export default async function ({
   sruUrl, amqpUrl, mongoUri,
   pollWaitTime, recordType,
   requireAuthForRead, requireKVPForWrite,
-  fixTypes, allowedLibs
+  fixTypes, allowedLibs, ipWhiteList
 }) {
   const logger = createLogger();
   const server = await initExpress();
@@ -46,14 +47,31 @@ export default async function ({
     }));
 
     app.use(passport.initialize());
-    app.use('/bulk', passport.authenticate('melinda', {session: false}), await createBulkRouter({mongoUri, amqpUrl, recordType, allowedLibs})); // Must be here to avoid bodyparser
+    app.use('/bulk', ipWhiteListMiddleware, passport.authenticate('melinda', {session: false}), await createBulkRouter({mongoUri, amqpUrl, recordType, allowedLibs})); // Must be here to avoid bodyparser
     app.use(bodyParser.text({limit: '5MB', type: '*/*'}));
     app.use('/apidoc', createApiDocRouter());
-    app.use('/logs', passport.authenticate('melinda', {session: false}), await createLogsRouter({mongoUri}));
-    app.use('/', await createPrioRouter({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite, fixTypes, allowedLibs}));
+    app.use('/logs', ipWhiteListMiddleware, passport.authenticate('melinda', {session: false}), await createLogsRouter({mongoUri}));
+    app.use('/', ipWhiteListMiddleware, await createPrioRouter({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite, fixTypes, allowedLibs}));
+
     app.use(handleError);
 
     return app.listen(httpPort, () => logger.info(`Started Melinda REST API for ${recordType} records in port ${httpPort}`));
+
+    function ipWhiteListMiddleware(req, res, next) {
+      logger.verbose('Ip whitelist middleware');
+      if (ipWhiteList.length === 0) {
+        return next();
+      }
+      const connectionIp = req.headers['cf-connecting-ip'];
+      //logger.debug(connectionIp);
+      if (ipRangeCheck(`${connectionIp}`, ipWhiteList)) {
+        logger.debug('IP ok');
+        return next();
+      }
+
+      logger.debug(`Bad IP: ${connectionIp}`);
+      return res.sendStatus(httpStatus.FORBIDDEN);
+    }
 
     function handleError(err, req, res, next) {
       logger.debug(`App/handleError: Error: ${JSON.stringify(err)}`);

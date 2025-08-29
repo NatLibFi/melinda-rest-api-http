@@ -14,7 +14,7 @@
 		"url": "git@github.com:natlibfi/melinda-rest-api-http.git"
 	},
 	"license": "MIT",
-	"version": "3.6.2",
+	"version": "3.7.0-alpha.1",
 	"main": "dist/index.js",
 	"engines": {
 		"node": ">=18"
@@ -30,16 +30,17 @@
 		"prod": "NODE_ENV=production npm run build && npm run start"
 	},
 	"dependencies": {
-		"@babel/runtime": "^7.27.3",
+		"@babel/runtime": "^7.28.3",
 		"@natlibfi/marc-record-serializers": "^10.1.6",
-		"@natlibfi/melinda-backend-commons": "^2.3.8",
-		"@natlibfi/melinda-commons": "^13.0.20",
+		"@natlibfi/melinda-backend-commons": "^2.3.9",
+		"@natlibfi/melinda-commons": "^13.0.21",
 		"@natlibfi/melinda-rest-api-commons": "^4.2.5",
-		"@natlibfi/passport-melinda-aleph": "^3.0.8",
+		"@natlibfi/passport-melinda-aleph": "^3.0.10",
 		"@natlibfi/sru-client": "^6.0.18",
 		"body-parser": "^2.2.0",
 		"express": "^4.21.2",
 		"http-status": "^2.1.0",
+		"ip-range-check": "^0.2.0",
 		"moment": "^2.30.1",
 		"mongo-sanitize": "^1.1.0",
 		"nodemon": "^3.1.10",
@@ -47,13 +48,13 @@
 		"uuid": "^11.1.0"
 	},
 	"devDependencies": {
-		"@babel/cli": "^7.27.2",
-		"@babel/core": "^7.27.3",
-		"@babel/node": "^7.27.1",
-		"@babel/plugin-transform-runtime": "^7.27.3",
-		"@babel/preset-env": "^7.27.2",
-		"@babel/register": "^7.27.1",
-		"@natlibfi/eslint-config-melinda-backend": "^3.0.5",
+		"@babel/cli": "^7.28.3",
+		"@babel/core": "^7.28.3",
+		"@babel/node": "^7.28.0",
+		"@babel/plugin-transform-runtime": "^7.28.3",
+		"@babel/preset-env": "^7.28.3",
+		"@babel/register": "^7.28.3",
+		"@natlibfi/eslint-config-melinda-backend": "^3.0.6",
 		"cross-env": "^7.0.3",
 		"eslint": "^8.57.1"
 	},
