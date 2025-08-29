@@ -5,7 +5,7 @@ import {amqpFactory, conversions, OPERATIONS, mongoFactory, QUEUE_ITEM_STATE} fr
 import {MARCXML} from '@natlibfi/marc-record-serializers';
 import createSruClient from '@natlibfi/sru-client';
 import httpStatus from 'http-status';
-import {generateQuery, generateShowParams} from './utils';
+import {generateQuery, generateShowParams} from './utils.js';
 
 const setTimeoutPromise = promisify(setTimeout);
 
@@ -178,7 +178,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   function getRecord(id) {
     return new Promise((resolve, reject) => {
-      let promise; // eslint-disable-line functional/no-let
+      let promise;
 
       sruClient.searchRetrieve(`rec.id=${id}`)
         .on('record', xmlString => {
@@ -222,7 +222,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     // Note: there can be timeout result and the create/update to Melinda can still be done, if timeout happens when while job is being imported
     const result = await mongoOperator.queryById({correlationId, checkModTime: true});
 
-    if (queueItemState !== result.queueItemState) { // eslint-disable-line functional/no-conditional-statements
+    if (queueItemState !== result.queueItemState) {
       logger.debug(`Queue item ${correlationId}, state ${result.queueItemState}`);
     }
 

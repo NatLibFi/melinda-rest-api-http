@@ -5,9 +5,9 @@ import {v4 as uuid} from 'uuid';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
-import createService from '../interfaces/bulk';
-import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils';
-import {checkQueryParams} from './queryUtils';
+import createService from '../interfaces/bulk.js';
+import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils.js';
+import {checkQueryParams} from './queryUtils.js';
 import {inspect} from 'util';
 
 export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {

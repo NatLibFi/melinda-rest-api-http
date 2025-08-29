@@ -7,11 +7,11 @@ import passport from 'passport';
 import {v4 as uuid} from 'uuid';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
-import createService from '../interfaces/prio';
+import createService from '../interfaces/prio.js';
 import httpStatus from 'http-status';
-import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger} from './routeUtils';
-import {CONTENT_TYPES, DEFAULT_ACCEPT} from '../config';
-import {checkQueryParams} from './queryUtils';
+import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger} from './routeUtils.js';
+import {CONTENT_TYPES, DEFAULT_ACCEPT} from '../config.js';
+import {checkQueryParams} from './queryUtils.js';
 
 // eslint-disable-next-line no-unused-vars
 export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite, fixTypes, allowedLibs}) => {
