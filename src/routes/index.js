@@ -1,6 +1,6 @@
-import createPrioRouter from './prio';
-import createBulkRouter from './bulk';
-import createLogsRouter from './logs';
-import createApiDocRouter from './api-doc';
+import createPrioRouter from './prio.js';
+import createBulkRouter from './bulk.js';
+import createLogsRouter from './logs.js';
+import createApiDocRouter from './api-doc.js';
 
 export {createPrioRouter, createBulkRouter, createLogsRouter, createApiDocRouter};
