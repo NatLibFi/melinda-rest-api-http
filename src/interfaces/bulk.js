@@ -253,7 +253,6 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  // eslint-disable-next-line max-statements
   function createRecordReport({queueItem, report = true, removeRecords = true, removeIds = true}) {
 
     if (!report && !removeRecords && !removeIds) {
@@ -335,7 +334,6 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     return recordStatuses;
   }
 
-  // eslint-disable-next-line max-statements
   function validateQueryParams(queryParams) {
     logger.silly(`bulk/validateQueryParams: queryParams: ${JSON.stringify(queryParams)}`);
 

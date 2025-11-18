@@ -13,7 +13,6 @@ const logger = createLogger();
 // creationTime stringified array of utc timestamps 1 specific or 2 for range
 // modificationTime stringified array of utc timestamps 1 specific or 2 for range
 
-// eslint-disable-next-line max-statements
 export function generateQuery({id, correlationId, queueItemState, creationTime, modificationTime, skip, limit}) {
   logger.silly(`generateQuery`);
   const doc = {};

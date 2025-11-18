@@ -13,7 +13,6 @@ import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger
 import {CONTENT_TYPES, DEFAULT_ACCEPT} from '../config.js';
 import {checkQueryParams} from './queryUtils.js';
 
-// eslint-disable-next-line no-unused-vars
 export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite, fixTypes, allowedLibs}) => {
   const logger = createLogger();
   //const apiDoc = fs.readFileSync(path.join(__dirname, '..', 'api.yaml'), 'utf8');
@@ -96,7 +95,6 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
 
   }
 
-  // eslint-disable-next-line max-statements
   async function createResource(req, res, next) {
     logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
     logger.silly('routes/Prio createResource');
