@@ -1,6 +1,6 @@
-# Melinda node tests
+# Melinda node tests and webhook
 
-name: Melinda node tests
+name: Melinda node tests and webhook
 
 on: push
 
@@ -11,7 +11,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [22.x, 23.x, 24.x]
+        node-version: [22.x, 24.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
@@ -42,6 +42,7 @@ jobs:
   njsscan:
     name: Njsscan check
     runs-on: ubuntu-latest
+    container: node:22
 
     steps:
     - name: Checkout the code
@@ -52,43 +53,45 @@ jobs:
       with:
         args: '.'
 
-  quayio:
-    name: Quay.io image builder & publisher
-    needs: [build-node-versions, njsscan]
-    runs-on: ubuntu-latest
-    if: github.actor!= 'dependabot[bot]'   # ignore the pull request which comes from user dependabot, because it does not access to secrets
+  # quayio:
+  #   name: Quay.io image builder & publisher
+  #   needs: [build-node-versions, njsscan]
+  #   runs-on: ubuntu-latest
+  #   container: node:22
+  #   if: github.actor!= 'dependabot[bot]'   # ignore the pull request which comes from user dependabot, because it does not access to secrets
 
-    steps:
-      - uses: actions/checkout@v5
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: quay.io/${{ github.repository }}
-          tags: |
-            type=raw,value=latest,enable=${{ endsWith(github.ref, github.event.repository.default_branch) }}
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-      - name: Login to Quay.io
-        uses: docker/login-action@v3
-        with:
-          registry: quay.io
-          username: ${{ secrets.MELINDA_QUAY_IO_USERNAME }}
-          password: ${{ secrets.MELINDA_QUAY_IO_PASSWORD }}
-      - name: Build and publish image to Quay.io
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #     - name: Docker meta
+  #       id: meta
+  #       uses: docker/metadata-action@v5
+  #       with:
+  #         images: quay.io/${{ github.repository }}
+  #         tags: |
+  #           type=raw,value=latest,enable=${{ endsWith(github.ref, github.event.repository.default_branch) }}
+  #           type=ref,event=branch
+  #           type=ref,event=pr
+  #           type=semver,pattern={{version}}
+  #           type=semver,pattern={{major}}.{{minor}}
+  #           type=semver,pattern={{major}}
+  #     - name: Login to Quay.io
+  #       uses: docker/login-action@v3
+  #       with:
+  #         registry: quay.io
+  #         username: ${{ secrets.MELINDA_QUAY_IO_USERNAME }}
+  #         password: ${{ secrets.MELINDA_QUAY_IO_PASSWORD }}
+  #     - name: Build and publish image to Quay.io
+  #       uses: docker/build-push-action@v6
+  #       with:
+  #         context: .
+  #         push: true
+  #         tags: ${{ steps.meta.outputs.tags }}
 
   openshift-webhook:
     name: OpenShift webhook for image builder
     needs: [build-node-versions, njsscan]
     runs-on: ubuntu-latest
+    container: node:22
 
     steps:
       - name: Production bib webhook
