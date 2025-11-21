@@ -36,7 +36,7 @@
 	"dependencies": {
 		"@natlibfi/marc-record-serializers": "^11.0.0",
 		"@natlibfi/melinda-backend-commons": "^3.0.0",
-		"@natlibfi/melinda-commons": "^14.0.0",
+		"@natlibfi/melinda-commons": "^14.0.1",
 		"@natlibfi/melinda-rest-api-commons": "^5.0.0",
 		"@natlibfi/passport-melinda-aleph": "^4.0.0",
 		"@natlibfi/sru-client": "^7.0.0",

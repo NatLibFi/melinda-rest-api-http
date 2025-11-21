@@ -32,6 +32,7 @@ jobs:
   license-scan:
     name: License compliance check
     runs-on: ubuntu-latest
+    container: node:22
 
     steps:
       - uses: actions/checkout@v5
