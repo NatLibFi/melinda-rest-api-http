@@ -47,7 +47,7 @@ jobs:
 
     steps:
     - name: Checkout the code
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
     - name: nodejsscan scan
       id: njsscan
       uses: ajinabraham/njsscan-action@master
@@ -100,58 +100,58 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           url: ${{ secrets.WEBHOOK_URL_BIB_PROD_FROM_MAIN }}
-          body: '{}'
+          body: '{"event": "${{ github.event_name }}","uri": "${{ github.repository }}","ref": "${{ github.ref }}","commit": "${{ github.sha }}"}'
       - name: Production aut-aux webhook
         uses: joelwmale/webhook-action@master
         if: github.ref == 'refs/heads/main'
         with:
           url: ${{ secrets.WEBHOOK_URL_AUT_AUX_PROD_FROM_MAIN }}
-          body: '{}'
+          body: '{"event": "${{ github.event_name }}","uri": "${{ github.repository }}","ref": "${{ github.ref }}","commit": "${{ github.sha }}"}'
       - name: Production aut-names webhook
         uses: joelwmale/webhook-action@master
         if: github.ref == 'refs/heads/main'
         with:
           url: ${{ secrets.WEBHOOK_URL_AUT_NAMES_PROD_FROM_MAIN }}
-          body: '{}'
+          body: '{"event": "${{ github.event_name }}","uri": "${{ github.repository }}","ref": "${{ github.ref }}","commit": "${{ github.sha }}"}'
       - name: Production aut-subjects webhook
         uses: joelwmale/webhook-action@master
         if: github.ref == 'refs/heads/main'
         with:
           url: ${{ secrets.WEBHOOK_URL_AUT_SUBJECTS_PROD_FROM_MAIN }}
-          body: '{}'
+          body: '{"event": "${{ github.event_name }}","uri": "${{ github.repository }}","ref": "${{ github.ref }}","commit": "${{ github.sha }}"}'
       - name: Production aut-works webhook
         uses: joelwmale/webhook-action@master
         if: github.ref == 'refs/heads/main'
         with:
           url: ${{ secrets.WEBHOOK_URL_AUT_WORKS_PROD_FROM_MAIN }}
-          body: '{}'
+          body: '{"event": "${{ github.event_name }}","uri": "${{ github.repository }}","ref": "${{ github.ref }}","commit": "${{ github.sha }}"}'
       - name: Test aut aux webhook
         uses: joelwmale/webhook-action@master
         if: github.ref == 'refs/heads/test'
         with:
           url: ${{ secrets.WEBHOOK_URL_AUT_AUX_TEST_FROM_TEST }}
-          body: '{}'
+          body: '{"event": "${{ github.event_name }}","uri": "${{ github.repository }}","ref": "${{ github.ref }}","commit": "${{ github.sha }}"}'
       - name: Test aut names webhook
         uses: joelwmale/webhook-action@master
         if: github.ref == 'refs/heads/test'
         with:
           url: ${{ secrets.WEBHOOK_URL_AUT_NAMES_TEST_FROM_TEST }}
-          body: '{}'
+          body: '{"event": "${{ github.event_name }}","uri": "${{ github.repository }}","ref": "${{ github.ref }}","commit": "${{ github.sha }}"}'
       - name: Test aut subjects webhook
         uses: joelwmale/webhook-action@master
         if: github.ref == 'refs/heads/test'
         with:
           url: ${{ secrets.WEBHOOK_URL_AUT_SUBJECTS_TEST_FROM_TEST }}
-          body: '{}'
+          body: '{"event": "${{ github.event_name }}","uri": "${{ github.repository }}","ref": "${{ github.ref }}","commit": "${{ github.sha }}"}'
       - name: Test aut works webhook
         uses: joelwmale/webhook-action@master
         if: github.ref == 'refs/heads/test'
         with:
           url: ${{ secrets.WEBHOOK_URL_AUT_WORKS_TEST_FROM_TEST }}
-          body: '{}'
+          body: '{"event": "${{ github.event_name }}","uri": "${{ github.repository }}","ref": "${{ github.ref }}","commit": "${{ github.sha }}"}'
       - name: Test bib webhook
         uses: joelwmale/webhook-action@master
         if: github.ref == 'refs/heads/test'
         with:
           url: ${{ secrets.WEBHOOK_URL_BIB_TEST_FROM_TEST }}
-          body: '{}'
+          body: '{"event": "${{ github.event_name }}","uri": "${{ github.repository }}","ref": "${{ github.ref }}","commit": "${{ github.sha }}"}'
