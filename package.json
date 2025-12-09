@@ -41,6 +41,7 @@
 		"@natlibfi/passport-melinda-aleph": "^4.0.0",
 		"@natlibfi/sru-client": "^7.0.0",
 		"body-parser": "^2.2.1",
+		"esbuild": "^0.27.1",
 		"express": "^4.22.1",
 		"http-status": "^2.1.0",
 		"ip-range-check": "^0.2.0",
@@ -51,7 +52,6 @@
 	},
 	"devDependencies": {
 		"cross-env": "^10.1.0",
-		"esbuild": "^0.27.1",
 		"eslint": "^9.39.1"
 	},
 	"overrides": {
