@@ -27,7 +27,7 @@
 		"lint:dev": "eslint --fix src",
 		"test": "npm run lint",
 		"prod": "NODE_ENV=production npm run build && npm run start",
-		"build": "esbuild \"src/**/*.js\" --sourcemap --platform=node --outdir=dist"
+		"build": "esbuild \"src/**/*.js\" --sourcemap --platform=node --outdir=dist && cp src/api.json dist && cp src/api.yaml dist"
 	},
 	"todo_scripts": {
 		"test:base": "node --test --test-force-exit --experimental-test-coverage --test-reporter=spec './test/*.test.js' './test/**/*.test.js'",
