@@ -38,7 +38,7 @@
 		"@natlibfi/passport-melinda-aleph": "^3.0.10",
 		"@natlibfi/sru-client": "^6.0.18",
 		"body-parser": "^2.2.0",
-		"express": "^4.21.2",
+		"express": "^4.22.1",
 		"http-status": "^2.1.0",
 		"ip-range-check": "^0.2.0",
 		"moment": "^2.30.1",
