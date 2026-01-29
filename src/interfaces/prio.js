@@ -324,12 +324,14 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.debug(`We have recordResponses (${recordResponses.length}): ${JSON.stringify(recordResponses)}`);
 
     const [firstRecordResponse] = recordResponses;
-    logger.silly(`First recordResponse: ${JSON.stringify(firstRecordResponse)}`);
+    logger.debug(`First recordResponse: ${JSON.stringify(firstRecordResponse)}`);
 
-    // for normal prio send back just the first recordResponse
-    // for prioChunk send back all recordResponses
-    const recordResponse = result.operationSettings.chunk ? recordResponses : firstRecordResponse;
-    logger.debug(`QueueItemState is ERROR, errorStatus: ${result.errorStatus} errorMessage: ${result.errorMessage}`);
+    // prio assumes we had only one record, so we send back just the first recordResponse
+    // for prio chunk we send status OK and queueItem (=result)
+    // DEVELOP: edit queueItem to a simpler format
+
+    const recordResponse = result.operationSettings.chunk ? result : firstRecordResponse;
+    logger.debug(`QueueItemState is ERROR, errorStatus: ${result.errorStatus} errorMessage: ${JSON.stringify(result.errorMessage)}`);
 
     const errorStatus = result.errorStatus || httpStatus.INTERNAL_SERVER_ERROR;
     const responsePayload = {message: result.errorMessage} || {message: 'unknown error'};
@@ -344,10 +346,11 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     const [firstRecordResponse] = recordResponses;
     logger.debug(`We have recordResponses (${recordResponses.length}): ${JSON.stringify(recordResponses)}`);
     logger.silly(`First recordResponse: ${JSON.stringify(firstRecordResponse)}`);
-    const recordResponse = result.operationSettings.chunk ? recordResponses : firstRecordResponse;
+    const recordResponse = result.operationSettings.chunk ? result : firstRecordResponse;
     const recordStatus = result.operationSettings.chunk ? httpStatus.OK : firstRecordResponse.recordStatus;
     // prio assumes we had only one record, so we send back just the first recordResponse
-    // if we will later allow prio to have more than one record, this needs to be fixed
+    // for prio chunk we send status OK and queueItem (=result)
+    // DEVELOP: edit queueItem to a simpler format
     return {status: recordStatus, payload: recordResponse};
   }
 
