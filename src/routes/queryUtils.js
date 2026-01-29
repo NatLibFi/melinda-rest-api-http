@@ -2,7 +2,7 @@ import httpStatus from 'http-status';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {version as uuidVersion, validate as uuidValidate} from 'uuid';
 import {QUEUE_ITEM_STATE, LOG_ITEM_TYPE, OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
-import {allowedLibs, defaultLibrary, recordType, CONTENT_TYPES, DEFAULT_ACCEPT} from '../config';
+import {allowedLibs, defaultLibrary, recordType, CONTENT_TYPES, DEFAULT_ACCEPT} from '../config.js';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 
 const logger = createLogger();
@@ -431,7 +431,7 @@ export function getTypes(acceptHeaders) {
 // Note: checkAcceptHeader currently works only for prio, and only for record data in succesfull request responses
 // Note/DEVELOP: we are not returning asked type for errors etc.!
 export async function checkAcceptHeaderForPrio(req, res, next) {
-  logger.debug(`routesUtils:checkAcceptHeader: accept: ${req.headers.accept}`);
+  logger.debug(`routesUtils:checkAcceptHeaderForPrio: accept: ${req.headers.accept}`);
 
   // Undefined accept header is okay, we'll use default type
   if (req.headers.accept === undefined) {

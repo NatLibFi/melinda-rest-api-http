@@ -4,11 +4,11 @@ import {inspect} from 'util';
 import {v4 as uuid} from 'uuid';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
-import createService from '../interfaces/prio';
+import createService from '../interfaces/prio.js';
 import httpStatus from 'http-status';
-import {authorizeKVPOnly, checkContentType} from './routeUtils';
-import {checkQueryParams, checkCataloger, validateQueryParamsForCreateAndUpdate} from './queryUtils';
-import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons/';
+import {authorizeKVPOnly, checkContentType} from './routeUtils.js';
+import {checkQueryParams, checkCataloger, validateQueryParamsForCreateAndUpdate} from './queryUtils.js';
+import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 
 export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireKVPForWrite, allowedLibs}) => {
   const logger = createLogger();

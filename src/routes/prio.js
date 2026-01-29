@@ -7,8 +7,8 @@ import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import createService from '../interfaces/prio.js';
 import httpStatus from 'http-status';
 import {checkQueryParams, getOperationSettingsForPrio, checkAcceptHeaderForPrio, getTypes, getConversionFormat} from './queryUtils.js';
-import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons/';
-import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger} from './routeUtils.js';
+import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
+import {authorizeKVPOnly, checkContentType, sanitizeCataloger} from './routeUtils.js';
 import {CONTENT_TYPES, DEFAULT_ACCEPT} from '../config.js';
 
 export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite, fixTypes, allowedLibs}) => {
