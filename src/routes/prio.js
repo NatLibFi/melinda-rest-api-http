@@ -4,13 +4,14 @@ import passport from 'passport';
 import {v4 as uuid} from 'uuid';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
-import createService from '../interfaces/prio';
+import createService from '../interfaces/prio.js';
 import httpStatus from 'http-status';
-import {authorizeKVPOnly, checkContentType, sanitizeCataloger} from './routeUtils';
-import {checkQueryParams, getOperationSettingsForPrio, checkAcceptHeaderForPrio, getTypes, getConversionFormat} from './queryUtils';
+import {checkQueryParams, getOperationSettingsForPrio, checkAcceptHeaderForPrio, getTypes, getConversionFormat} from './queryUtils.js';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons/';
+import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger} from './routeUtils.js';
+import {CONTENT_TYPES, DEFAULT_ACCEPT} from '../config.js';
 
-export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, requireAuthForRead, requireKVPForWrite, fixTypes, allowedLibs}) => {
+export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite, fixTypes, allowedLibs}) => {
   const logger = createLogger();
   // Note: prio Service doesn'y know allowedLibs!
   const Service = await createService({

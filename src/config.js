@@ -43,3 +43,4 @@ export const fixTypes = readEnvironmentVariable('FIX_TYPES', {defaultValue: ['DE
 export const allowedLibs = readEnvironmentVariable('ALLOWED_LIBS', {defaultValue: []});
 
 export const defaultLibrary = readEnvironmentVariable('DEFAULT_LIBRARY', {defaultValue: 'FIN01'});
+export const ipWhiteList = readEnvironmentVariable('IP_WHITELIST', {defaultValue: [], format: v => JSON.parse(v)});

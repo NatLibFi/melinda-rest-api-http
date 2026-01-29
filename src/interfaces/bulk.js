@@ -1,9 +1,9 @@
 import httpStatus from 'http-status';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
-import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, CHUNK_SIZE} from '@natlibfi/melinda-rest-api-commons';
-import {CONTENT_TYPES} from '../config';
-import {generateQuery, generateShowParams} from './utils';
+import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS, CHUNK_SIZE} from '@natlibfi/melinda-rest-api-commons';
+import {CONTENT_TYPES} from '../config.js';
+import {generateQuery, generateShowParams} from './utils.js';
 // import {inspect} from 'util';
 
 export default async function ({mongoUri, amqpUrl}) {
@@ -101,7 +101,6 @@ export default async function ({mongoUri, amqpUrl}) {
 
     const dataArray = parseDataAndCheckArray(data);
     const dataSize = dataArray.length;
-    // eslint-disable-next-line functional/no-let
     let currentSequence = blobSize;
 
     dataArray.forEach(async (data) => {
@@ -256,7 +255,6 @@ export default async function ({mongoUri, amqpUrl}) {
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  // eslint-disable-next-line max-statements
   function createRecordReport({queueItem, report = true, removeRecords = true, removeIds = true}) {
 
     if (!report && !removeRecords && !removeIds) {

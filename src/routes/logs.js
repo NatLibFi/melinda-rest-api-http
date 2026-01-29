@@ -2,9 +2,9 @@ import {Router} from 'express';
 import passport from 'passport';
 import {createLogger} from '@natlibfi/melinda-backend-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
-import {checkQueryParams} from './queryUtils';
-import {authorizeKVPOnly, checkId} from './routeUtils';
-import createService from '../interfaces/logs';
+import {checkQueryParams} from './queryUtils.js';
+import {authorizeKVPOnly, checkId} from './routeUtils.js';
+import createService from '../interfaces/logs.js';
 
 export default async function ({mongoUri}) {
   const logger = createLogger();
