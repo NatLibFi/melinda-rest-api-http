@@ -30,6 +30,6 @@ https://bib-rest.api.melinda.kansalliskirjasto.fi/swagger/
 
 ## License and copyright
 
-Copyright (c) 2018-2025 **University Of Helsinki (The National Library Of Finland)**
+Copyright (c) 2018-2026 **University Of Helsinki (The National Library Of Finland)**
 
 This project's source code is licensed under the terms of **MIT** or any later version.
