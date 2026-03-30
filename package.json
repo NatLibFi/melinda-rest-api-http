@@ -35,7 +35,7 @@
 	},
 	"dependencies": {
 		"@natlibfi/marc-record-serializers": "^11.0.1",
-		"@natlibfi/melinda-backend-commons": "^3.0.4",
+		"@natlibfi/melinda-backend-commons": "^3.0.5",
 		"@natlibfi/melinda-commons": "^14.0.2",
 		"@natlibfi/melinda-rest-api-commons": "^5.0.6",
 		"@natlibfi/passport-melinda-aleph": "^4.0.0",
@@ -52,7 +52,7 @@
 	},
 	"devDependencies": {
 		"cross-env": "^10.1.0",
-		"eslint": "^9.39.4"
+		"eslint": "^10.1.0"
 	},
 	"overrides": {
 		"nanoid": "^3.3.8"
