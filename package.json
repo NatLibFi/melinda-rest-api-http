@@ -14,7 +14,7 @@
 		"url": "git@github.com:natlibfi/melinda-rest-api-http.git"
 	},
 	"license": "MIT",
-	"version": "4.0.1",
+	"version": "4.0.2-alpha.1",
 	"main": "dist/index.js",
 	"type": "module",
 	"engines": {
@@ -34,14 +34,14 @@
 		"dev:test": "cross-env DEBUG=@natlibfi/* LOG_LEVEL=debug NODE_ENV=test node --watch --test --experimental-test-coverage --test-reporter=spec './test/*.test.js' './test/**/*.test.js'"
 	},
 	"dependencies": {
-		"@natlibfi/marc-record-serializers": "^11.0.1",
+		"@natlibfi/marc-record-serializers": "^11.0.2",
 		"@natlibfi/melinda-backend-commons": "^3.0.5",
 		"@natlibfi/melinda-commons": "^14.0.2",
 		"@natlibfi/melinda-rest-api-commons": "^5.0.6",
 		"@natlibfi/passport-melinda-aleph": "^4.0.0",
 		"@natlibfi/sru-client": "^7.0.1",
 		"body-parser": "^2.2.2",
-		"esbuild": "^0.27.4",
+		"esbuild": "^0.28.0",
 		"express": "^4.22.1",
 		"http-status": "^2.1.0",
 		"ip-range-check": "^0.2.0",
@@ -52,7 +52,7 @@
 	},
 	"devDependencies": {
 		"cross-env": "^10.1.0",
-		"eslint": "^10.1.0"
+		"eslint": "^10.2.0"
 	},
 	"overrides": {
 		"nanoid": "^3.3.8"
