@@ -40,7 +40,7 @@
 		"@natlibfi/melinda-rest-api-commons": "^5.0.7",
 		"@natlibfi/passport-melinda-aleph": "^4.0.1",
 		"@natlibfi/sru-client": "^7.0.1",
-		"body-parser": "^2.2.2",
+		"body-parser": "^2.3.0",
 		"esbuild": "^0.28.0",
 		"express": "^4.22.2",
 		"http-status": "^2.1.0",
