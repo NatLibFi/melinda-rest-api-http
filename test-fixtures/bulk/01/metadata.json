@@ -1,0 +1,8 @@
+{
+  "description": "returns status, correlationId, queueItemState and modificationTime",
+  "functionName": "getState",
+  "preFillDb": true,
+  "params": {
+    "correlationId": "test-correlation-1"
+  }
+}

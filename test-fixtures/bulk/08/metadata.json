@@ -1,0 +1,8 @@
+{
+  "description": "correlationId filters on the exact item",
+  "functionName": "doQuery",
+  "preFillDb": true,
+  "params": {
+    "correlationId": "test-correlation-2"
+  }
+}

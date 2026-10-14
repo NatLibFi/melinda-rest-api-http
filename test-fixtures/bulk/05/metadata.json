@@ -1,0 +1,10 @@
+{
+  "description": "unknown correlationId gives a TypeError instead of the intended 404",
+  "functionName": "updateState",
+  "expectTypeError": true,
+  "expectedErrorMessage": "Cannot read properties of null (reading 'value')",
+  "params": {
+    "correlationId": "missing",
+    "state": "DONE"
+  }
+}

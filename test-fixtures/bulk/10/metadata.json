@@ -1,0 +1,8 @@
+{
+  "description": "queueItemState filters on the state",
+  "functionName": "doQuery",
+  "preFillDb": true,
+  "params": {
+    "queueItemState": "DONE"
+  }
+}

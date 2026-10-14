@@ -1,0 +1,8 @@
+{
+  "description": "the string '0' falls back to the user id",
+  "functionName": "checkCataloger",
+  "params": [
+    "99",
+    "0"
+  ]
+}

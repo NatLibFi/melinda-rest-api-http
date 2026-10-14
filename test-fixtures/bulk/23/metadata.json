@@ -1,0 +1,10 @@
+{
+  "description": "noStream items have no stored content (400)",
+  "functionName": "readContent",
+  "preFillDb": true,
+  "expectError": true,
+  "expectedErrorStatus": 400,
+  "expectedErrorMessage": "Content is only available for streamBulk jobs. test-correlation-1 is not a streamBulk job.",
+  "expectedErrorMessageFromPayload": true,
+  "params": "test-correlation-1"
+}

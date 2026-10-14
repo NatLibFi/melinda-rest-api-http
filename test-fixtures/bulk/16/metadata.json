@@ -1,0 +1,10 @@
+{
+  "description": "recordsAsReport + noRecords + noIds: report only, records and ids removed",
+  "functionName": "doQuery",
+  "preFillDb": true,
+  "params": {
+    "recordsAsReport": "1",
+    "noRecords": "1",
+    "noIds": "1"
+  }
+}

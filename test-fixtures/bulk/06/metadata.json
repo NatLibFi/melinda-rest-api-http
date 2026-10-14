@@ -1,0 +1,5 @@
+{
+  "description": "no matching items gives an empty array",
+  "functionName": "doQuery",
+  "params": {}
+}

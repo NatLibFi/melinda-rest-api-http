@@ -1,0 +1,8 @@
+{
+  "description": "removes an item without stored content",
+  "functionName": "remove",
+  "preFillDb": true,
+  "params": {
+    "correlationId": "test-correlation-1"
+  }
+}

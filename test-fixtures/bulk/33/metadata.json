@@ -1,0 +1,9 @@
+{
+  "description": "empty allowedLibs skips the library check (backwards compatibility)",
+  "functionName": "validateQueryParams",
+  "allowedLibs": [],
+  "params": {
+    "pActiveLibrary": "999",
+    "pOldNew": "NEW"
+  }
+}

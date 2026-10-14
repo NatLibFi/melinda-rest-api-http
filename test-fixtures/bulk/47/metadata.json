@@ -1,0 +1,7 @@
+{
+  "description": "no second argument falls back to the user id",
+  "functionName": "checkCataloger",
+  "params": [
+    "99"
+  ]
+}

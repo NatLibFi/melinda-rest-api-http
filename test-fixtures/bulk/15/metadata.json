@@ -1,0 +1,8 @@
+{
+  "description": "showOperationSettings=1 keeps operationSettings, excludes the other show fields",
+  "functionName": "doQuery",
+  "preFillDb": true,
+  "params": {
+    "showOperationSettings": "1"
+  }
+}

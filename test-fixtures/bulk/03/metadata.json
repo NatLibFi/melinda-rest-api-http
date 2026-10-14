@@ -1,0 +1,9 @@
+{
+  "description": "legal transition: PENDING_VALIDATION -> DONE",
+  "functionName": "updateState",
+  "preFillDb": true,
+  "params": {
+    "correlationId": "test-correlation-1",
+    "state": "DONE"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "bulk": [
+    {
+      "correlationId": "test-correlation-1",
+      "cataloger": "123",
+      "oCatalogerIn": "100",
+      "operation": "CREATE",
+      "operations": [
+        "CREATE"
+      ],
+      "contentType": "application/octet-stream",
+      "recordLoadParams": {
+        "pActiveLibrary": "100",
+        "pOldNew": "NEW"
+      },
+      "queueItemState": "PENDING_VALIDATION",
+      "blobSize": 1,
+      "importJobState": {
+        "CREATE": "EMPTY",
+        "UPDATE": "EMPTY",
+        "FIX": "EMPTY"
+      },
+      "operationSettings": {
+        "prio": false,
+        "noStream": false,
+        "noop": false,
+        "unique": false,
+        "merge": false,
+        "validate": false,
+        "skipLowValidation": false,
+        "failOnError": false,
+        "skipNoChangeUpdates": true
+      },
+      "records": [
+        {
+          "recordStatus": "ACCEPTED"
+        },
+        {
+          "recordStatus": "ACCEPTED"
+        },
+        {
+          "recordStatus": "REJECTED"
+        }
+      ],
+      "handledIds": [
+        "h-1",
+        "h-2"
+      ],
+      "rejectedIds": [
+        "r-1"
+      ],
+      "errorMessage": "",
+      "errorStatus": "",
+      "creationTime": "2026-01-15T10:00:00.000Z",
+      "modificationTime": "2026-01-15T11:00:00.000Z"
+    }
+  ]
+}

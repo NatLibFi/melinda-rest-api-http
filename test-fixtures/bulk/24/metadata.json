@@ -1,0 +1,5 @@
+{
+  "description": "missing correlationId gives 400 (thrown synchronously)",
+  "functionName": "readContent",
+  "params": null
+}
