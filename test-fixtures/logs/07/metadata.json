@@ -1,0 +1,6 @@
+{
+  "description": "doLogsQuery: allowlisted correlationId narrows the result set",
+  "functionName": "doLogsQuery",
+  "params": {"correlationId": "corr-1"},
+  "preFillDb": true
+}

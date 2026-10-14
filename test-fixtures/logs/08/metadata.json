@@ -1,0 +1,6 @@
+{
+  "description": "doLogsQuery: id is used as fallback when correlationId is absent",
+  "functionName": "doLogsQuery",
+  "params": {"id": "corr-1"},
+  "preFillDb": true
+}

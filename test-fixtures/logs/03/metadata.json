@@ -1,0 +1,6 @@
+{
+  "description": "doLogsQuery: unknown key (foo) is dropped and does not change the result set",
+  "functionName": "doLogsQuery",
+  "params": {"foo": "bar"},
+  "preFillDb": true
+}

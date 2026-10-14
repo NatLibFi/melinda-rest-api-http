@@ -1,0 +1,6 @@
+{
+  "description": "doLogsQuery: allowlisted standardIdentifiers narrows the result set",
+  "functionName": "doLogsQuery",
+  "params": {"standardIdentifiers": ["978-952-00-0002-2"]},
+  "preFillDb": true
+}

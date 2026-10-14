@@ -1,0 +1,6 @@
+{
+  "description": "removeLog: with force removes all documents of the correlationId, protected or not",
+  "functionName": "removeLog",
+  "params": ["corr-1", true],
+  "preFillDb": true
+}

@@ -1,0 +1,6 @@
+{
+  "description": "getExpandedListOfLogs: expanded on filters documents by catalogers",
+  "functionName": "getExpandedListOfLogs",
+  "params": {"expanded": "true", "logItemTypes": "MERGE_LOG,MATCH_LOG", "catalogers": "CAT_B", "creationTime": "[\"2000-01-01\",\"2099-01-01\"]"},
+  "preFillDb": true
+}
