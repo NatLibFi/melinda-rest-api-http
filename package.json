@@ -25,13 +25,12 @@
 		"start": "node ./dist/index.js",
 		"lint": "eslint ./src",
 		"lint:dev": "eslint --fix src",
-		"test": "npm run lint",
+		"test": "npm run lint && npm run test:base",
+		"test:base": "node --test --test-force-exit --experimental-test-coverage --test-reporter=spec './test/*.test.js' './test/**/*.test.js'",
+		"watch:test": "cross-env DEBUG=@natlibfi/* LOG_LEVEL=debug NODE_ENV=test node --watch --test --experimental-test-coverage --test-reporter=spec './test/*.test.js' './test/**/*.test.js'",
+		"dev": "npm run watch:test",
 		"prod": "NODE_ENV=production npm run build && npm run start",
 		"build": "esbuild \"src/**/*.js\" --sourcemap --platform=node --outdir=dist && cp src/api.json dist && cp src/api.yaml dist"
-	},
-	"todo_scripts": {
-		"test:base": "node --test --test-force-exit --experimental-test-coverage --test-reporter=spec './test/*.test.js' './test/**/*.test.js'",
-		"dev:test": "cross-env DEBUG=@natlibfi/* LOG_LEVEL=debug NODE_ENV=test node --watch --test --experimental-test-coverage --test-reporter=spec './test/*.test.js' './test/**/*.test.js'"
 	},
 	"dependencies": {
 		"@natlibfi/marc-record-serializers": "^11.0.3",
@@ -51,6 +50,9 @@
 		"uuid": "^14.0.0"
 	},
 	"devDependencies": {
+		"@natlibfi/fixugen": "^3.0.1",
+		"@natlibfi/fixura": "^4.0.1",
+		"@natlibfi/fixura-mongo": "^3.0.3",
 		"cross-env": "^10.1.0",
 		"eslint": "^10.4.0"
 	},
