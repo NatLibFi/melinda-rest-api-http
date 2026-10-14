@@ -1,0 +1,8 @@
+{
+  "status": 200,
+  "payload": {
+    "correlationId": "test-correlation-1",
+    "queueItemState": "PENDING_VALIDATION",
+    "modificationTime": "2026-01-15T11:00:00.000Z"
+  }
+}

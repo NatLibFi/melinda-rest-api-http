@@ -1,0 +1,12 @@
+{
+  "description": "skipLowValidation=true stays false in operationSettings (wrong variable parsed)",
+  "functionName": "validateQueryParams",
+  "allowedLibs": [
+    "100"
+  ],
+  "params": {
+    "pActiveLibrary": "100",
+    "pOldNew": "NEW",
+    "skipLowValidation": "true"
+  }
+}

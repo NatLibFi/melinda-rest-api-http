@@ -1,0 +1,14 @@
+{
+  "description": "pOldNew other than OLD/NEW gives 400",
+  "functionName": "validateQueryParams",
+  "allowedLibs": [
+    "100"
+  ],
+  "expectError": true,
+  "expectedErrorStatus": 400,
+  "expectedErrorMessage": "Invalid pOldNew query parameter 'MID'. (Valid values: OLD/NEW)",
+  "params": {
+    "pActiveLibrary": "100",
+    "pOldNew": "MID"
+  }
+}

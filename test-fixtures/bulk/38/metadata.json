@@ -1,0 +1,8 @@
+{
+  "description": "no mandatory params at all gives 400",
+  "functionName": "validateQueryParams",
+  "expectError": true,
+  "expectedErrorStatus": 400,
+  "expectedErrorMessage": "Missing one or more mandatory query parameters. (pActiveLibrary, pOldNew or status)",
+  "params": {}
+}

@@ -1,0 +1,8 @@
+{
+  "description": "id works as an alias for correlationId",
+  "functionName": "doQuery",
+  "preFillDb": true,
+  "params": {
+    "id": "test-correlation-1"
+  }
+}

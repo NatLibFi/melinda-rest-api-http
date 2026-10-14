@@ -1,0 +1,7 @@
+{
+  "description": "status DONE is accepted",
+  "functionName": "validateQueryParams",
+  "params": {
+    "status": "DONE"
+  }
+}

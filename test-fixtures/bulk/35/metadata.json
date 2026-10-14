@@ -1,0 +1,7 @@
+{
+  "description": "status PENDING_VALIDATION is accepted",
+  "functionName": "validateQueryParams",
+  "params": {
+    "status": "PENDING_VALIDATION"
+  }
+}

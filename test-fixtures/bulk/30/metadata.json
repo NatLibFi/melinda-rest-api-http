@@ -1,0 +1,12 @@
+{
+  "description": "NEW + allowed library: CREATE with streamBulk defaults",
+  "functionName": "validateQueryParams",
+  "allowedLibs": [
+    "100",
+    "200"
+  ],
+  "params": {
+    "pActiveLibrary": "100",
+    "pOldNew": "NEW"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "description": "oCatalogerIn mismatch is ignored: the item is still removed",
+  "functionName": "remove",
+  "preFillDb": true,
+  "params": {
+    "oCatalogerIn": "999",
+    "correlationId": "test-correlation-1"
+  }
+}

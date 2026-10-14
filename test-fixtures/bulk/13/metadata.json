@@ -1,0 +1,9 @@
+{
+  "description": "skip and limit slice the result set",
+  "functionName": "doQuery",
+  "preFillDb": true,
+  "params": {
+    "skip": "1",
+    "limit": "1"
+  }
+}
