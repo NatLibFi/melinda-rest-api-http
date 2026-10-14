@@ -1,0 +1,9 @@
+{
+  "description": "getExpandedListOfLogs: expanded off with an invalid logItemType throws 400",
+  "functionName": "getExpandedListOfLogs",
+  "params": {"expanded": "false", "logItemType": "BOGUS_TYPE"},
+  "preFillDb": true,
+  "expectError": true,
+  "expectedErrorStatus": 400,
+  "expectedErrorMessage": "Invalid logItemType"
+}

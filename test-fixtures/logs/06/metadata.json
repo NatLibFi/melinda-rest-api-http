@@ -1,0 +1,6 @@
+{
+  "description": "doLogsQuery: dot-notation key (preference.name) never reaches the Mongo filter",
+  "functionName": "doLogsQuery",
+  "params": {"preference.name": "Pref B"},
+  "preFillDb": true
+}

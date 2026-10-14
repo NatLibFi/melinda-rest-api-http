@@ -1,0 +1,6 @@
+{
+  "description": "getExpandedListOfLogs: expanded off falls back to the MERGE_LOG list by default",
+  "functionName": "getExpandedListOfLogs",
+  "params": {"expanded": "false"},
+  "preFillDb": true
+}

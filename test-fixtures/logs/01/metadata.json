@@ -1,0 +1,6 @@
+{
+  "description": "getLogs: returns 200 and the single MERGE_LOG for the correlationId",
+  "functionName": "getLogs",
+  "params": {"correlationId": "corr-1"},
+  "preFillDb": true
+}

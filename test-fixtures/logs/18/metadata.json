@@ -1,0 +1,6 @@
+{
+  "description": "getListOfLogs: defaults to MERGE_LOG when no logItemType is given",
+  "functionName": "getListOfLogs",
+  "params": null,
+  "preFillDb": true
+}

@@ -1,0 +1,6 @@
+{
+  "description": "doLogsQuery: allowlisted databaseId narrows the result set",
+  "functionName": "doLogsQuery",
+  "params": {"databaseId": "000333333"},
+  "preFillDb": true
+}

@@ -1,0 +1,6 @@
+{
+  "description": "removeLog: removing an unknown correlationId deletes nothing",
+  "functionName": "removeLog",
+  "params": ["missing-corr"],
+  "preFillDb": true
+}

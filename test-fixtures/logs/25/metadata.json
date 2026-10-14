@@ -1,0 +1,6 @@
+{
+  "description": "protectLog: toggles protected on the given correlationId/blobSequence",
+  "functionName": "protectLog",
+  "params": ["corr-1", 2],
+  "preFillDb": true
+}

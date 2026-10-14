@@ -1,0 +1,8 @@
+{
+  "description": "getLogs: throws 404 when no MERGE_LOG exists for the correlationId",
+  "functionName": "getLogs",
+  "params": {"correlationId": "missing-corr"},
+  "expectError": true,
+  "expectedErrorStatus": 404,
+  "expectedErrorMessage": "Item not found for id: missing-corr"
+}

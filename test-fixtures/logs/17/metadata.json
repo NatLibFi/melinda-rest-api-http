@@ -1,0 +1,6 @@
+{
+  "description": "getListOfCorrelationIds: returns the distinct correlationId values",
+  "functionName": "getListOfCorrelationIds",
+  "params": null,
+  "preFillDb": true
+}
