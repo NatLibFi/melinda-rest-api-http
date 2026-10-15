@@ -1,0 +1,9 @@
+{
+  "HTTP_PORT": "9090",
+  "AMQP_URL": "amqp://host.example:5672/vhost",
+  "MONGO_URI": "mongodb://mongo.example:27017/db2",
+  "RECORD_TYPE": "au",
+  "DEFAULT_ACCEPT": "application/xml",
+  "FIX_TYPES": "DELET,UNDEL",
+  "ALLOWED_LIBS": "FIN01"
+}

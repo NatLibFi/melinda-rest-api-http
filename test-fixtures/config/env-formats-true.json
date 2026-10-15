@@ -1,0 +1,7 @@
+{
+  "ENABLE_PROXY": "true",
+  "REQUIRE_AUTH_FOR_READ": "1",
+  "REQUIRE_KVP_FOR_WRITE": "TRUE",
+  "POLL_WAIT_TIME": "500",
+  "IP_WHITELIST": "[\"127.0.0.1\", \"10.0.0.1\"]"
+}
