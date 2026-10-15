@@ -1,7 +1,7 @@
 import httpStatus from 'http-status';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {CONTENT_TYPES} from '../config.js';
-import {createLogger} from '@natlibfi/melinda-backend-commons';
+import {createLogger} from '@natlibfi/melinda-commons';
 import {version as uuidVersion, validate as uuidValidate} from 'uuid';
 
 const logger = createLogger();

@@ -1,5 +1,5 @@
 import httpStatus from 'http-status';
-import {createLogger} from '@natlibfi/melinda-backend-commons';
+import {createLogger} from '@natlibfi/melinda-commons';
 import {version as uuidVersion, validate as uuidValidate} from 'uuid';
 import {QUEUE_ITEM_STATE, LOG_ITEM_TYPE} from '@natlibfi/melinda-rest-api-commons';
 

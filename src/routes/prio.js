@@ -5,7 +5,7 @@ import {Router} from 'express';
 import {inspect} from 'util';
 import passport from 'passport';
 import {v4 as uuid} from 'uuid';
-import {createLogger} from '@natlibfi/melinda-backend-commons';
+import {createLogger} from '@natlibfi/melinda-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import createService from '../interfaces/prio.js';
 import httpStatus from 'http-status';

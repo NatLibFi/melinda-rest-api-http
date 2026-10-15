@@ -1,6 +1,5 @@
 
-import {parseBoolean} from '@natlibfi/melinda-commons';
-import {readEnvironmentVariable} from '@natlibfi/melinda-backend-commons';
+import {parseBoolean, readEnvironmentVariable} from '@natlibfi/melinda-commons';
 import {CONVERSION_FORMATS} from '@natlibfi/melinda-rest-api-commons';
 
 export const httpPort = readEnvironmentVariable('HTTP_PORT', {defaultValue: '8080'});
