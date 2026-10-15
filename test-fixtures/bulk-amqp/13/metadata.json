@@ -1,0 +1,12 @@
+{
+  "description": "addRecord without record data gives a 400",
+  "functionName": "addRecord",
+  "preFillDb": true,
+  "expectError": true,
+  "expectedErrorStatus": 400,
+  "expectedErrorMessage": "No record.",
+  "params": {
+    "correlationId": "addrec-2",
+    "contentType": "application/json"
+  }
+}

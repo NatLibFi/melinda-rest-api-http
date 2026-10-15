@@ -1,0 +1,44 @@
+[
+  {
+    "queue": "PENDING_VALIDATION.addrecs-1",
+    "content": "{\"data\":{\"fields\":[]}}",
+    "correlationId": "addrecs-1",
+    "persistent": true,
+    "headers": {
+      "correlationId": "addrecs-1",
+      "operation": "CREATE",
+      "format": "JSON",
+      "cataloger": "123",
+      "operationSettings": {
+        "prio": false,
+        "noStream": true,
+        "unique": true,
+        "validate": true
+      },
+      "recordMetadata": {
+        "blobSequence": 1
+      }
+    }
+  },
+  {
+    "queue": "PENDING_VALIDATION.addrecs-1",
+    "content": "{\"data\":{\"fields\":[]}}",
+    "correlationId": "addrecs-1",
+    "persistent": true,
+    "headers": {
+      "correlationId": "addrecs-1",
+      "operation": "CREATE",
+      "format": "JSON",
+      "cataloger": "123",
+      "operationSettings": {
+        "prio": false,
+        "noStream": true,
+        "unique": true,
+        "validate": true
+      },
+      "recordMetadata": {
+        "blobSequence": 2
+      }
+    }
+  }
+]

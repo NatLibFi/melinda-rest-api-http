@@ -1,0 +1,21 @@
+{
+  "description": "create with stream stores the content in GridFS and moves the item to PENDING_QUEUING",
+  "functionName": "create",
+  "stream": true,
+  "params": {
+    "correlationId": "create-2",
+    "cataloger": "123",
+    "oCatalogerIn": "100",
+    "operation": "CREATE",
+    "contentType": "application/json",
+    "recordLoadParams": {
+      "pActiveLibrary": "100",
+      "pOldNew": "NEW"
+    },
+    "operationSettings": {
+      "noStream": false,
+      "unique": false,
+      "validate": false
+    }
+  }
+}

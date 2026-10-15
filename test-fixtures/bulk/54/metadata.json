@@ -1,0 +1,10 @@
+{
+  "description": "removeContent without a stored GridFS file still returns true (always-true path)",
+  "functionName": "removeContent",
+  "preFillDb": true,
+  "expectItemRemains": true,
+  "params": {
+    "oCatalogerIn": "100",
+    "correlationId": "rmc-2"
+  }
+}

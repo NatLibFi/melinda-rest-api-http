@@ -1,0 +1,15 @@
+{
+  "description": "addRecord surfaces a rejected AMQP publish: the rejection propagates through the commons handleAmqpErrors path after the blobSize increment",
+  "functionName": "addRecord",
+  "preFillDb": true,
+  "rejectPublish": true,
+  "expectError": true,
+  "expectedErrorMessage": "AMQP publish rejected by test",
+  "params": {
+    "correlationId": "addrec-1",
+    "contentType": "application/json",
+    "data": {
+      "fields": []
+    }
+  }
+}

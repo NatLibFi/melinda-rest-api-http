@@ -1,0 +1,14 @@
+{
+  "description": "addRecord on an item not in WAITING_FOR_RECORDS throws a TypeError (the intended 400 is unreachable: addBlobSize returns null and the .value access is not null-safe; pinned actual behavior)",
+  "functionName": "addRecord",
+  "preFillDb": true,
+  "expectTypeError": true,
+  "expectedErrorMessage": "Cannot read properties of null (reading 'value')",
+  "params": {
+    "correlationId": "addrec-1",
+    "contentType": "application/json",
+    "data": {
+      "fields": []
+    }
+  }
+}

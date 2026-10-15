@@ -1,0 +1,20 @@
+{
+  "description": "create without stream inserts the item in WAITING_FOR_RECORDS and never touches AMQP",
+  "functionName": "create",
+  "params": {
+    "correlationId": "create-1",
+    "cataloger": "123",
+    "oCatalogerIn": "100",
+    "operation": "CREATE",
+    "contentType": "application/json",
+    "recordLoadParams": {
+      "pActiveLibrary": "100",
+      "pOldNew": "NEW"
+    },
+    "operationSettings": {
+      "noStream": true,
+      "unique": true,
+      "validate": true
+    }
+  }
+}
