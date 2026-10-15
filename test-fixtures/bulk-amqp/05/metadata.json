@@ -1,0 +1,12 @@
+{
+  "description": "addRecords publishes one message per record and returns 201 before any publish settles (unawaited-sends defect, pinned here)",
+  "functionName": "addRecords",
+  "preFillDb": true,
+  "gatePublishes": true,
+  "params": {
+    "correlationId": "addrecs-1",
+    "contentType": "application/json",
+    "data": "[{\"fields\":[]},{\"fields\":[]}]"
+  },
+  "expectedBlobSize": 2
+}

@@ -1,0 +1,11 @@
+{
+  "description": "removeContent deletes the GridFS file, returns true and leaves the queueItem in place",
+  "functionName": "removeContent",
+  "preFillDb": true,
+  "gridFs": true,
+  "expectItemRemains": true,
+  "params": {
+    "oCatalogerIn": "100",
+    "correlationId": "rmc-1"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "description": "addRecords with an unparsable body gives a 400 carrying the JSON.parse error message",
+  "functionName": "addRecords",
+  "preFillDb": true,
+  "expectError": true,
+  "expectedErrorStatus": 400,
+  "expectedErrorMessage": "Unexpected end of JSON input",
+  "params": {
+    "correlationId": "addrecs-4",
+    "contentType": "application/json",
+    "data": "["
+  }
+}

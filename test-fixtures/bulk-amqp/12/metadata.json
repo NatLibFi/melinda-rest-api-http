@@ -1,0 +1,11 @@
+{
+  "description": "addRecords without a body gives a 400",
+  "functionName": "addRecords",
+  "expectError": true,
+  "expectedErrorStatus": 400,
+  "expectedErrorMessage": "No records.",
+  "params": {
+    "correlationId": "addrecs-8",
+    "contentType": "application/json"
+  }
+}
