@@ -1,0 +1,7 @@
+{
+  "description": "removeContent without a correlationId throws 400 synchronously",
+  "functionName": "removeContent",
+  "expectError": true,
+  "expectedErrorStatus": 400,
+  "params": {}
+}

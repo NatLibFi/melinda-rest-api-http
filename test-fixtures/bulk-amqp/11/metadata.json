@@ -1,0 +1,12 @@
+{
+  "description": "addRecords for an unknown correlationId gives a 404",
+  "functionName": "addRecords",
+  "expectError": true,
+  "expectedErrorStatus": 404,
+  "expectedErrorMessage": "Invalid queueItem addrecs-7 for adding records",
+  "params": {
+    "correlationId": "addrecs-7",
+    "contentType": "application/json",
+    "data": "[]"
+  }
+}

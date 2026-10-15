@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import {Readable} from 'node:stream';
 import {mock} from 'node:test';
 import {MongoClient, GridFSBucket} from 'mongodb';
 import {READERS} from '@natlibfi/fixura';
@@ -139,7 +140,10 @@ async function callback({
   expectTypeError = false,
   expectedErrorStatus = '',
   expectedErrorMessage = '',
-  expectedErrorMessageFromPayload = false
+  expectedErrorMessageFromPayload = false,
+  expectedErrorMessagePrefix = '',
+  stream = false,
+  expectItemRemains = false
 }) {
   const {default: createBulkService} = await import('../src/interfaces/bulk.js');
   const service = await createBulkService({
@@ -285,6 +289,76 @@ async function callback({
     return assert.strictEqual(result, getFixture('expectedResult.json'));
   }
 
+  if (functionName === 'create') {
+    // create is Mongo-only (GridFS for stream content); the throw-on-traffic
+    // fake channel proves no AMQP is touched on either leg
+    const callCreate = () => service.create({
+      ...params,
+      stream: stream ? createStreamFixture(getFixture('gridFsFiles.json')[0]) : false
+    });
+    if (expectError) {
+      // 500 branch: the setState result carries no correlationId. The full
+      // message embeds the setState result JSON (dynamic timestamps), so
+      // only assert the stable prefix
+      return assert.rejects(
+        async () => callCreate(),
+        (error) => {
+          assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
+          assert.equal(error.status, expectedErrorStatus);
+          const message = error.payload || error.message;
+          assert.ok(message.startsWith(expectedErrorMessagePrefix),
+            `expected message to start with '${expectedErrorMessagePrefix}', got: ${message}`);
+          return true;
+        }
+      );
+    }
+    const result = await callCreate();
+    const expected = getFixture('expectedResult.json');
+    const actual = {correlationId: result.correlationId, queueItemState: result.queueItemState};
+    // the noStream path returns a two-field result; the stream path returns
+    // the updated queueItem document (blobSize and more)
+    if ('blobSize' in expected) {
+      actual.blobSize = result.blobSize;
+    }
+    assert.deepStrictEqual(actual, expected);
+    const docs = await dumpBulk();
+    assert.equal(docs.length, 1, 'exactly one queueItem should be created');
+    const [doc] = docs;
+    for (const [key, value] of Object.entries(getFixture('expectedDbDoc.json'))) {
+      assert.deepStrictEqual(doc[key], value, `unexpected ${key} in the created queueItem`);
+    }
+    if (stream) {
+      const content = await readGridFsFile(params.correlationId);
+      const expectedContent = Buffer.from(getFixture('gridFsFiles.json')[0].contentBase64, 'base64');
+      return assert.ok(content.equals(expectedContent), 'the uploaded stream should be stored in GridFS unchanged');
+    }
+    return;
+  }
+
+  if (functionName === 'removeContent') {
+    // removeContent is Mongo-only (deletes the GridFS file, always returns
+    // true); the throw-on-traffic fake channel proves no AMQP is touched
+    if (!params || !params.correlationId) {
+      // removeContent without a correlationId throws synchronously
+      return assert.throws(() => service.removeContent(params || {}), (error) => {
+        assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
+        assert.equal(error.status, 400);
+        return true;
+      });
+    }
+    const result = await service.removeContent(params);
+    assert.deepStrictEqual(result, getFixture('expectedResult.json'));
+    const gridFsFiles = await gridFsBucket()
+      .find({filename: params.correlationId})
+      .toArray();
+    assert.equal(gridFsFiles.length, 0, 'the GridFS content file should be removed');
+    if (expectItemRemains) {
+      const remaining = await dumpBulk();
+      return assert.equal(remaining.length, 1, 'only the GridFS file is removed, the queueItem stays');
+    }
+    return;
+  }
+
   throw new Error(`Unknown functionName: ${functionName}`);
 }
 
@@ -391,4 +465,20 @@ async function collectStream(stream) {
     chunks.push(chunk);
   }
   return Buffer.concat(chunks);
+}
+
+// The service create receives the request body stream; in the tests the
+// fixture's base64 content stands in for it
+function createStreamFixture(file) {
+  return Readable.from([Buffer.from(file.contentBase64, 'base64')]);
+}
+
+async function readGridFsFile(filename) {
+  const [file] = await gridFsBucket()
+    .find({filename})
+    .toArray();
+  if (!file) {
+    throw new Error(`No GridFS file for ${filename}`);
+  }
+  return collectStream(gridFsBucket().openDownloadStream(file._id));
 }
