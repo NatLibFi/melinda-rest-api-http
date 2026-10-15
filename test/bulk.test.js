@@ -22,9 +22,9 @@ process.env.SRU_URL ??= 'https://sru.example/';
 // therefore mocked here, BEFORE the service module is dynamically imported
 // (see the `before` hook / service import in the callback below).
 //
-// mock.module requires --experimental-test-module-mocks on Node 22; the
-// flag is included in the test scripts in package.json (it is accepted and
-// harmless on Node 24, where module mocking is otherwise unflagged).
+// mock.module requires --experimental-test-module-mocks on Node 22 AND 24
+// (verified on v24.19.0: without the flag, mock.module is not a function).
+// The flag is part of test:base/watch:test in package.json.
 //
 // The fake channel accepts only the background health check queue
 // assertion: bulk.js builds the amqp operator with runHealthCheck = true,
@@ -63,12 +63,14 @@ function makeFakeChannel() {
 }
 
 mock.module('amqplib', {
-  defaultExport: {
-    connect: (url) => {
-      amqpCalls.push(['connect', url]);
-      return Promise.resolve({
-        createChannel: () => Promise.resolve(makeFakeChannel())
-      });
+  exports: {
+    default: {
+      connect: (url) => {
+        amqpCalls.push(['connect', url]);
+        return Promise.resolve({
+          createChannel: () => Promise.resolve(makeFakeChannel())
+        });
+      }
     }
   }
 });
