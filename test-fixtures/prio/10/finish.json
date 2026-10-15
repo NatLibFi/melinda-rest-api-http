@@ -1,0 +1,13 @@
+{
+  "queueItemState": "DONE",
+  "records": [
+    {
+      "databaseId": "000000000",
+      "recordStatus": "INVALID",
+      "detailedRecordStatus": "UNPROCESSABLE_ENTITY",
+      "message": "Record invalid"
+    }
+  ],
+  "errorMessage": "",
+  "errorStatus": ""
+}

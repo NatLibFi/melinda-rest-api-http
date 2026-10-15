@@ -1,0 +1,29 @@
+{
+  "description": "create: ERROR queueItem with records throws HttpError(errorStatus, first recordResponse); an ERROR queueItem without 409 is NOT cleaned up",
+  "functionName": "create",
+  "params": {
+    "data": {
+      "fields": [
+        {
+          "t": "245",
+          "v": "a title"
+        }
+      ]
+    },
+    "format": "JSON",
+    "cataloger": {
+      "id": "123"
+    },
+    "oCatalogerIn": "100",
+    "operationSettings": {
+      "prio": true,
+      "noStream": true,
+      "unique": true,
+      "validate": true,
+      "merge": false
+    },
+    "correlationId": "prio-12"
+  },
+  "expectError": true,
+  "expectedErrorStatus": 400
+}

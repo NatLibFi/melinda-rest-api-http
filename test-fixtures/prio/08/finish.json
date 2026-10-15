@@ -1,0 +1,13 @@
+{
+  "queueItemState": "DONE",
+  "records": [
+    {
+      "databaseId": "000001234",
+      "recordStatus": "FIXED",
+      "detailedRecordStatus": "FIXED",
+      "message": "Record fixed"
+    }
+  ],
+  "errorMessage": "",
+  "errorStatus": ""
+}

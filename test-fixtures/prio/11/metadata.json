@@ -1,0 +1,30 @@
+{
+  "description": "create: the queueItem is not modified within the 1-minute window when polled (stale modificationTime), so the poll ABORTS it and throws 408; the aborted queueItem is NOT cleaned up",
+  "functionName": "create",
+  "params": {
+    "data": {
+      "fields": [
+        {
+          "t": "245",
+          "v": "a title"
+        }
+      ]
+    },
+    "format": "JSON",
+    "cataloger": {
+      "id": "123"
+    },
+    "oCatalogerIn": "100",
+    "operationSettings": {
+      "prio": true,
+      "noStream": true,
+      "unique": true,
+      "validate": true,
+      "merge": false
+    },
+    "correlationId": "prio-11"
+  },
+  "expectError": true,
+  "expectedErrorStatus": 408,
+  "expectedErrorMessage": "Timeout in PENDING_VALIDATION"
+}

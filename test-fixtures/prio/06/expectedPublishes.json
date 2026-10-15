@@ -1,0 +1,24 @@
+[
+  {
+    "queue": "REQUESTS",
+    "content": "{\"data\":{\"fields\":[{\"t\":\"245\",\"v\":\"a new title\"}]}}",
+    "correlationId": "prio-06",
+    "persistent": true,
+    "headers": {
+      "correlationId": "prio-06",
+      "operation": "UPDATE",
+      "id": "000001234",
+      "format": "JSON",
+      "cataloger": {
+        "id": "123"
+      },
+      "operationSettings": {
+        "prio": true,
+        "noStream": true,
+        "unique": true,
+        "validate": true,
+        "merge": false
+      }
+    }
+  }
+]

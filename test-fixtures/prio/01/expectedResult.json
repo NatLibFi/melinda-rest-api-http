@@ -1,0 +1,10 @@
+{
+  "messages": {
+    "databaseId": "000001234",
+    "recordStatus": "CREATED",
+    "detailedRecordStatus": "CREATED",
+    "message": "Record created"
+  },
+  "id": "000001234",
+  "status": "CREATED"
+}
