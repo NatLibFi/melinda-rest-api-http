@@ -11,14 +11,14 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [22.x, 24.x, 26.x]
+        node-version: [24.x, 26.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
     - name: Checkout the code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@v7
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
@@ -35,7 +35,7 @@ jobs:
     container: node:24
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: mikaelvesavuori/license-compliance-action@main
         with:
           exclude_pattern: /^@natlibfi/
@@ -47,7 +47,7 @@ jobs:
 
     steps:
     - name: Checkout the code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: nodejsscan scan
       id: njsscan
       uses: ajinabraham/njsscan-action@master
@@ -58,11 +58,11 @@ jobs:
   #   name: Quay.io image builder & publisher
   #   needs: [build-node-versions, njsscan]
   #   runs-on: ubuntu-latest
-  #   container: node:22
+  #   container: node:24
   #   if: github.actor!= 'dependabot[bot]'   # ignore the pull request which comes from user dependabot, because it does not access to secrets
 
   #   steps:
-  #     - uses: actions/checkout@v6
+  #     - uses: actions/checkout@v7
   #     - name: Docker meta
   #       id: meta
   #       uses: docker/metadata-action@v5
