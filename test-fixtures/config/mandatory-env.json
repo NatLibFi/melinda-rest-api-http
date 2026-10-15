@@ -1,0 +1,7 @@
+{
+  "ALEPH_X_SVC_URL": "http://xservice.test",
+  "ALEPH_USER_LIBRARY": "FIN01",
+  "OWN_AUTHZ_URL": "http://authz.test",
+  "OWN_AUTHZ_API_KEY": "test-key",
+  "SRU_URL": "http://sru.test"
+}
