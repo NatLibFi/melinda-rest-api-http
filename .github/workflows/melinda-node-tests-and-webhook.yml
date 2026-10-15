@@ -36,9 +36,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: mikaelvesavuori/license-compliance-action@main
+      - uses: mikaelvesavuori/license-compliance-action@v1.0.3
         with:
-          exclude_pattern: /^@natlibfi/
+          # default action list + BlueOak-1.0.0 (sax, via xml2js) + MIT-0 (nodemailer) — both OSI-approved permissive
+          allow_licenses: 'MIT;ISC;0BSD;BSD-2-Clause;BSD-3-Clause;Apache-2.0;BlueOak-1.0.0;MIT-0'
+          # pause@0.0.1 (pinned by passport) has no license field or LICENSE file; upstream pause 0.1.0 (same API) is MIT
+          exclude_pattern: /^@natlibfi/;pause
 
   njsscan:
     name: Njsscan check
