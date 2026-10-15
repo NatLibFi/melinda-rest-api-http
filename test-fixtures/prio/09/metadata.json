@@ -1,0 +1,16 @@
+{
+  "description": "fix: DONE with a SKIPPED recordResponse returns {status, messages, id} and the queueItem is cleaned up",
+  "functionName": "fix",
+  "params": {
+    "id": "000001234",
+    "cataloger": {
+      "id": "123"
+    },
+    "oCatalogerIn": "100",
+    "operationSettings": {
+      "fixType": "DELET"
+    },
+    "correlationId": "prio-09"
+  },
+  "expectItemRemoved": true
+}

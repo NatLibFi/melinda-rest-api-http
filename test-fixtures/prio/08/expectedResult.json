@@ -1,0 +1,10 @@
+{
+  "status": "FIXED",
+  "messages": {
+    "databaseId": "000001234",
+    "recordStatus": "FIXED",
+    "detailedRecordStatus": "FIXED",
+    "message": "Record fixed"
+  },
+  "id": "000001234"
+}

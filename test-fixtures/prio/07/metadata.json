@@ -1,0 +1,31 @@
+{
+  "description": "update: DONE with a failing (INVALID) recordResponse throws HttpError(recordStatus, recordResponse); the DONE queueItem is still cleaned up",
+  "functionName": "update",
+  "params": {
+    "id": "000001234",
+    "data": {
+      "fields": [
+        {
+          "t": "245",
+          "v": "a new title"
+        }
+      ]
+    },
+    "format": "JSON",
+    "cataloger": {
+      "id": "123"
+    },
+    "oCatalogerIn": "100",
+    "operationSettings": {
+      "prio": true,
+      "noStream": true,
+      "unique": true,
+      "validate": true,
+      "merge": false
+    },
+    "correlationId": "prio-07"
+  },
+  "expectError": true,
+  "expectedErrorStatus": "INVALID",
+  "expectItemRemoved": true
+}

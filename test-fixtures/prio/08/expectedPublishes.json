@@ -1,0 +1,19 @@
+[
+  {
+    "queue": "REQUESTS",
+    "content": "{\"data\":{}}",
+    "correlationId": "prio-08",
+    "persistent": true,
+    "headers": {
+      "correlationId": "prio-08",
+      "operation": "FIX",
+      "id": "000001234",
+      "cataloger": {
+        "id": "123"
+      },
+      "operationSettings": {
+        "fixType": "DELET"
+      }
+    }
+  }
+]

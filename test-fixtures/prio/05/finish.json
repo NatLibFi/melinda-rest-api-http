@@ -1,0 +1,13 @@
+{
+  "queueItemState": "DONE",
+  "records": [
+    {
+      "databaseId": "000001234",
+      "recordStatus": "UPDATED",
+      "detailedRecordStatus": "UPDATED",
+      "message": "Record updated"
+    }
+  ],
+  "errorMessage": "",
+  "errorStatus": ""
+}
