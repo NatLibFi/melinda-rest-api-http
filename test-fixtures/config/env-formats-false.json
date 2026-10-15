@@ -1,0 +1,5 @@
+{
+  "ENABLE_PROXY": "false",
+  "REQUIRE_AUTH_FOR_READ": "0",
+  "REQUIRE_KVP_FOR_WRITE": "false"
+}
