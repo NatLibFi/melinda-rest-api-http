@@ -1,0 +1,10 @@
+{
+  "status": "UPDATED",
+  "messages": {
+    "databaseId": "000001234",
+    "recordStatus": "UPDATED",
+    "detailedRecordStatus": "UPDATED",
+    "message": "Record updated"
+  },
+  "id": "000001234"
+}
