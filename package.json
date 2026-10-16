@@ -49,9 +49,9 @@
 		"uuid": "^14.0.0"
 	},
 	"devDependencies": {
-		"@natlibfi/fixugen": "^3.0.1",
-		"@natlibfi/fixura": "^4.0.1",
-		"@natlibfi/fixura-mongo": "^3.0.3",
+		"@natlibfi/fixugen": "^4.0.0",
+		"@natlibfi/fixura": "^5.0.0",
+		"@natlibfi/fixura-mongo": "^4.0.2",
 		"cross-env": "^10.1.0",
 		"eslint": "^10.4.0"
 	},
