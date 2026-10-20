@@ -1,0 +1,18 @@
+{
+  "description": "Prio AMQP ERROR leg with errorStatus 409: create answers the queueItem's 409 with {message, status} (a 409 ERROR also makes cleanMongo remove the prio queueItem)",
+  "passport": "kvp",
+  "amqpResultState": "ERROR",
+  "amqpErrorStatus": 409,
+  "amqpErrorMessage": "Duplicate record",
+  "requests": [
+    {
+      "method": "post",
+      "path": "/",
+      "status": 409,
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    }
+  ]
+}
