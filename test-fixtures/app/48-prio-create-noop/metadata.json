@@ -1,0 +1,18 @@
+{
+  "description": "Prio noop create: worker reports CREATED with noop=1 -> 200 with the recordResponse and no Record-ID header",
+  "passport": "kvp",
+  "requests": [
+    {
+      "method": "post",
+      "path": "/",
+      "status": 200,
+      "requestParams": {
+        "noop": "1"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    }
+  ]
+}

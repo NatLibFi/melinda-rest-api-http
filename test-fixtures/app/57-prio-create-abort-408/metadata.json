@@ -1,0 +1,16 @@
+{
+  "description": "Prio create with the worker aborting the queueItem (queueItemState ABORT): NOTE pinned current behavior - getResponseDataForAbort uses httpStatus.REQUEST_TIMEOUT, which is 408 (not 504), with the default timeout message (errorMessage not set, so the || default is used)",
+  "passport": "kvp",
+  "amqpResultState": "ABORT",
+  "requests": [
+    {
+      "method": "post",
+      "path": "/",
+      "status": 408,
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    }
+  ]
+}

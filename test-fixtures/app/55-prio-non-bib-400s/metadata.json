@@ -1,0 +1,32 @@
+{
+  "description": "Prio with recordType other than bib: create with unique/merge -> 400 'Unique and merge can only be used for bib records, use unique=0'; update with merge -> 400 'Merge can only be used for bib records'",
+  "passport": "kvp",
+  "recordType": "oth",
+  "requests": [
+    {
+      "method": "post",
+      "path": "/",
+      "status": 400,
+      "requestParams": {
+        "unique": "1",
+        "merge": "1"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/123456789",
+      "status": 400,
+      "requestParams": {
+        "merge": "1"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    }
+  ]
+}

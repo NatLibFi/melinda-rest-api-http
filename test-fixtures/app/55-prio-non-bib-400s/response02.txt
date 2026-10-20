@@ -1,0 +1,1 @@
+Merge can only be used for bib records

@@ -18,7 +18,7 @@ process.env.SRU_URL ??= 'https://sru.example/';
 // --- Mock state, settable per fixture through metadata.json ----------------
 // The app is started per fixture (startApp below), and the mocks are read at
 // request time, so the callback assigns the fixture's values before startApp.
-const amqpMock = {calls: [], resultState: 'DONE', records: [], errorStatus: '', errorMessage: ''};
+const amqpMock = {calls: [], resultState: 'DONE', records: [], errorStatus: '', errorMessage: '', reject: false};
 const sruMock = {queries: [], records: []};
 const passportMock = {
   state: 'kvp',
@@ -36,6 +36,7 @@ function resetMocks() {
   amqpMock.records = [{recordStatus: 'CREATED', databaseId: '999999'}];
   amqpMock.errorStatus = '';
   amqpMock.errorMessage = '';
+  amqpMock.reject = false;
   sruMock.queries = [];
   sruMock.records = [];
   passportMock.state = 'kvp';
@@ -69,6 +70,10 @@ function makeFakeChannel() {
     },
     sendToQueue: async (name, content, options) => {
       amqpMock.calls.push(['sendToQueue', name]);
+      if (amqpMock.reject) {
+        // fixture-controlled reject leg: surfaces the write-flow 500s (non-HttpError via next(error) -> handleError)
+        throw new Error(`amqp sendToQueue rejected for ${name}`);
+      }
       if (name === 'REQUESTS' && options.correlationId) {
         await mongoClient.db('rest-api').collection('prio').updateOne(
           {correlationId: options.correlationId},
@@ -80,11 +85,16 @@ function makeFakeChannel() {
                 errorMessage: amqpMock.errorMessage,
                 modificationTime: new Date()
               }
-              : {
-                queueItemState: 'DONE',
-                records: amqpMock.records,
-                modificationTime: new Date()
-              }
+              : amqpMock.resultState === 'ABORT'
+                ? {
+                  queueItemState: 'ABORT',
+                  modificationTime: new Date()
+                }
+                : {
+                  queueItemState: 'DONE',
+                  records: amqpMock.records,
+                  modificationTime: new Date()
+                }
           }
         );
       }
@@ -206,7 +216,9 @@ async function callback({
   amqpResultState = 'DONE',
   amqpRecords = [{recordStatus: 'CREATED', databaseId: '999999'}],
   amqpErrorStatus = '',
-  amqpErrorMessage = ''
+  amqpErrorMessage = '',
+  amqpReject = false,
+  recordType = 'bib'
 }) {
   // Assign the mock state before startApp: startApp instantiates
   // MockAlephStrategy internally, and all mock closures read this state at
@@ -217,6 +229,7 @@ async function callback({
   amqpMock.records = amqpRecords;
   amqpMock.errorStatus = amqpErrorStatus;
   amqpMock.errorMessage = amqpErrorMessage;
+  amqpMock.reject = amqpReject;
 
   if (dbContents) {
     // fixugen-http-server's getFixture reads with the TEXT reader, so the
@@ -239,7 +252,7 @@ async function callback({
     amqpUrl: 'amqp://amqp-mock',
     mongoUri: await mongoFixtures.getUri(),
     pollWaitTime: 5,
-    recordType: 'bib',
+    recordType,
     requireAuthForRead,
     requireKVPForWrite,
     fixTypes: ['DELET', 'UNDEL'],

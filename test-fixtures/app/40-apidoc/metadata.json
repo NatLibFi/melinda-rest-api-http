@@ -1,0 +1,13 @@
+{
+  "description": "API doc: GET /apidoc/ serves src/api.yaml verbatim as application/yaml (no auth, no IP whitelist - mounted before passport/ipWhiteList in app.js)",
+  "requests": [
+    {
+      "method": "get",
+      "path": "/apidoc/",
+      "status": 200,
+      "responseHeaders": {
+        "Content-Type": "application/yaml; charset=utf-8"
+      }
+    }
+  ]
+}
