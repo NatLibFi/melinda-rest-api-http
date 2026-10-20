@@ -1,0 +1,23 @@
+{
+  "description": "Prio merged create: worker reports SKIPPED with merge=1 -> 200 with the recordResponse and Record-ID (the SKIPPED leg)",
+  "passport": "kvp",
+  "amqpRecords": [{"recordStatus": "SKIPPED", "databaseId": "9876543"}],
+  "requests": [
+    {
+      "method": "post",
+      "path": "/",
+      "status": 200,
+      "requestParams": {
+        "merge": "1",
+        "unique": "1"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      },
+      "responseHeaders": {
+        "Record-ID": "9876543"
+      }
+    }
+  ]
+}

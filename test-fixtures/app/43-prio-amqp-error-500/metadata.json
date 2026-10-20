@@ -1,0 +1,38 @@
+{
+  "description": "Prio AMQP ERROR leg: worker sets queueItemState ERROR with errorStatus 500 -> create/update/fix all answer 500 with {message, status} (route instanceof HttpError catch legs)",
+  "passport": "kvp",
+  "amqpResultState": "ERROR",
+  "amqpErrorStatus": 500,
+  "amqpErrorMessage": "Worker error 500",
+  "requests": [
+    {
+      "method": "post",
+      "path": "/",
+      "status": 500,
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/123456789",
+      "status": 500,
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/fix/123456789",
+      "status": 500,
+      "requestParams": {
+        "fixType": "DELET"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    }
+  ]
+}

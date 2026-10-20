@@ -1,0 +1,32 @@
+{
+  "description": "Logs expanded list: expanded=1 -> 200 with the grouped log listing (correlationId/logItemType/cataloger/creationTime/logCount); second request adds logItemTypes, catalogers and creationTime range params (the split/parse branches of getExpandedListOfLogs)",
+  "passport": "kvp",
+  "dbContents": "dbContents.json",
+  "requests": [
+    {
+      "method": "get",
+      "path": "/logs/list",
+      "status": 200,
+      "requestParams": {
+        "expanded": "1"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    },
+    {
+      "method": "get",
+      "path": "/logs/list",
+      "status": 200,
+      "requestParams": {
+        "expanded": "1",
+        "logItemTypes": "MERGE_LOG,MATCH_LOG",
+        "catalogers": "100",
+        "creationTime": "[\"2024-01-01T00:00:00.000Z\",\"2025-12-31T23:59:59.000Z\"]"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    }
+  ]
+}

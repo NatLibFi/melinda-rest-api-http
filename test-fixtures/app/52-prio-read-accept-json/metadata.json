@@ -1,0 +1,14 @@
+{
+  "description": "Prio read with an explicit Accept header (application/json, not */*): record found -> 200 with the record serialized in the accepted format (getType returns the accept header as-is)",
+  "sruRecords": ["record01.xml"],
+  "requests": [
+    {
+      "method": "get",
+      "path": "/123456789",
+      "status": 200,
+      "requestHeaders": {
+        "Accept": "application/json"
+      }
+    }
+  ]
+}

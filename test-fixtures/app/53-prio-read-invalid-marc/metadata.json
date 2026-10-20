@@ -1,0 +1,14 @@
+{
+  "description": "Prio read with malformed MARC XML from SRU: NOTE pinned current behavior - MARCXML.from rejects with a TypeError that is not an HttpError, so it reaches handleError and the response is a plain 500 (exercises the getRecord reject leg and the read next(error) leg)",
+  "sruRecords": ["record02.xml"],
+  "requests": [
+    {
+      "method": "get",
+      "path": "/123456789",
+      "status": 500,
+      "requestHeaders": {
+        "Accept": "*/*"
+      }
+    }
+  ]
+}
