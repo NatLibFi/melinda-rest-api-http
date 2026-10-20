@@ -20,7 +20,7 @@ process.env.SRU_URL ??= 'https://sru.example/';
 // request time, so the callback assigns the fixture's values before startApp.
 const amqpMock = {calls: [], resultState: 'DONE', records: [], errorStatus: '', errorMessage: '', reject: false};
 const sruMock = {queries: [], records: []};
-const passportMock = {
+const authMock = {
   state: 'kvp',
   users: {
     // KVP leg: authorization includes 'KVP' -> authorizeKVPOnly passes
@@ -39,7 +39,7 @@ function resetMocks() {
   amqpMock.reject = false;
   sruMock.queries = [];
   sruMock.records = [];
-  passportMock.state = 'kvp';
+  authMock.state = 'kvp';
 }
 // ---------------------------------------------------------------------------
 
@@ -158,11 +158,11 @@ function createMockSruClient() {
 class MockAlephStrategy extends BasicStrategy {
   constructor() {
     super((username, password, done) => {
-      if (passportMock.state === 'fail') {
+      if (authMock.state === 'fail') {
         // auth-fail leg: verify returns no user -> passport answers 401
         return done(null, false);
       }
-      return done(null, passportMock.users[passportMock.state]);
+      return done(null, authMock.users[authMock.state]);
     });
     this.name = 'melinda';
   }
@@ -195,9 +195,21 @@ generateTests({
     beforeEach: async () => {
       await closeActiveServer();
       resetMocks();
+      // The prio write flows call a fire-and-forget cleanup in the service, so
+      // the previous fixture's cleanup may still be doing its post-response
+      // Mongo reads here; wait for it to settle before wiping the collections,
+      // otherwise its findOne can return null and reject unhandled after the
+      // test ended (unhandledRejection).
+      await new Promise((r) => setTimeout(r, 50));
       await clearCollections();
     },
     after: async () => {
+      // Same settle as in beforeEach, but for the mongod shutdown: the
+      // fire-and-forget cleanup of the prio write flows may still be doing
+      // its post-response Mongo reads; wait for it to settle before closing
+      // the client and fixture, otherwise its findOne can return null and
+      // reject unhandled after the test ended (unhandledRejection).
+      await new Promise((r) => setTimeout(r, 50));
       await mongoClient.close();
       await mongoFixtures.close();
     }
@@ -223,7 +235,7 @@ async function callback({
   // Assign the mock state before startApp: startApp instantiates
   // MockAlephStrategy internally, and all mock closures read this state at
   // request time.
-  passportMock.state = passportState;
+  authMock.state = passportState;
   sruMock.records = sruRecords.map((name) => (name ? getFixture(name) : null));
   amqpMock.resultState = amqpResultState;
   amqpMock.records = amqpRecords;
