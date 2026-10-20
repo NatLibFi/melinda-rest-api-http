@@ -1,0 +1,1 @@
+{"error":"BAD query params","failedParams":["logItemType"],"nonCompatibleParams":[]}

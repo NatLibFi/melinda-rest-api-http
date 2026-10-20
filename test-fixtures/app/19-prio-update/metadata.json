@@ -1,0 +1,9 @@
+{
+  "description": "Prio update: worker updates the record -> 200 with the recordResponse and Record-ID; content-type not allowed for prio -> 415",
+  "passport": "kvp",
+  "amqpRecords": [{"recordStatus": "UPDATED", "databaseId": "123456789"}],
+  "requests": [
+    {"method": "post", "path": "/123456789", "status": 200, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I=", "Content-Type": "application/json"}, "responseHeaders": {"Record-ID": "123456789"}},
+    {"method": "post", "path": "/123456789", "status": 415, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I=", "Content-Type": "application/alephseq"}}
+  ]
+}

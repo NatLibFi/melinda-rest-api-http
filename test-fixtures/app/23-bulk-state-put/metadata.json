@@ -1,0 +1,18 @@
+{
+  "description": "Bulk state update: stored queueItem -> 200 (modificationTime is dynamic, no payload fixture)",
+  "passport": "kvp",
+  "dbContents": "dbContents.json",
+  "requests": [
+    {
+      "method": "put",
+      "path": "/bulk/state/1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
+      "status": 200,
+      "requestParams": {
+        "status": "DONE"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    }
+  ]
+}

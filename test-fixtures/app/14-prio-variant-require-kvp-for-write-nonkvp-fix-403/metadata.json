@@ -1,0 +1,18 @@
+{
+  "description": "Prio requireKVPForWrite variant: /fix/:id is KVP-gated -> non-KVP user 403 (note: GET /prio/ is unreachable, it is shadowed by GET /:id, see 16)",
+  "requireKVPForWrite": true,
+  "passport": "nonKVP",
+  "requests": [
+    {
+      "method": "post",
+      "path": "/fix/123456789",
+      "status": 403,
+      "requestParams": {
+        "fixType": "DELET"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    }
+  ]
+}
