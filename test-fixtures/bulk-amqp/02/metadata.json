@@ -1,9 +1,10 @@
 {
-  "description": "addRecord on an item not in WAITING_FOR_RECORDS throws a TypeError (the intended 400 is unreachable: addBlobSize returns null and the .value access is not null-safe; pinned actual behavior)",
+  "description": "addRecord on an item not in WAITING_FOR_RECORDS gives the intended 404 (addBlobSize filters on WAITING_FOR_RECORDS and returns null for a non-matching item)",
   "functionName": "addRecord",
   "preFillDb": true,
-  "expectTypeError": true,
-  "expectedErrorMessage": "Cannot read properties of null (reading 'value')",
+  "expectError": true,
+  "expectedErrorStatus": 404,
+  "expectedErrorMessage": "Invalid queueItem addrec-1 for adding records",
   "params": {
     "correlationId": "addrec-1",
     "contentType": "application/json",

@@ -1,12 +1,12 @@
 {
-  "description": "Bulk state update: NOTE pinned current behavior - unknown id -> 500 instead of the intended 404 (the service reads setStateResult.value on the null findOneAndUpdate result, a TypeError that handleError answers with a plain 500)",
+  "description": "Bulk state update: unknown id -> 404 'Item not found for id: ...' (setState returns null for a missing item and the service answers with the intended HttpError 404)",
   "passport": "kvp",
   "dbContents": "dbContents.json",
   "requests": [
     {
       "method": "put",
       "path": "/bulk/state/00000000-0000-4000-8000-000000000000",
-      "status": 500,
+      "status": 404,
       "requestParams": {
         "status": "DONE"
       },
