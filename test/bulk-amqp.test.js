@@ -243,10 +243,12 @@ async function addRecordCase(service, params, {
 }) {
   if (expectTypeError) {
     // NOTE (suspected bug, asserted as actual behavior, NOT fixed): the
-    // 400 (wrong state) and 415 (non-allowBulk contentType) branches of
-    // addRecord are unreachable: addBlobSize returns null for a missing
-    // match (the .value access is not null-safe, so it TypeErrors first)
-    // and the unguarded find result is destructured before the 415 check.
+    // 415 (non-allowBulk contentType) branch of addRecord is unreachable:
+    // the unguarded CONTENT_TYPES.find(...) result is destructured before
+    // the 415 check, so it TypeErrors first. (The wrong-state 400 no
+    // longer exists: addBlobSize filters on WAITING_FOR_RECORDS, so a
+    // missing or non-matching item is answered with the intended 404
+    // 'Invalid queueItem ...'.)
     return assert.rejects(
       async () => service.addRecord(params),
       {name: 'TypeError', message: expectedErrorMessage}

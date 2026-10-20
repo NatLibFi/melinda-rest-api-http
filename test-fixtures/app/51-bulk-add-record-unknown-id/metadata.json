@@ -1,11 +1,11 @@
 {
-  "description": "Bulk add single record with an unknown id: NOTE pinned current behavior (same class as fixture 37) - addBlobSize returns null for the unknown correlationId and the service reads .value on it, so a TypeError reaches handleError and the response is a plain 500 instead of the intended 404 (interfaces/bulk.js 44-46 is unreachable)",
+  "description": "Bulk add single record with an unknown id: 404 'Invalid queueItem ... for adding records' (addBlobSize filters on WAITING_FOR_RECORDS, returns null for the unknown correlationId, and the service answers with the intended HttpError 404)",
   "passport": "kvp",
   "requests": [
     {
       "method": "post",
       "path": "/bulk/record/00000000-0000-4000-8000-000000000000",
-      "status": 500,
+      "status": 404,
       "requestHeaders": {
         "Authorization": "Basic Zm9vYmFyOmdvb2I=",
         "Content-Type": "application/json"

@@ -137,7 +137,6 @@ async function callback({
   gridFs = false,
   expectNoGridFsFiles = false,
   expectError = false,
-  expectTypeError = false,
   expectedErrorStatus = '',
   expectedErrorMessage = '',
   expectedErrorMessageFromPayload = false,
@@ -172,18 +171,6 @@ async function callback({
   }
 
   if (functionName === 'updateState') {
-    if (expectTypeError) {
-      // NOTE (suspected bug, asserted as actual behavior, NOT fixed):
-      // updateState reads setStateResult.value, but the driver's
-      // findOneAndUpdate returns the doc directly (or null when nothing
-      // matches), so a missing item throws a TypeError instead of the
-      // intended 404 (setStateResult is null, .value access is not null
-      // safe, and the 404 branch below it is unreachable).
-      return assert.rejects(
-        async () => service.updateState(params),
-        {name: 'TypeError', message: expectedErrorMessage}
-      );
-    }
     if (expectError) {
       return expectServiceError(() => service.updateState(params), {
         expectedErrorStatus,

@@ -39,15 +39,10 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     // addBlobSize increases blobSize by 1 and returns the queueItem if there's a queueItem in state WAITING_FOR_RECORDS for correlationId
     const addBlobSizeResult = await mongoOperator.addBlobSize({correlationId});
     logger.silly(`addBlobSizeResult: ${JSON.stringify(addBlobSizeResult)}`);
-    const queueItem = addBlobSizeResult.value || addBlobSizeResult;
+    const queueItem = addBlobSizeResult;
 
     if (!queueItem) {
       throw new HttpError(httpStatus.NOT_FOUND, `Invalid queueItem ${correlationId} for adding records`);
-    }
-
-    // addBlobSize already checked the queueItemState, so this should not happen ever
-    if (queueItem.queueItemState !== QUEUE_ITEM_STATE.VALIDATOR.WAITING_FOR_RECORDS) {
-      throw new HttpError(httpStatus.BAD_REQUEST, `Invalid state (${queueItem.queueItemState}) for adding records in queueItem ${correlationId}`);
     }
 
     if (data) {
@@ -192,9 +187,8 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
 
   async function updateState({correlationId, state}) {
     logger.debug(`Updating current state of ${correlationId} to ${state}`);
-    //const {value} = await mongoOperator.setState({correlationId, state});
     const setStateResult = await mongoOperator.setState({correlationId, state});
-    const value = setStateResult.value || setStateResult;
+    const value = setStateResult;
     if (value) {
       const {queueItemState, modificationTime} = value;
       return {status: httpStatus.OK, payload: {correlationId, queueItemState, modificationTime}};
