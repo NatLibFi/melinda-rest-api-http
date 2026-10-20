@@ -1,0 +1,16 @@
+{
+  "description": "Prio requireKVPForWrite variant: create is KVP-gated -> non-KVP user 403",
+  "requireKVPForWrite": true,
+  "passport": "nonKVP",
+  "requests": [
+    {
+      "method": "post",
+      "path": "/",
+      "status": 403,
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    }
+  ]
+}

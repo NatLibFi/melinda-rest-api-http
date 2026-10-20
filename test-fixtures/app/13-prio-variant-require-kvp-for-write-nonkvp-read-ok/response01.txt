@@ -1,0 +1,1 @@
+{"leader":"00674nam a2200193 a 4500","fields":[{"tag":"001","value":"123456789"},{"tag":"003","value":"FI-NL"},{"tag":"245","ind1":"0","ind2":"0","subfields":[{"code":"a","value":"Testtitel : "},{"code":"b","value":"alikappale"}]}]}
