@@ -1,0 +1,9 @@
+{
+  "description": "Bulk add records (array): queueItem in WAITING_FOR_RECORDS -> 201 confirmation; content-type not allowed for addRecords -> 415",
+  "passport": "kvp",
+  "dbContents": "dbContents.json",
+  "requests": [
+    {"method": "post", "path": "/bulk/records/1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed", "status": 201, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I=", "Content-Type": "application/json"}},
+    {"method": "post", "path": "/bulk/records/1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed", "status": 415, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I=", "Content-Type": "application/marc"}}
+  ]
+}

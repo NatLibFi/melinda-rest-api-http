@@ -1,0 +1,8 @@
+{
+  "description": "Logs catalogers list: empty result 200; invalid query param -> 400",
+  "passport": "kvp",
+  "requests": [
+    {"method": "get", "path": "/logs/catalogers", "status": 200, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
+    {"method": "get", "path": "/logs/catalogers", "status": 400, "requestParams": {"id": "bad"}, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}}
+  ]
+}

@@ -50,6 +50,7 @@
 	},
 	"devDependencies": {
 		"@natlibfi/fixugen": "^4.0.0",
+		"@natlibfi/fixugen-http-server": "^3.0.0",
 		"@natlibfi/fixura": "^5.0.0",
 		"@natlibfi/fixura-mongo": "^4.0.2",
 		"cross-env": "^10.1.0",

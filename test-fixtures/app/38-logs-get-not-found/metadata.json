@@ -1,0 +1,15 @@
+{
+  "description": "Logs by correlationId: unknown id -> 404",
+  "passport": "kvp",
+  "dbContents": "dbContents.json",
+  "requests": [
+    {
+      "method": "get",
+      "path": "/logs/44444444-4444-4444-8444-444444444444",
+      "status": 404,
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    }
+  ]
+}

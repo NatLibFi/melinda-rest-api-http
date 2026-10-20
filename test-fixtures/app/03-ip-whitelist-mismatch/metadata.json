@@ -1,0 +1,7 @@
+{
+  "description": "IP whitelist configured and cf-connecting-ip mismatches: 403 before authentication",
+  "ipWhiteList": ["192.168.0.0/16"],
+  "requests": [
+    {"method": "get", "path": "/logs/list", "status": 403, "requestHeaders": {"cf-connecting-ip": "10.1.2.3"}}
+  ]
+}

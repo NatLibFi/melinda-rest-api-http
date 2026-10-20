@@ -1,0 +1,25 @@
+{
+  "description": "Bulk add single record: queueItem in WAITING_FOR_RECORDS -> 201 confirmation (NOTE pinned current behavior: the confirmation counts the already-incremented blobSize, so the first record reports 'currently 2 records'); content-type not in the allowed list -> 415",
+  "passport": "kvp",
+  "dbContents": "dbContents.json",
+  "requests": [
+    {
+      "method": "post",
+      "path": "/bulk/record/1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
+      "status": 201,
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/bulk/record/1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
+      "status": 415,
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "text/plain"
+      }
+    }
+  ]
+}

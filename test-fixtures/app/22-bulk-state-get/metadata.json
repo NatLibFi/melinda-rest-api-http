@@ -1,0 +1,9 @@
+{
+  "description": "Bulk state read: stored queueItem -> 200 with its state; unknown id -> 404",
+  "passport": "kvp",
+  "dbContents": "dbContents.json",
+  "requests": [
+    {"method": "get", "path": "/bulk/state/1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed", "status": 200, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
+    {"method": "get", "path": "/bulk/state/00000000-0000-4000-8000-000000000000", "status": 404, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}}
+  ]
+}

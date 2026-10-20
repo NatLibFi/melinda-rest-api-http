@@ -1,0 +1,10 @@
+{
+  "description": "Bulk content remove: stored GridFS content -> 204; NOTE pinned current behavior: removing content of an unknown id also returns 204 (removeContent reports no error when nothing matches)",
+  "passport": "kvp",
+  "dbContents": "dbContents.json",
+  "gridFsFiles": "gridFsFiles.json",
+  "requests": [
+    {"method": "delete", "path": "/bulk/content/11111111-1111-4111-8111-111111111111", "status": 204, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
+    {"method": "delete", "path": "/bulk/content/00000000-0000-4000-8000-000000000000", "status": 204, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}}
+  ]
+}

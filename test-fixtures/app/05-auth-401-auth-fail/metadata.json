@@ -1,0 +1,7 @@
+{
+  "description": "Auth guard: credentials present but verification fails (mock done(null, false)) -> 401",
+  "passport": "fail",
+  "requests": [
+    {"method": "get", "path": "/logs/list", "status": 401, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}}
+  ]
+}

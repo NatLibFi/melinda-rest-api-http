@@ -1,0 +1,9 @@
+{
+  "description": "Prio fix: worker fixes the record -> 200 with the recordResponse and Record-ID; missing fixType -> 400",
+  "passport": "nonKVP",
+  "amqpRecords": [{"recordStatus": "FIXED", "databaseId": "123456789"}],
+  "requests": [
+    {"method": "post", "path": "/fix/123456789", "status": 200, "requestParams": {"fixType": "DELET"}, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}, "responseHeaders": {"Record-ID": "123456789"}},
+    {"method": "post", "path": "/fix/123456789", "status": 400, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}}
+  ]
+}

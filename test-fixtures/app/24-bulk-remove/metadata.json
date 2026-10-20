@@ -1,0 +1,9 @@
+{
+  "description": "Bulk remove: stored queueItem -> 200; NOTE pinned current behavior: removing an unknown id also returns 200 and result true (mongo remove reports no error when nothing matches)",
+  "passport": "kvp",
+  "dbContents": "dbContents.json",
+  "requests": [
+    {"method": "delete", "path": "/bulk/1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed", "status": 200, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
+    {"method": "delete", "path": "/bulk/00000000-0000-4000-8000-000000000000", "status": 200, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}}
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "description": "Prio /prio/: NOTE pinned current behavior - GET /prio/ is shadowed by the GET /:id route (id 'prio' is not a valid 9-digit id -> 400), so the /prio/ doQuery route is unreachable; an invalid query param still fails first with the query-params 400",
+  "passport": "kvp",
+  "requests": [
+    {
+      "method": "get",
+      "path": "/prio/",
+      "status": 400,
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    },
+    {
+      "method": "get",
+      "path": "/prio/",
+      "status": 400,
+      "requestParams": {
+        "id": "bad"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "description": "Bulk create: missing mandatory query params -> 400",
+  "passport": "kvp",
+  "requests": [
+    {
+      "method": "post",
+      "path": "/bulk/",
+      "status": 400,
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    }
+  ]
+}

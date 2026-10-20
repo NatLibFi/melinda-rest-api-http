@@ -1,0 +1,9 @@
+{
+  "description": "Prio requireKVPForWrite variant: reads need authentication but NOT KVP -> non-KVP user reads 200",
+  "requireKVPForWrite": true,
+  "passport": "nonKVP",
+  "sruRecords": ["record01.xml"],
+  "requests": [
+    {"method": "get", "path": "/123456789", "status": 200, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I=", "Accept": "*/*"}}
+  ]
+}

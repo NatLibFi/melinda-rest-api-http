@@ -1,0 +1,6 @@
+{
+  "description": "Auth guard: missing Basic credentials on /logs -> 401",
+  "requests": [
+    {"method": "get", "path": "/logs/list", "status": 401}
+  ]
+}
