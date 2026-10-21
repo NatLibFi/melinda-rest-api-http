@@ -13,6 +13,6 @@
     "correlationId": "prio-10"
   },
   "expectError": true,
-  "expectedErrorStatus": "INVALID",
+  "expectedErrorStatus": 400,
   "expectItemRemoved": true
 }
