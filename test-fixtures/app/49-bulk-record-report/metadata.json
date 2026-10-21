@@ -3,13 +3,105 @@
   "passport": "kvp",
   "dbContents": "dbContents.json",
   "requests": [
-    {"method": "get", "path": "/bulk/", "status": 200, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
-    {"method": "get", "path": "/bulk/", "status": 200, "requestParams": {"recordsAsReport": "1"}, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
-    {"method": "get", "path": "/bulk/", "status": 200, "requestParams": {"noRecords": "1"}, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
-    {"method": "get", "path": "/bulk/", "status": 200, "requestParams": {"noIds": "1"}, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
-    {"method": "get", "path": "/bulk/", "status": 200, "requestParams": {"recordsAsReport": "1", "noRecords": "1"}, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
-    {"method": "get", "path": "/bulk/", "status": 200, "requestParams": {"recordsAsReport": "1", "noIds": "1"}, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
-    {"method": "get", "path": "/bulk/", "status": 200, "requestParams": {"noRecords": "1", "noIds": "1"}, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
-    {"method": "get", "path": "/bulk/", "status": 200, "requestParams": {"recordsAsReport": "1", "noRecords": "1", "noIds": "1"}, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}}
+    {
+      "method": "get",
+      "path": "/bulk/",
+      "status": 200,
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      },
+      "requestParams": {
+        "queueItemState": "DONE"
+      }
+    },
+    {
+      "method": "get",
+      "path": "/bulk/",
+      "status": 200,
+      "requestParams": {
+        "recordsAsReport": "1",
+        "queueItemState": "DONE"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    },
+    {
+      "method": "get",
+      "path": "/bulk/",
+      "status": 200,
+      "requestParams": {
+        "noRecords": "1",
+        "queueItemState": "DONE"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    },
+    {
+      "method": "get",
+      "path": "/bulk/",
+      "status": 200,
+      "requestParams": {
+        "noIds": "1",
+        "queueItemState": "DONE"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    },
+    {
+      "method": "get",
+      "path": "/bulk/",
+      "status": 200,
+      "requestParams": {
+        "recordsAsReport": "1",
+        "noRecords": "1",
+        "queueItemState": "DONE"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    },
+    {
+      "method": "get",
+      "path": "/bulk/",
+      "status": 200,
+      "requestParams": {
+        "recordsAsReport": "1",
+        "noIds": "1",
+        "queueItemState": "DONE"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    },
+    {
+      "method": "get",
+      "path": "/bulk/",
+      "status": 200,
+      "requestParams": {
+        "noRecords": "1",
+        "noIds": "1",
+        "queueItemState": "DONE"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    },
+    {
+      "method": "get",
+      "path": "/bulk/",
+      "status": 200,
+      "requestParams": {
+        "recordsAsReport": "1",
+        "noRecords": "1",
+        "noIds": "1",
+        "queueItemState": "DONE"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    }
   ]
 }

@@ -4,6 +4,7 @@
   "preFillDb": true,
   "params": {
     "skip": "1",
-    "limit": "1"
+    "limit": "1",
+    "queueItemState": "PENDING_VALIDATION"
   }
 }

@@ -5,6 +5,7 @@
   "params": {
     "recordsAsReport": "1",
     "noRecords": "1",
-    "noIds": "1"
+    "noIds": "1",
+    "queueItemState": "PENDING_VALIDATION"
   }
 }
