@@ -235,7 +235,9 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
 
     logger.debug(`Queue items querried with params: ${JSON.stringify(params)}, showParams: ${JSON.stringify(showParams)}`);
 
-    if (params) {
+    const {id, correlationId, queueItemState, creationTime, modificationTime} = incomingParams;
+
+    if (id || correlationId || queueItemState || creationTime || modificationTime) {
       const result = await mongoOperator.query(params, showParams);
       if (report || removeRecords || removeIds) {
         logger.debug(`Reducing recordItems to recordReport`);
@@ -244,7 +246,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
       return result;
     }
 
-    throw new HttpError(httpStatus.BAD_REQUEST);
+    throw new HttpError(httpStatus.BAD_REQUEST, 'At least one filter parameter is required (id, correlationId, queueItemState, creationTime or modificationTime)');
   }
 
   function createRecordReport({queueItem, report = true, removeRecords = true, removeIds = true}) {
