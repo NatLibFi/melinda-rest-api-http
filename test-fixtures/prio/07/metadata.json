@@ -26,6 +26,6 @@
     "correlationId": "prio-07"
   },
   "expectError": true,
-  "expectedErrorStatus": "INVALID",
+  "expectedErrorStatus": 400,
   "expectItemRemoved": true
 }
