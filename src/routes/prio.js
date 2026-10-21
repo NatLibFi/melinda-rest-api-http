@@ -266,11 +266,18 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     }
   }
 
-  async function getPrioLogs(req, res) {
+  async function getPrioLogs(req, res, next) {
     logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
-    logger.silly('routes/Bulk doQuery');
-    const response = await Service.doQuery(req.query);
-    res.json(response);
+    logger.silly('routes/Prio doQuery');
+    try {
+      const response = await Service.doQuery(req.query);
+      res.json(response);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
   }
 
   function getConversionFormat(type) {
