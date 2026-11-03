@@ -129,7 +129,7 @@ describe('generateQuery', () => {
 describe('generateShowParams (active export)', () => {
   // NOTE: the second generateShowParams below the active one in
   // src/interfaces/utils.js is commented-out dead code; removing it is
-  // tracked in issue 07-phase2-backlog and deliberately not done here.
+  // on the phase-2 test backlog and deliberately not done here.
 
   it('showAll truthy short-circuits to {showAll: true}', () => {
     assert.deepEqual(generateShowParams({showAll: 'true'}), {showAll: true});
