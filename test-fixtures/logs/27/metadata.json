@@ -1,0 +1,6 @@
+{
+  "description": "removeLog: without force the protected document of the correlationId survives",
+  "functionName": "removeLog",
+  "params": ["corr-1"],
+  "preFillDb": true
+}

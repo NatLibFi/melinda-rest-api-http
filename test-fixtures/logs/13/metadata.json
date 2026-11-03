@@ -1,0 +1,6 @@
+{
+  "description": "doLogsQuery: allowlisted sourceIds narrows the result set",
+  "functionName": "doLogsQuery",
+  "params": {"sourceIds": ["(FI-TEST)100"]},
+  "preFillDb": true
+}

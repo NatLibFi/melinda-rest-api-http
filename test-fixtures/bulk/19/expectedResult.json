@@ -1,0 +1,22 @@
+[
+  {
+    "correlationId": "test-correlation-1",
+    "cataloger": "123",
+    "oCatalogerIn": "100",
+    "operation": "CREATE",
+    "contentType": "application/octet-stream",
+    "queueItemState": "PENDING_VALIDATION",
+    "blobSize": 1,
+    "errorMessage": "",
+    "errorStatus": "",
+    "creationTime": "2026-01-15T10:00:00.000Z",
+    "modificationTime": "2026-01-15T11:00:00.000Z",
+    "handledIds": [
+      "h-1",
+      "h-2"
+    ],
+    "rejectedIds": [
+      "r-1"
+    ]
+  }
+]

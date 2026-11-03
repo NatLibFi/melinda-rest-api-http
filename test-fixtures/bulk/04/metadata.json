@@ -1,0 +1,12 @@
+{
+  "description": "invalid state gives 400",
+  "functionName": "updateState",
+  "preFillDb": true,
+  "expectError": true,
+  "expectedErrorStatus": 400,
+  "expectedErrorMessage": "Trying to set invalid state",
+  "params": {
+    "correlationId": "test-correlation-1",
+    "state": "BOGUS"
+  }
+}

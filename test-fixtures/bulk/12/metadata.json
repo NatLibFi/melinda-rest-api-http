@@ -1,0 +1,8 @@
+{
+  "description": "modificationTime range returns only items inside the range",
+  "functionName": "doQuery",
+  "preFillDb": true,
+  "params": {
+    "modificationTime": "[\"2026-02-01T00:00:00.000Z\",\"2026-03-01T00:00:00.000Z\"]"
+  }
+}

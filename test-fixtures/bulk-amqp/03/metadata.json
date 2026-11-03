@@ -1,0 +1,14 @@
+{
+  "description": "addRecord with a non-allowBulk contentType throws a TypeError (the intended 415 is unreachable: the unguarded find result is destructured; pinned actual behavior)",
+  "functionName": "addRecord",
+  "preFillDb": true,
+  "expectTypeError": true,
+  "expectedErrorMessage": "Cannot destructure property 'conversionFormat' of 'CONTENT_TYPES.find(...)' as it is undefined.",
+  "params": {
+    "correlationId": "addrec-1",
+    "contentType": "text/plain",
+    "data": {
+      "fields": []
+    }
+  }
+}

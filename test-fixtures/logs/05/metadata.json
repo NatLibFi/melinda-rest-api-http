@@ -1,0 +1,6 @@
+{
+  "description": "doLogsQuery: an unknown $-key ($ne) would make Mongo throw if it reached the filter",
+  "functionName": "doLogsQuery",
+  "params": {"$ne": 1},
+  "preFillDb": true
+}

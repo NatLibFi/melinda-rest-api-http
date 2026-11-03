@@ -1,0 +1,16 @@
+[
+  {
+    "correlationId": "corr-1",
+    "logItemType": "MERGE_LOG",
+    "cataloger": "CAT_A",
+    "creationTime": "2024-01-01T10:00:00.000Z",
+    "logCount": 2
+  },
+  {
+    "correlationId": "corr-2",
+    "logItemType": "MATCH_LOG",
+    "cataloger": "CAT_A",
+    "creationTime": "2024-01-03T10:00:00.000Z",
+    "logCount": 1
+  }
+]

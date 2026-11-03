@@ -1,6 +1,6 @@
 import moment from 'moment';
 import sanitize from 'mongo-sanitize';
-import {createLogger} from '@natlibfi/melinda-backend-commons';
+import {createLogger} from '@natlibfi/melinda-commons';
 import {parseBoolean} from '@natlibfi/melinda-commons';
 
 const logger = createLogger();

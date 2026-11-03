@@ -1,0 +1,6 @@
+{
+  "description": "doLogsQuery: allowlisted logItemType narrows the result set",
+  "functionName": "doLogsQuery",
+  "params": {"logItemType": "MATCH_LOG"},
+  "preFillDb": true
+}

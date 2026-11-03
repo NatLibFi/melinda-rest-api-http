@@ -1,0 +1,23 @@
+{
+  "queueItemState": "WAITING_FOR_RECORDS",
+  "blobSize": 0,
+  "contentType": "application/json",
+  "operation": "CREATE",
+  "operations": [
+    "CREATE"
+  ],
+  "operationSettings": {
+    "prio": false,
+    "noStream": true,
+    "unique": true,
+    "validate": true
+  },
+  "importJobState": {
+    "CREATE": "EMPTY",
+    "UPDATE": "EMPTY",
+    "FIX": "EMPTY"
+  },
+  "records": [],
+  "errorMessage": "",
+  "errorStatus": ""
+}

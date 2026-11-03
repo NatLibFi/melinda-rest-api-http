@@ -1,0 +1,1 @@
+Unique and merge can only be used for bib records, use unique=0

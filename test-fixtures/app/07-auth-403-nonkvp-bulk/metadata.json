@@ -1,0 +1,7 @@
+{
+  "description": "KVP guard: authenticated non-KVP user on /bulk -> 403",
+  "passport": "nonKVP",
+  "requests": [
+    {"method": "get", "path": "/bulk/", "status": 403, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}}
+  ]
+}

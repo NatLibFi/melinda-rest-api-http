@@ -1,0 +1,10 @@
+{
+  "description": "unknown correlationId gives 404",
+  "functionName": "getState",
+  "expectError": true,
+  "expectedErrorStatus": 404,
+  "expectedErrorMessage": "Item not found for id: missing",
+  "params": {
+    "correlationId": "missing"
+  }
+}

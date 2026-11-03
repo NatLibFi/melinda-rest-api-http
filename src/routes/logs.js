@@ -1,6 +1,6 @@
 import {Router} from 'express';
 import passport from 'passport';
-import {createLogger} from '@natlibfi/melinda-backend-commons';
+import {createLogger} from '@natlibfi/melinda-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {checkQueryParams} from './queryUtils.js';
 import {authorizeKVPOnly, checkId} from './routeUtils.js';

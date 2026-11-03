@@ -1,0 +1,10 @@
+{
+  "description": "removes the item and its stored content",
+  "functionName": "remove",
+  "preFillDb": true,
+  "gridFs": true,
+  "expectNoGridFsFiles": true,
+  "params": {
+    "correlationId": "test-correlation-1"
+  }
+}

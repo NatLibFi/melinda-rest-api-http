@@ -1,0 +1,30 @@
+{
+  "description": "Prio validation 400s: merge with unique=false -> 400; fix with a fixType outside the configured fixTypes -> 400",
+  "passport": "kvp",
+  "requests": [
+    {
+      "method": "post",
+      "path": "/",
+      "status": 400,
+      "requestParams": {
+        "merge": "1",
+        "unique": "0"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/fix/123456789",
+      "status": 400,
+      "requestParams": {
+        "fixType": "NOPE"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    }
+  ]
+}

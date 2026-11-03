@@ -1,0 +1,18 @@
+{
+  "queueItemState": "PENDING_QUEUING",
+  "blobSize": 0,
+  "contentType": "application/json",
+  "operation": "CREATE",
+  "operations": [
+    "CREATE"
+  ],
+  "operationSettings": {
+    "prio": false,
+    "noStream": false,
+    "unique": false,
+    "validate": false
+  },
+  "records": [],
+  "errorMessage": "",
+  "errorStatus": ""
+}

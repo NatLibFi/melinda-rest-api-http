@@ -1,0 +1,6 @@
+{
+  "description": "doLogsQuery: a $where operator key never reaches the Mongo filter",
+  "functionName": "doLogsQuery",
+  "params": {"$where": "this.title === 'Doc 1'"},
+  "preFillDb": true
+}

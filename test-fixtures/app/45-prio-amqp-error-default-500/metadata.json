@@ -1,0 +1,16 @@
+{
+  "description": "Prio AMQP ERROR leg without errorStatus/errorMessage: NOTE pinned current behavior - errorStatus defaults to 500 (result.errorStatus || 500) and the message is an empty string (the {message: 'unknown error'} fallback is dead: an object literal is always truthy)",
+  "passport": "kvp",
+  "amqpResultState": "ERROR",
+  "requests": [
+    {
+      "method": "post",
+      "path": "/",
+      "status": 500,
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    }
+  ]
+}

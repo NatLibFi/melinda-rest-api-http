@@ -1,0 +1,30 @@
+[
+  {
+    "correlationId": "corr-1",
+    "logItemType": "MERGE_LOG",
+    "cataloger": "CAT_A",
+    "blobSequence": 1,
+    "sourceIds": ["(FI-TEST)100"],
+    "title": "Doc 1",
+    "standardIdentifiers": ["978-952-00-0001-1"],
+    "databaseId": "000111111",
+    "preference": {"name": "Pref A", "value": "A", "recordName": "databaseRecord"},
+    "incomingRecord": {"leader": "leader1"},
+    "creationTime": "2024-01-01T10:00:00.000Z",
+    "protected": false
+  },
+  {
+    "correlationId": "corr-1",
+    "logItemType": "MERGE_LOG",
+    "cataloger": "CAT_B",
+    "blobSequence": 2,
+    "sourceIds": ["(FI-TEST)200"],
+    "title": "Doc 2",
+    "standardIdentifiers": ["978-952-00-0002-2"],
+    "databaseId": "000222222",
+    "preference": {"name": "Pref B", "value": "B", "recordName": "databaseRecord"},
+    "incomingRecord": {"leader": "leader2"},
+    "creationTime": "2024-01-02T10:00:00.000Z",
+    "protected": false
+  }
+]

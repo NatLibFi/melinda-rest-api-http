@@ -1,0 +1,6 @@
+{
+  "description": "getExpandedListOfLogs: expanded on with a single non-default logItemType",
+  "functionName": "getExpandedListOfLogs",
+  "params": {"expanded": "true", "logItemTypes": "MATCH_LOG"},
+  "preFillDb": true
+}

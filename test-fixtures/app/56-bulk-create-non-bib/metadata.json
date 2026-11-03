@@ -1,0 +1,21 @@
+{
+  "description": "Bulk create with recordType other than bib: noStream=1 defaults unique=true, which is rejected for non-bib -> 400 'Unique and merge can only be used for bib records, use unique=0'",
+  "passport": "kvp",
+  "recordType": "oth",
+  "requests": [
+    {
+      "method": "post",
+      "path": "/bulk/",
+      "status": 400,
+      "requestParams": {
+        "pOldNew": "NEW",
+        "pActiveLibrary": "FIN10",
+        "noStream": "1"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    }
+  ]
+}

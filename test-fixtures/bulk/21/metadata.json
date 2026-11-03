@@ -1,0 +1,7 @@
+{
+  "description": "stored stream content is returned with its content type",
+  "functionName": "readContent",
+  "preFillDb": true,
+  "gridFs": true,
+  "params": "test-correlation-1"
+}

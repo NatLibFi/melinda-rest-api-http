@@ -1,0 +1,17 @@
+{
+  "description": "create with stream and an empty correlationId: the setState result carries no correlationId, so the 500 branch fires",
+  "functionName": "create",
+  "stream": true,
+  "expectError": true,
+  "expectedErrorStatus": 500,
+  "expectedErrorMessagePrefix": "Could not update state for correlationId",
+  "params": {
+    "correlationId": "",
+    "cataloger": "123",
+    "oCatalogerIn": "100",
+    "operation": "CREATE",
+    "contentType": "application/json",
+    "recordLoadParams": null,
+    "operationSettings": {}
+  }
+}

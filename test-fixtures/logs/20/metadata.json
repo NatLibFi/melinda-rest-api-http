@@ -1,0 +1,6 @@
+{
+  "description": "getExpandedListOfLogs: expanded on returns grouped counts for both log item types",
+  "functionName": "getExpandedListOfLogs",
+  "params": {"expanded": "true", "logItemTypes": "MERGE_LOG,MATCH_LOG", "creationTime": "[\"2000-01-01\",\"2099-01-01\"]"},
+  "preFillDb": true
+}

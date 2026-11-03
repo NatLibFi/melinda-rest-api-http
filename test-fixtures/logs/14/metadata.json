@@ -1,0 +1,6 @@
+{
+  "description": "doLogsQuery: skip skips the first matching document",
+  "functionName": "doLogsQuery",
+  "params": {"skip": "1"},
+  "preFillDb": true
+}

@@ -1,0 +1,8 @@
+{
+  "description": "a real cataloger in the params wins over the user id",
+  "functionName": "checkCataloger",
+  "params": [
+    "99",
+    "123"
+  ]
+}

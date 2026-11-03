@@ -1,0 +1,13 @@
+{
+  "description": "addRecords on an item not in WAITING_FOR_RECORDS gives a 400",
+  "functionName": "addRecords",
+  "preFillDb": true,
+  "expectError": true,
+  "expectedErrorStatus": 400,
+  "expectedErrorMessage": "Invalid state (PENDING_VALIDATION) for adding records in queueItem addrecs-6",
+  "params": {
+    "correlationId": "addrecs-6",
+    "contentType": "application/json",
+    "data": "[]"
+  }
+}

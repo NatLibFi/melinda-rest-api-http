@@ -1,0 +1,13 @@
+{
+  "queueItemState": "ERROR",
+  "errorStatus": 400,
+  "errorMessage": "Record rejected",
+  "records": [
+    {
+      "databaseId": "000000000",
+      "recordStatus": "ERROR",
+      "detailedRecordStatus": "UNPROCESSABLE_ENTITY",
+      "message": "Record rejected"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "description": "doLogsQuery: string blobSequence is converted to a number before filtering",
+  "functionName": "doLogsQuery",
+  "params": {"blobSequence": "2"},
+  "preFillDb": true
+}

@@ -1,0 +1,10 @@
+{
+  "status": "SKIPPED",
+  "messages": {
+    "databaseId": "000001234",
+    "recordStatus": "SKIPPED",
+    "detailedRecordStatus": "SKIPPED_UPDATE",
+    "message": "Record skipped"
+  },
+  "id": "000001234"
+}

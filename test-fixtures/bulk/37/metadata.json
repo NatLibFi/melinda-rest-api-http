@@ -1,0 +1,10 @@
+{
+  "description": "invalid status gives 400",
+  "functionName": "validateQueryParams",
+  "expectError": true,
+  "expectedErrorStatus": 400,
+  "expectedErrorMessage": "Invalid status query parameter!",
+  "params": {
+    "status": "WEIRD"
+  }
+}

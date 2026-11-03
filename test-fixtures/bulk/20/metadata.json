@@ -1,0 +1,8 @@
+{
+  "description": "noIds only: ids removed, records kept",
+  "functionName": "doQuery",
+  "preFillDb": true,
+  "params": {
+    "noIds": "1"
+  }
+}

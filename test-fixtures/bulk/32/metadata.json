@@ -1,0 +1,14 @@
+{
+  "description": "library not in allowedLibs gives 400",
+  "functionName": "validateQueryParams",
+  "allowedLibs": [
+    "100"
+  ],
+  "expectError": true,
+  "expectedErrorStatus": 400,
+  "expectedErrorMessage": "Invalid pActiveLibrary parameter '999'",
+  "params": {
+    "pActiveLibrary": "999",
+    "pOldNew": "NEW"
+  }
+}

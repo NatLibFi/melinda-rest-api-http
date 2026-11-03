@@ -1,0 +1,16 @@
+{
+  "description": "unique=0 with merge=1 gives 400",
+  "functionName": "validateQueryParams",
+  "allowedLibs": [
+    "100"
+  ],
+  "expectError": true,
+  "expectedErrorStatus": 400,
+  "expectedErrorMessage": "Query parameter unique=0 is not valid with query parameter merge=1",
+  "params": {
+    "pActiveLibrary": "100",
+    "pOldNew": "NEW",
+    "unique": "0",
+    "merge": "1"
+  }
+}

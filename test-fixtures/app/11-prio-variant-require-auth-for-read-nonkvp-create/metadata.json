@@ -1,0 +1,9 @@
+{
+  "description": "Prio requireAuthForRead variant: non-KVP authenticated user may create (writes need only auth, not KVP)",
+  "requireAuthForRead": true,
+  "passport": "nonKVP",
+  "amqpRecords": [{"recordStatus": "CREATED", "databaseId": "999999"}],
+  "requests": [
+    {"method": "post", "path": "/", "status": 201, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I=", "Content-Type": "application/json"}, "responseHeaders": {"Record-ID": "999999"}}
+  ]
+}
