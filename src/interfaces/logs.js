@@ -6,6 +6,7 @@ import {LOG_ITEM_TYPE} from '@natlibfi/melinda-rest-api-commons/dist/constants.j
 
 // import {inspect} from 'util';
 
+/** @param {{mongoUri: string}} config */
 export default async function ({mongoUri}) {
   const logger = createLogger();
   const mongoLogOperator = await mongoLogFactory(mongoUri);
@@ -16,6 +17,7 @@ export default async function ({mongoUri}) {
   // DEVELOP: currently return *one MERGE_LOG* for correlationId if such exists
   // getLogs reads *just* correlationId, and returns one MERGE_LOG for it
   // this is kinda useless
+  /** @param {{correlationId: string}} params */
   async function getLogs(params) {
     logger.debug(`getLogs: params: ${JSON.stringify(params)}`);
     logger.debug(`Getting action logs for ${params.correlationId}`);
@@ -30,6 +32,7 @@ export default async function ({mongoUri}) {
     return {status: httpStatus.OK, payload: result};
   }
 
+  /** @param {any} incomingParams */
   function doLogsQuery(incomingParams) {
     logger.debug(`Incoming params (JSON): ${JSON.stringify(incomingParams)}`);
     const params = generateLogQuery(incomingParams);
@@ -53,14 +56,17 @@ export default async function ({mongoUri}) {
   }
 
   // default to MERGE_LOG if no logItemType is given
+  /**
+   * @param {{expanded?: string | false, logItemType?: string, logItemTypes?: string | false, catalogers?: string | false, creationTime?: string | false}} params
+   */
   function getExpandedListOfLogs({expanded = 'false', logItemType = LOG_ITEM_TYPE.MERGE_LOG, logItemTypes = false, catalogers = false, creationTime = false}) {
-    const getExpanded = parseBoolean(expanded);
+    const getExpanded = parseBoolean(/** @type {string} */(expanded));
     logger.debug(`getExpandedListOfLogs`);
     if (getExpanded) {
       logger.debug(`Getting expanded list of logs`);
       const getLogItemTypes = logItemTypes ? logItemTypes.split(',') : [logItemType];
       const getCatalogers = catalogers ? catalogers.split(`,`) : undefined;
-      const creationTimeArray = creationTime ? JSON.parse(creationTime) : [];
+      const creationTimeArray = creationTime ? JSON.parse(/** @type {string} */(creationTime)) : [];
       const dateAfter = creationTimeArray[0] || '2000-01-01';
       const dateBefore = creationTimeArray[1] || new Date().toISOString();
       logger.debug(`logItemTypes: [${getLogItemTypes}], dateAfter: ${dateAfter}, dateBefore: ${dateBefore}}, catalogers: [${getCatalogers}]`);
@@ -75,14 +81,17 @@ export default async function ({mongoUri}) {
     throw new HttpError(httpStatus.BAD_REQUEST, 'Invalid logItemType');
   }
 
+  /** @param {string} correlationId @param {any} blobSequence */
   function protectLog(correlationId, blobSequence) {
     return mongoLogOperator.protect(correlationId, blobSequence);
   }
 
+  /** @param {string} correlationId @param {boolean} [force=false] */
   function removeLog(correlationId, force = false) {
     return mongoLogOperator.remove(correlationId, force);
   }
 
+  /** @param {any} queryParams */
   function generateLogQuery(queryParams) {
     logger.debug(`generateLogQuery: queryParams: ${JSON.stringify(queryParams)}`);
     const {

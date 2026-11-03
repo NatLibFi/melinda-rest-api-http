@@ -10,12 +10,12 @@ import mongoFixturesFactory from '@natlibfi/fixura-mongo';
 // bulk.js pulls in src/config.js, which reads the mandatory environment
 // variables at import time; set dummy values before the service module is
 // dynamically imported below (only in this test process, real values kept).
-process.env.ALEPH_X_SVC_URL ??= 'https://x-svc.example/';
+process.env['ALEPH_X_SVC_URL'] ??= 'https://x-svc.example/';
 // Literals built from parts: shaped to dodge the njsscan node_api_key rule; values are dummy test data
-process.env.ALEPH_USER_LIBRARY ??= ['1', '0', '0'].join('');
-process.env.OWN_AUTHZ_URL ??= 'https://authz.example/';
-process.env.OWN_AUTHZ_API_KEY ??= ['test', 'key'].join('-');
-process.env.SRU_URL ??= 'https://sru.example/';
+process.env['ALEPH_USER_LIBRARY'] ??= ['1', '0', '0'].join('');
+process.env['OWN_AUTHZ_URL'] ??= 'https://authz.example/';
+process.env['OWN_AUTHZ_API_KEY'] ??= ['test', 'key'].join('-');
+process.env['SRU_URL'] ??= 'https://sru.example/';
 
 // --- AMQP stub -------------------------------------------------------------
 // The bulk service factory connects to AMQP eagerly: amqpFactory runs
@@ -33,6 +33,7 @@ process.env.SRU_URL ??= 'https://sru.example/';
 // so amqpFactory's health check loop repeatedly asserts 'HEALTHCHECK'.
 // Every other channel method throws, so any service-level AMQP traffic in
 // the tests below fails loudly (checked again in the `after` hook).
+/** @type {any[]} */
 const amqpCalls = [];
 
 function makeFakeChannel() {
@@ -49,6 +50,7 @@ function makeFakeChannel() {
         return () => 'FakeAmqpChannel';
       }
       if (prop === 'assertQueue') {
+        /** @param {any} queue */
         return (queue) => {
           amqpCalls.push(['assertQueue', queue]);
           if (queue !== 'HEALTHCHECK') {
@@ -67,7 +69,7 @@ function makeFakeChannel() {
 mock.module('amqplib', {
   exports: {
     default: {
-      connect: (url) => {
+      connect: (/** @type {string} */url) => {
         amqpCalls.push(['connect', url]);
         return Promise.resolve({
           createChannel: () => Promise.resolve(makeFakeChannel())
@@ -90,11 +92,13 @@ const DB_NAME = 'rest-api';
 const COLLECTION = 'bulk';
 const BUCKET = 'bulk';
 
+/** @type {any} */
 let mongoFixtures;
+/** @type {any} */
 let client;
 
 generateTests({
-  callback,
+  callback: /** @type {any} */(callback),
   path: [import.meta.dirname, '..', 'test-fixtures', 'bulk'],
   recurse: false,
   useMetadataFile: true,
@@ -128,6 +132,7 @@ generateTests({
   }
 });
 
+/** @param {any} params */
 async function callback({
   getFixture,
   functionName,
@@ -196,7 +201,7 @@ async function callback({
       },
       getFixture('expectedResult.json')
     );
-    const remaining = (await dumpBulk()).map(({modificationTime, ...doc}) => doc);
+    const remaining = (await dumpBulk()).map(({modificationTime, ...doc}) => doc); // eslint-disable-line @typescript-eslint/no-unused-vars -- rest sibling: drop the volatile field
     return assert.deepStrictEqual(remaining, getFixture('expectedRemaining.json'));
   }
 
@@ -289,10 +294,10 @@ async function callback({
       // only assert the stable prefix
       return assert.rejects(
         async () => callCreate(),
-        (error) => {
+        (/** @type {any} */error) => {
           assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
           assert.equal(error.status, expectedErrorStatus);
-          const message = error.payload || error.message;
+          const message = /** @type {any} */(error.payload) || error.message;
           assert.ok(message.startsWith(expectedErrorMessagePrefix),
             `expected message to start with '${expectedErrorMessagePrefix}', got: ${message}`);
           return true;
@@ -301,6 +306,7 @@ async function callback({
     }
     const result = await callCreate();
     const expected = getFixture('expectedResult.json');
+    /** @type {any} */
     const actual = {correlationId: result.correlationId, queueItemState: result.queueItemState};
     // the noStream path returns a two-field result; the stream path returns
     // the updated queueItem document (blobSize and more)
@@ -349,6 +355,10 @@ async function callback({
   throw new Error(`Unknown functionName: ${functionName}`);
 }
 
+/**
+ * @param {() => any} promiseOrThunk
+ * @param {{expectedErrorStatus?: string, expectedErrorMessage?: string, expectedErrorMessageFromPayload?: boolean}} opts
+ */
 function expectServiceError(promiseOrThunk, {
   expectedErrorStatus,
   expectedErrorMessage,
@@ -358,12 +368,12 @@ function expectServiceError(promiseOrThunk, {
   // async and sync-throwing service methods go through the same validation.
   return assert.rejects(
     async () => promiseOrThunk(),
-    (error) => {
+    (/** @type {any} */error) => {
       assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
       assert.equal(error.status, expectedErrorStatus);
       const message = expectedErrorMessageFromPayload
-        ? error.payload.message
-        : (error.payload || error.message);
+        ? /** @type {any} */(error.payload).message
+        : (/** @type {any} */(error.payload) || error.message);
       assert.equal(message, expectedErrorMessage);
       return true;
     }
@@ -387,8 +397,9 @@ async function clearBulk() {
 // the JSON fixtures become real Dates. dbContents.json is keyed by
 // collection name, like in the fixura-mongo template; only the bulk
 // collection is used by this service.
+/** @param {{bulk: any[]}} params */
 async function populateBulk({bulk}) {
-  const formatted = bulk.map(doc => ({
+  const formatted = bulk.map((/** @type {any} */doc) => ({
     ...doc,
     creationTime: new Date(doc.creationTime),
     modificationTime: new Date(doc.modificationTime)
@@ -396,6 +407,7 @@ async function populateBulk({bulk}) {
   await bulkCollection().insertMany(formatted);
 }
 
+/** @param {any[]} files */
 async function uploadGridFsFiles(files) {
   for (const file of files) {
     const uploadStream = gridFsBucket().openUploadStream(file.filename);
@@ -411,11 +423,12 @@ async function uploadGridFsFiles(files) {
 // ISO strings so they can be compared with the plain strings in the fixtures.
 async function dumpBulk() {
   const docs = await bulkCollection().find({}, {projection: {_id: 0}}).toArray();
-  return docs.map(doc => normalizeDoc(doc));
+  return /** @type {any[]} */(docs.map((/** @type {any} */doc) => normalizeDoc(doc)));
 }
 
 // The default createProjection keeps only the base fields, so a plain query
 // result carries Dates only on the top-level time fields
+/** @param {any} doc */
 function normalizeDoc(doc) {
   const fixed = {...doc};
   delete fixed._id;
@@ -431,11 +444,12 @@ function normalizeDoc(doc) {
 // doQuery results are arrays of query items; in report-only mode each item
 // is the shape {queueItem, recordReport} (see the NOTE below), so the
 // nested queueItem needs the same normalization
+/** @param {any} result */
 function normalizeResult(result) {
   if (!Array.isArray(result)) {
     return result;
   }
-  return result.map(item => {
+  return /** @type {any[]} */(result.map((/** @type {any} */item) => {
     if (item && typeof item === 'object' && item.queueItem && item.recordReport) {
       return {
         ...normalizeDoc(item),
@@ -443,9 +457,10 @@ function normalizeResult(result) {
       };
     }
     return normalizeDoc(item);
-  });
+  }));
 }
 
+/** @param {any} stream */
 async function collectStream(stream) {
   const chunks = [];
   for await (const chunk of stream) {
@@ -456,10 +471,12 @@ async function collectStream(stream) {
 
 // The service create receives the request body stream; in the tests the
 // fixture's base64 content stands in for it
+/** @param {any} file */
 function createStreamFixture(file) {
   return Readable.from([Buffer.from(file.contentBase64, 'base64')]);
 }
 
+/** @param {string} filename */
 async function readGridFsFile(filename) {
   const [file] = await gridFsBucket()
     .find({filename})

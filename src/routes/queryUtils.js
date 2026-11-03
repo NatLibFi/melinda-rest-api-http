@@ -5,8 +5,60 @@ import {QUEUE_ITEM_STATE, LOG_ITEM_TYPE} from '@natlibfi/melinda-rest-api-common
 
 const logger = createLogger();
 
+/**
+ * Flat view of the request query string: express types query values as
+ * string | string[] | nested objects, but this API only accepts flat
+ * string values.
+ * @typedef {Object} QueryParams
+ * @property {string} [id]
+ * @property {string} [correlationId]
+ * @property {string} [pOldNew]
+ * @property {string} [pActiveLibrary]
+ * @property {string} [noStream]
+ * @property {string} [noop]
+ * @property {string} [unique]
+ * @property {string} [merge]
+ * @property {string} [validate]
+ * @property {string} [skipLowValidation]
+ * @property {string} [failOnError]
+ * @property {string} [skipNoChangeUpdates]
+ * @property {string} [matchFailuresAsNew]
+ * @property {string} [pRejectFile]
+ * @property {string} [pLogFile]
+ * @property {string} [pCatalogerIn]
+ * @property {string} [creationTime]
+ * @property {string} [modificationTime]
+ * @property {string} [queueItemState]
+ * @property {string} [fixType]
+ * @property {string} [logItemType]
+ * @property {string} [blobSequence]
+ * @property {string} [standardIdentifiers]
+ * @property {string} [databaseId]
+ * @property {string} [sourceIds]
+ * @property {string} [force]
+ * @property {string} [expanded]
+ * @property {string} [catalogers]
+ * @property {string} [logItemTypes]
+ * @property {string} [skip]
+ * @property {string} [limit]
+ * @property {string} [showAll]
+ * @property {string} [showOperations]
+ * @property {string} [showOperationSettings]
+ * @property {string} [showRecordLoadParams]
+ * @property {string} [showImportJobState]
+ * @property {string} [recordsAsReport]
+ * @property {string} [noRecords]
+ * @property {string} [noIds]
+ */
+
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ * @returns {import('express').Response | void}
+ */
 export function checkQueryParams(req, res, next) {
-  const queryParams = req.query;
+  const queryParams = /** @type {QueryParams} */(req.query);
 
   logger.debug(`Checking query params: ${JSON.stringify(queryParams)}`);
   const failedParams = [
@@ -48,6 +100,7 @@ export function checkQueryParams(req, res, next) {
   //const combinedFailedParams = [...failedParams, ...nonCompatibleParams];
   return res.status(httpStatus.BAD_REQUEST).json({error: 'BAD query params', failedParams, nonCompatibleParams});
 
+  /** @param {QueryParams} queryParams */
   function checkNonCompatibleParams(queryParams) {
     if (queryParams.id !== undefined && queryParams.correlationId !== undefined && queryParams.id !== queryParams.correlationId) {
       return ['correlationId', 'id'];
@@ -55,6 +108,7 @@ export function checkQueryParams(req, res, next) {
     return [];
   }
 
+  /** @param {QueryParams} queryParams */
   function checkLogQuerryParams(queryParams) {
     return [
       {name: 'correlationId', value: queryParams.correlationId ? uuidValidate(queryParams.correlationId) && uuidVersion(queryParams.correlationId) === 4 : true},
@@ -71,6 +125,7 @@ export function checkQueryParams(req, res, next) {
     ];
   }
 
+  /** @param {QueryParams} queryParams */
   function checkLimitAndSkip(queryParams) {
     return [
       {name: 'skip', value: queryParams.skip ? (/^\d{1,7}$/u).test(queryParams.skip) : true},
@@ -78,6 +133,7 @@ export function checkQueryParams(req, res, next) {
     ];
   }
 
+  /** @param {string} timestampArrayString */
   function checkTimeFormat(timestampArrayString) {
     if (!(/^\[.*\]$/u).test(timestampArrayString)) {
       return false;
@@ -85,7 +141,7 @@ export function checkQueryParams(req, res, next) {
     logger.debug(`TimestampArrayString: ${timestampArrayString}`);
     try {
       const timestampArray = JSON.parse(timestampArrayString);
-      const invalidTimestamps = timestampArray.some(timestamp => {
+      const invalidTimestamps = timestampArray.some((/** @type {string} */timestamp) => {
         if ((/^\d{4}-[01]{1}\d{1}-[0-3]{1}\d{1}T[0-2]{1}\d{1}:[0-6]{1}\d{1}:[0-6]{1}\d{1}\.\d{3}Z/u).test(timestamp)) {
           return false;
         }
@@ -103,11 +159,12 @@ export function checkQueryParams(req, res, next) {
 
       return true;
     } catch (err) {
-      logger.debug(`Parsing timestampArrayString ${timestampArrayString} failed: ${err.message}`);
+      logger.debug(`Parsing timestampArrayString ${timestampArrayString} failed: ${/** @type {Error} */(err).message}`);
       return false;
     }
   }
 
+  /** @param {string} queueItemState */
   function checkQueueItemState(queueItemState) {
 
     const states = {
@@ -117,9 +174,10 @@ export function checkQueryParams(req, res, next) {
       ERROR: QUEUE_ITEM_STATE.ERROR,
       ABORT: QUEUE_ITEM_STATE.ABORT
     };
-    return states[queueItemState];
+    return /** @type {Record<string, string | undefined>} */(states)[queueItemState];
   }
 
+  /** @param {string} logItemType */
   function checkLogItemType(logItemType) {
     const logItemTypes = LOG_ITEM_TYPE;
 
@@ -130,6 +188,7 @@ export function checkQueryParams(req, res, next) {
     return false;
   }
 
+  /** @param {QueryParams} queryParams */
   function checkShowParams(queryParams) {
     return [
       {name: 'showAll', value: queryParams.showAll ? (/^(?:1|0|true|false)$/ui).test(queryParams.showAll) : true},
@@ -140,6 +199,7 @@ export function checkQueryParams(req, res, next) {
     ];
   }
 
+  /** @param {QueryParams} queryParams */
   function checkRecordReportParams(queryParams) {
     return [
       {name: 'recordsAsReport', value: queryParams.recordsAsReport ? (/^(?:1|0|true|false)$/ui).test(queryParams.recordsAsReport) : true},

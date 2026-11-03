@@ -6,9 +6,15 @@ import {version as uuidVersion, validate as uuidValidate} from 'uuid';
 
 const logger = createLogger();
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 export function authorizeKVPOnly(req, res, next) {
-  logger.debug(`Checking ${JSON.stringify(req.user.id)} for KVP-authorization: ${req.user.authorization}`);
-  if (req.user.authorization.includes('KVP')) {
+  const user = /** @type {{id: string, authorization: string | string[]}} */(req.user);
+  logger.debug(`Checking ${JSON.stringify(user.id)} for KVP-authorization: ${user.authorization}`);
+  if (user.authorization.includes('KVP')) {
     logger.debug(`We have user with KVP-authorization`);
     return next();
   }
@@ -16,6 +22,11 @@ export function authorizeKVPOnly(req, res, next) {
   return res.status(httpStatus.FORBIDDEN).send('User credentials do not have permission to use this endpoint');
 }
 
+/**
+ * @param {{id: string, authorization: string | string[]}} passportCataloger
+ * @param {string | undefined} queryCataloger
+ * @returns {{id: string, authorization: string | string[]}}
+ */
 export function sanitizeCataloger(passportCataloger, queryCataloger) {
   const {id, authorization} = passportCataloger;
 
@@ -42,6 +53,7 @@ export function sanitizeCataloger(passportCataloger, queryCataloger) {
 // Note: checkAcceptHeader currently works only for prio
 // Note: checkAcceptHeader always errors if accept-header has several accepted types
 
+/** @param {import('express').Request} req @param {import('express').Response} res @param {import('express').NextFunction} next */
 export function checkAcceptHeader(req, res, next) {
   logger.debug(`routesUtils:checkAcceptHeader: accept: ${req.headers.accept}`);
 
@@ -56,15 +68,17 @@ export function checkAcceptHeader(req, res, next) {
   return next();
 }
 
+/** @param {import('express').Request} req @param {import('express').Response} res @param {import('express').NextFunction} next */
 export function checkId(req, res, next) {
-  logger.debug(`routesUtils:checkId: id: ${req.params.id}`);
-  if (!uuidValidate(req.params.id) || uuidVersion(req.params.id) !== 4) {
+  logger.debug(`routesUtils:checkId: id: ${req.params['id']}`);
+  if (!uuidValidate(req.params['id']) || uuidVersion(/** @type {string} */(req.params['id'])) !== 4) {
     return res.status(httpStatus.BAD_REQUEST).send('Malformed correlation id');
   }
 
   return next();
 }
 
+/** @param {import('express').Request} req @param {import('express').Response} res @param {import('express').NextFunction} next */
 export function checkContentType(req, res, next) {
   logger.debug(`routesUtils:checkContentType: content-type: ${req.headers['content-type']}`);
 

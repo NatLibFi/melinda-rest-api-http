@@ -10,12 +10,12 @@ import mongoFixturesFactory from '@natlibfi/fixura-mongo';
 // Set dummy values for the environment variables the src/ modules read at
 // import time, BEFORE the service module is dynamically imported below
 // (only in this test process, real values kept).
-process.env.ALEPH_X_SVC_URL ??= 'https://x-svc.example/';
+process.env['ALEPH_X_SVC_URL'] ??= 'https://x-svc.example/';
 // Literals built from parts: shaped to dodge the njsscan node_api_key rule; values are dummy test data
-process.env.ALEPH_USER_LIBRARY ??= ['1', '0', '0'].join('');
-process.env.OWN_AUTHZ_URL ??= 'https://authz.example/';
-process.env.OWN_AUTHZ_API_KEY ??= ['test', 'key'].join('-');
-process.env.SRU_URL ??= 'https://sru.example/';
+process.env['ALEPH_USER_LIBRARY'] ??= ['1', '0', '0'].join('');
+process.env['OWN_AUTHZ_URL'] ??= 'https://authz.example/';
+process.env['OWN_AUTHZ_API_KEY'] ??= ['test', 'key'].join('-');
+process.env['SRU_URL'] ??= 'https://sru.example/';
 
 // --- AMQP stub with recorded publishes + poll-loop control point -----------
 // As in test/bulk.test.js and test/bulk-amqp.test.js, 'amqplib' is mocked
@@ -44,8 +44,11 @@ process.env.SRU_URL ??= 'https://sru.example/';
 // Recorded publishes are the {queue, content, correlationId, persistent,
 // headers} tuples the fake sendToQueue was called with; content is
 // stringified (the real channel receives a Buffer).
+/** @type {any[]} */
 const amqpCalls = [];
+/** @type {any[]} */
 let publishes = [];
+/** @type {any} */
 let finishOnPublish = null;
 let finishDelayed = false;
 
@@ -63,6 +66,7 @@ function makeFakeChannel() {
         return () => 'FakeAmqpChannel';
       }
       if (prop === 'assertQueue') {
+        /** @param {any} queue */
         return (queue) => {
           amqpCalls.push(['assertQueue', queue]);
           const isHealthCheck = queue === 'HEALTHCHECK';
@@ -74,6 +78,7 @@ function makeFakeChannel() {
         };
       }
       if (prop === 'sendToQueue') {
+        /** @param {any} queue @param {any} content @param {any} options */
         return (queue, content, options) => {
           if (queue !== 'REQUESTS') {
             throw new Error(`Unexpected AMQP traffic: sendToQueue('${queue}')`);
@@ -108,7 +113,7 @@ function makeFakeChannel() {
 mock.module('amqplib', {
   exports: {
     default: {
-      connect: (url) => {
+      connect: (/** @type {string} */url) => {
         amqpCalls.push(['connect', url]);
         return Promise.resolve({
           createChannel: () => Promise.resolve(makeFakeChannel())
@@ -142,11 +147,13 @@ mock.module('@natlibfi/sru-client', {
 const DB_NAME = 'rest-api';
 const COLLECTION = 'prio';
 
+/** @type {any} */
 let mongoFixtures;
+/** @type {any} */
 let client;
 
 generateTests({
-  callback,
+  callback: /** @type {any} */(callback),
   path: [import.meta.dirname, '..', 'test-fixtures', 'prio'],
   recurse: false,
   useMetadataFile: true,
@@ -188,6 +195,7 @@ generateTests({
   }
 });
 
+/** @param {any} params */
 async function callback({
   getFixture,
   functionName,
@@ -216,13 +224,13 @@ async function callback({
   // state instead (a leaked flag can only affect the failed case that set
   // it, since resets happen before every case).
   const outcome = expectError
-    ? expectServiceError(() => service[functionName](params), {
+    ? expectServiceError(() => /** @type {any} */(service)[functionName](params), {
       getFixture,
       expectedErrorStatus,
       expectedErrorMessage
     })
     : (async () => {
-      const result = await service[functionName](params);
+      const result = await /** @type {any} */(service)[functionName](params);
       assert.deepStrictEqual(result, getFixture('expectedResult.json'));
     })();
 
@@ -233,6 +241,10 @@ async function callback({
   });
 }
 
+/**
+ * @param {() => any} call
+ * @param {{getFixture: any, expectedErrorStatus?: string, expectedErrorMessage?: string}} opts
+ */
 function expectServiceError(call, {
   getFixture,
   expectedErrorStatus,
@@ -240,7 +252,7 @@ function expectServiceError(call, {
 }) {
   return assert.rejects(
     async () => call(),
-    (error) => {
+    (/** @type {any} */error) => {
       assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
       assert.equal(error.status, expectedErrorStatus);
       const finish = getFixture('finish.json');
@@ -271,10 +283,12 @@ async function clearPrio() {
 // correlationId (no modTime filter), so the update is visible to the next
 // poll as-is; the document was just created, so its modificationTime is
 // fresh and the 1-minute timeout check cannot ABORT it in between.
+/** @param {string} correlationId */
 async function mutatePrioQueueItem(correlationId) {
   await prioCollection().updateOne({correlationId}, {$set: finishOnPublish});
 }
 
+/** @param {boolean} expectItemRemoved */
 async function assertQueueItemRemoval(expectItemRemoved) {
   if (expectItemRemoved) {
     // unawaited-cleanup defect, pinned here: create/update/fix fire the
@@ -290,6 +304,7 @@ async function assertQueueItemRemoval(expectItemRemoved) {
   return assertQueueItemCount(1);
 }
 
+/** @param {number} count @param {number} [timeoutMs] */
 async function waitForQueueItemCount(count, timeoutMs = 2000) {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
@@ -304,6 +319,7 @@ async function waitForQueueItemCount(count, timeoutMs = 2000) {
   }
 }
 
+/** @param {number} count */
 async function assertQueueItemCount(count) {
   const items = await prioCollection().countDocuments({});
   assert.equal(items, count, `prio collection should have ${count} item(s), has ${items}`);

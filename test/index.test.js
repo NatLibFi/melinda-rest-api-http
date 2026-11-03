@@ -18,15 +18,15 @@ const INDEX_PATH = path.join(import.meta.dirname, '..', 'src', 'index.js');
 // variables at import time; set dummy values before src/index.js is
 // dynamically imported (in-process leg only). The subprocess legs pass their
 // own env (BASE_ENV below).
-process.env.ALEPH_X_SVC_URL ??= 'https://x-svc.example/';
+process.env['ALEPH_X_SVC_URL'] ??= 'https://x-svc.example/';
 // Literals built from parts: shaped to dodge the njsscan node_api_key rule; values are dummy test data
-process.env.ALEPH_USER_LIBRARY ??= ['1', '0', '0'].join('');
-process.env.OWN_AUTHZ_URL ??= 'https://authz.example/';
-process.env.OWN_AUTHZ_API_KEY ??= ['test', 'key'].join('-');
-process.env.SRU_URL ??= 'https://sru.example/';
+process.env['ALEPH_USER_LIBRARY'] ??= ['1', '0', '0'].join('');
+process.env['OWN_AUTHZ_URL'] ??= 'https://authz.example/';
+process.env['OWN_AUTHZ_API_KEY'] ??= ['test', 'key'].join('-');
+process.env['SRU_URL'] ??= 'https://sru.example/';
 // app.test.js runs its app on 1337 and test files run in parallel: keep this
 // file's in-process app on its own port.
-process.env.HTTP_PORT ??= '1338';
+process.env['HTTP_PORT'] ??= '1338';
 
 // --- AMQP stub ----------------------------------------------------------------
 // The bulk and prio service factories call amqpFactory eagerly at router
@@ -39,8 +39,8 @@ mock.module('amqplib', {
     default: {
       connect: () => Promise.resolve({
         createChannel: () => Promise.resolve({
-          assertQueue: async (name) => ({queue: name, messageCount: 0}),
-          checkQueue: async (name) => ({queue: name, messageCount: 0}),
+          assertQueue: async (/** @type {string} */name) => ({queue: name, messageCount: 0}),
+          checkQueue: async (/** @type {string} */name) => ({queue: name, messageCount: 0}),
           get: async () => false,
           sendToQueue: async () => true,
           ack: () => {},
@@ -55,6 +55,7 @@ mock.module('amqplib', {
 });
 
 describe('index (in-process: module entry wiring)', () => {
+  /** @type {any} */
   let mongoFixtures;
 
   before(async () => {
@@ -65,10 +66,10 @@ describe('index (in-process: module entry wiring)', () => {
     mongoFixtures = await mongoFixturesFactory({
       rootPath: [import.meta.dirname, '..', 'test-fixtures', 'index']
     });
-    process.env.MONGO_URI = await mongoFixtures.getUri();
+    process.env['MONGO_URI'] = await mongoFixtures.getUri();
     // Importing src/index.js runs its top-level run(): registers the signal
     // and error handlers, then startApp(config) reads the environment and
-    // starts the HTTP server on process.env.HTTP_PORT.
+    // starts the HTTP server on process.env['HTTP_PORT'].
     await import('../src/index.js');
   });
   after(async () => {
@@ -78,7 +79,7 @@ describe('index (in-process: module entry wiring)', () => {
   it('starts the app and serves requests on the configured port', async () => {
     // run() awaits startApp without returning a handle, so the import
     // resolves before the server listens; poll until it comes up.
-    const response = await waitForServer(`http://127.0.0.1:${process.env.HTTP_PORT}/apidoc/`, 15000);
+    const response = await waitForServer(`http://127.0.0.1:${process.env['HTTP_PORT']}/apidoc/`, 15000);
     // /apidoc/ is public (mounted before the passport/ipWhiteList
     // middleware): a 200 with the OpenAPI document proves the whole app
     // wiring ran, not just a bare TCP listener.
@@ -88,6 +89,7 @@ describe('index (in-process: module entry wiring)', () => {
   });
 });
 
+/** @param {string} url @param {number} timeoutMs */
 async function waitForServer(url, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
@@ -120,6 +122,10 @@ const BASE_ENV = {
 // Runs src/index.js in a subprocess and resolves with its exit code and
 // combined output. Optionally kills the child after a delay so signal
 // handlers can be exercised while the app startup is still pending.
+/**
+ * @param {Record<string, string>} env
+ * @param {{signalAfterMs?: number | null, signal?: NodeJS.Signals | null}} [opts]
+ */
 const runIndex = (env, {signalAfterMs = null, signal = null} = {}) =>
   new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [INDEX_PATH], {env: {...process.env, ...env}});
@@ -127,7 +133,7 @@ const runIndex = (env, {signalAfterMs = null, signal = null} = {}) =>
     child.stdout.on('data', (chunk) => {output += chunk;});
     child.stderr.on('data', (chunk) => {output += chunk;});
     if (signalAfterMs) {
-      const timer = setTimeout(() => child.kill(signal), signalAfterMs);
+      const timer = setTimeout(() => child.kill(/** @type {NodeJS.Signals} */(signal)), signalAfterMs);
       timer.unref();
     }
     // Hard-kill safety net: no test may ever orphan a child. Unref'd so it
@@ -147,7 +153,9 @@ describe('index (subprocess: signal and rejection paths)', () => {
   // A dumb TCP socket that accepts but never answers: the mongo client and
   // amqplib both hang on their protocol handshakes, keeping the child alive
   // long enough for the signal handlers to be exercised.
+  /** @type {any} */
   let socketServer;
+  /** @type {any} */
   let hangingPort;
   // Sockets are tracked and destroyed in the after hook: the children's
   // sockets linger in CLOSE_WAIT on the server side after a child exits, and

@@ -13,7 +13,24 @@ import {authorizeKVPOnly, checkAcceptHeader, checkContentType, sanitizeCataloger
 import {CONTENT_TYPES, DEFAULT_ACCEPT} from '../config.js';
 import {checkQueryParams} from './queryUtils.js';
 
-export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite, fixTypes, allowedLibs}) => {
+/**
+ * Flat view of the request query string (see the QueryParams note in
+ * queryUtils.js).
+ * @typedef {Object} PrioQueryParams
+ * @property {string} [unique]
+ * @property {string} [merge]
+ * @property {string} [noop]
+ * @property {string} [skipLowValidation]
+ * @property {string} [skipNoChangeUpdates]
+ * @property {string} [matchFailuresAsNew]
+ * @property {string} [cataloger]
+ * @property {string} [fixType]
+ */
+
+/**
+ * @param {{sruUrl: string, amqpUrl: string, mongoUri: string, pollWaitTime: number, recordType: string, requireAuthForRead: boolean, requireKVPForWrite: boolean, fixTypes: string[], allowedLibs: string[]}} config
+ */
+export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requireAuthForRead, requireKVPForWrite, fixTypes, allowedLibs: _allowedLibs}) => { // eslint-disable-line @typescript-eslint/no-unused-vars -- accepted in the config shape, not used here
   const logger = createLogger();
   //const apiDoc = fs.readFileSync(path.join(__dirname, '..', 'api.yaml'), 'utf8');
   const Service = await createService({
@@ -26,7 +43,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
 
   if (requireKVPForWrite) {
     logger.verbose(`Requiring authentication for reading and KVP authentication for writing`);
-    return new Router()
+    return Router()
       .use(passport.authenticate('melinda', {session: false}))
       .use(checkQueryParams)
       .get('/:id', checkAcceptHeader, readResource)
@@ -39,7 +56,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
   // Require authentication before reading if requireAuthForRead is true
   if (requireAuthForRead) {
     logger.verbose(`Requiring authentication for reading and writing`);
-    return new Router()
+    return Router()
       .use(passport.authenticate('melinda', {session: false}))
       .use(checkQueryParams)
       .get('/:id', checkAcceptHeader, readResource)
@@ -50,7 +67,7 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
   }
 
   //logger.verbose(`Requiring authentication only for writing`);
-  return new Router()
+  return Router()
     .use(checkQueryParams)
     .get('/:id', checkAcceptHeader, readResource)
     //.get('/apidoc/', serveApiDoc)
@@ -67,13 +84,18 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
   }
   */
 
+  /**
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @param {import('express').NextFunction} next
+   */
   async function readResource(req, res, next) {
-    logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
+    logger.debug(`Request from ${/** @type {any} */(req)?.user?.id || 'N/A'}`);
     logger.silly('routes/Prio readResource');
     try {
 
       const type = getType();
-      const {record} = await Service.read({id: req.params.id, format: getConversionFormat(type)});
+      const {record} = await Service.read({id: /** @type {string} */(req.params['id']), format: getConversionFormat(type)});
 
       return res.type(type).status(httpStatus.OK)
         .send(record);
@@ -95,26 +117,33 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
 
   }
 
+  /**
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @param {import('express').NextFunction} next
+   */
   async function createResource(req, res, next) {
-    logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
+    logger.debug(`Request from ${/** @type {any} */(req)?.user?.id || 'N/A'}`);
     logger.silly('routes/Prio createResource');
     try {
 
       const conversionFormat = getConversionFormat(req.headers['content-type']);
       const correlationId = uuid();
+      const queryParams = /** @type {PrioQueryParams} */(req.query);
+      const user = /** @type {{id: string, authorization: string[]}} */(req.user);
 
       const operationSettings = {
-        unique: req.query.unique === undefined ? true : parseBoolean(req.query.unique),
-        merge: req.query.merge === undefined ? false : parseBoolean(req.query.merge),
-        noop: parseBoolean(req.query.noop),
+        unique: queryParams.unique === undefined ? true : parseBoolean(queryParams.unique),
+        merge: queryParams.merge === undefined ? false : parseBoolean(queryParams.merge),
+        noop: parseBoolean(/** @type {string} */(queryParams.noop)),
         // Prio always validates
         validate: true,
-        skipLowValidation: req.query.skipLowValidation === undefined ? false : parseBoolean(req.query.skipLowValidation),
+        skipLowValidation: queryParams.skipLowValidation === undefined ? false : parseBoolean(queryParams.skipLowValidation),
         // failOnError is n/a for prio single record jobs
         failOnError: null,
         // Prio forces updates as default, even if the update would not make changes to the database record
-        skipNoChangeUpdates: req.query.skipNoChangeUpdates === undefined ? false : parseBoolean(req.query.skipNoChangeUpdates),
-        matchFailuresAsNew: req.query.matchFailuresAsNew === undefined ? undefined : parseBoolean(req.query.matchFailuresAsNew),
+        skipNoChangeUpdates: queryParams.skipNoChangeUpdates === undefined ? false : parseBoolean(queryParams.skipNoChangeUpdates),
+        matchFailuresAsNew: queryParams.matchFailuresAsNew === undefined ? undefined : parseBoolean(queryParams.matchFailuresAsNew),
         prio: true
       };
 
@@ -129,8 +158,8 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
 
       const {messages, id, status} = await Service.create({
         format: conversionFormat,
-        cataloger: sanitizeCataloger(req.user, req.query.cataloger),
-        oCatalogerIn: req.user.id,
+        cataloger: sanitizeCataloger(user, queryParams.cataloger),
+        oCatalogerIn: user.id,
         correlationId,
         operationSettings,
         data: req.body
@@ -167,25 +196,32 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
 
   }
 
+  /**
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @param {import('express').NextFunction} next
+   */
   async function updateResource(req, res, next) {
-    logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
+    logger.debug(`Request from ${/** @type {any} */(req)?.user?.id || 'N/A'}`);
     logger.silly('routes/Prio updateResource');
     try {
       const conversionFormat = getConversionFormat(req.headers['content-type']);
       const correlationId = uuid();
+      const queryParams = /** @type {PrioQueryParams} */(req.query);
+      const user = /** @type {{id: string, authorization: string[]}} */(req.user);
 
       const operationSettings = {
         // unique is n/a for updates
         unique: null,
-        merge: req.query.merge === undefined ? false : parseBoolean(req.query.merge),
-        noop: parseBoolean(req.query.noop),
+        merge: queryParams.merge === undefined ? false : parseBoolean(queryParams.merge),
+        noop: parseBoolean(/** @type {string} */(queryParams.noop)),
         // Prio always validates
         validate: true,
-        skipLowValidation: req.query.skipLowValidation === undefined ? false : parseBoolean(req.query.skipLowValidation),
+        skipLowValidation: queryParams.skipLowValidation === undefined ? false : parseBoolean(queryParams.skipLowValidation),
         // failOnError is n/a for prio single record jobs
         failOnError: null,
         // Prio forces updates as default, even if the update would not make changes to the database record
-        skipNoChangeUpdates: req.query.skipNoChangeUpdates === undefined ? false : parseBoolean(req.query.skipNoChangeUpdates),
+        skipNoChangeUpdates: queryParams.skipNoChangeUpdates === undefined ? false : parseBoolean(queryParams.skipNoChangeUpdates),
         prio: true
       };
 
@@ -195,10 +231,10 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
       }
 
       const {messages, id} = await Service.update({
-        id: req.params.id,
+        id: /** @type {string} */(req.params['id']),
         format: conversionFormat,
-        cataloger: sanitizeCataloger(req.user, req.query.cataloger),
-        oCatalogerIn: req.user.id,
+        cataloger: sanitizeCataloger(user, queryParams.cataloger),
+        oCatalogerIn: user.id,
         operationSettings,
         correlationId,
         data: req.body
@@ -217,13 +253,20 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     }
   }
 
+  /**
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @param {import('express').NextFunction} next
+   */
   async function fixResource(req, res, next) {
-    logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
+    logger.debug(`Request from ${/** @type {any} */(req)?.user?.id || 'N/A'}`);
     logger.silly('routes/Prio fixResource');
     try {
       const correlationId = uuid();
+      const queryParams = /** @type {PrioQueryParams} */(req.query);
+      const user = /** @type {{id: string, authorization: string[]}} */(req.user);
 
-      const {fixType} = req.query;
+      const {fixType} = queryParams;
 
       if (fixType === undefined) {
         throw new HttpError(httpStatus.BAD_REQUEST, `Fix requests require fixType.`);
@@ -239,16 +282,16 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
         fixType,
         // Note: skipLowValidation does not currently work - fixes are not validated
         // skipLowValidation: req.query.skipLowValidation === undefined ? false : parseBoolean(req.query.skipLowValidation),
-        noop: parseBoolean(req.query.noop),
+        noop: parseBoolean(/** @type {string} */(queryParams.noop)),
         // Prio always validates
         validate: true,
         prio: true
       };
 
       const {messages, id} = await Service.fix({
-        id: req.params.id,
-        cataloger: sanitizeCataloger(req.user, req.query.cataloger),
-        oCatalogerIn: req.user.id,
+        id: /** @type {string} */(req.params['id']),
+        cataloger: sanitizeCataloger(user, queryParams.cataloger),
+        oCatalogerIn: user.id,
         operationSettings,
         correlationId
       });
@@ -266,8 +309,13 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     }
   }
 
+  /**
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @param {import('express').NextFunction} next
+   */
   async function getPrioLogs(req, res, next) {
-    logger.debug(`Request from ${req?.user?.id || 'N/A'}`);
+    logger.debug(`Request from ${/** @type {any} */(req)?.user?.id || 'N/A'}`);
     logger.silly('routes/Prio doQuery');
     try {
       const response = await Service.doQuery(req.query);
@@ -280,8 +328,9 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
     }
   }
 
+  /** @param {string | undefined} type */
   function getConversionFormat(type) {
-    const {conversionFormat} = CONTENT_TYPES.find(({contentType}) => contentType === type);
+    const {conversionFormat} = /** @type {any} */(CONTENT_TYPES.find(({contentType}) => contentType === type));
     return conversionFormat;
   }
 

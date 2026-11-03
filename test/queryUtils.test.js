@@ -8,16 +8,19 @@ const VALID_TIMESTAMP = '2026-01-01T12:34:56.789Z';
 
 // Plain mock middleware plumbing: records what the middleware does to res
 // and whether next() was called.
+/** @param {Record<string, string>} [query] */
 function run(query = {}) {
+  /** @type {any} */
   const req = {query};
+  /** @type {any} */
   const res = {
     statusCode: null,
     body: null,
-    status(code) {
+    status(/** @type {number} */code) {
       this.statusCode = code;
       return this;
     },
-    json(body) {
+    json(/** @type {any} */body) {
       this.body = body;
     }
   };
@@ -29,6 +32,7 @@ function run(query = {}) {
   return {nextCalled, res};
 }
 
+/** @param {any} result @param {string[]} failedParams @param {string[]} [nonCompatibleParams] */
 function assertBadRequest(result, failedParams, nonCompatibleParams = []) {
   assert.equal(result.nextCalled, false);
   assert.equal(result.res.statusCode, 400);
