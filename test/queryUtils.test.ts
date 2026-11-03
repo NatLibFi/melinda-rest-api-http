@@ -8,19 +8,16 @@ const VALID_TIMESTAMP = '2026-01-01T12:34:56.789Z';
 
 // Plain mock middleware plumbing: records what the middleware does to res
 // and whether next() was called.
-/** @param {Record<string, string>} [query] */
-function run(query = {}) {
-  /** @type {any} */
-  const req = {query};
-  /** @type {any} */
-  const res = {
+function run(query: Record<string, string> = {}): {nextCalled: boolean, res: any} {
+  const req: any = {query};
+  const res: any = {
     statusCode: null,
     body: null,
-    status(/** @type {number} */code) {
+    status(code: number) {
       this.statusCode = code;
       return this;
     },
-    json(/** @type {any} */body) {
+    json(body: any) {
       this.body = body;
     }
   };
@@ -32,8 +29,7 @@ function run(query = {}) {
   return {nextCalled, res};
 }
 
-/** @param {any} result @param {string[]} failedParams @param {string[]} [nonCompatibleParams] */
-function assertBadRequest(result, failedParams, nonCompatibleParams = []) {
+function assertBadRequest(result: {nextCalled: boolean, res: any}, failedParams: string[], nonCompatibleParams: string[] = []) {
   assert.equal(result.nextCalled, false);
   assert.equal(result.res.statusCode, 400);
   assert.deepEqual(result.res.body, {

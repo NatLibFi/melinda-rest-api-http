@@ -3,6 +3,7 @@ import {MongoClient} from 'mongodb';
 import {READERS} from '@natlibfi/fixura';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import generateTests from '@natlibfi/fixugen';
+import type {FixuraMongo} from '@natlibfi/fixura-mongo';
 import mongoFixturesFactory from '@natlibfi/fixura-mongo';
 import createLogsService from '../src/interfaces/logs.ts';
 
@@ -16,13 +17,11 @@ import createLogsService from '../src/interfaces/logs.ts';
 const DB_NAME = 'rest-api';
 const COLLECTION = 'logs';
 
-/** @type {any} */
-let mongoFixtures;
-/** @type {any} */
-let client;
+let mongoFixtures: FixuraMongo;
+let client: MongoClient;
 
 generateTests({
-  callback: /** @type {any} */(callback),
+  callback,
   path: [import.meta.dirname, '..', 'test-fixtures', 'logs'],
   recurse: false,
   useMetadataFile: true,
@@ -46,16 +45,16 @@ generateTests({
   }
 });
 
-/** @param {any} params */
-async function callback({
-  getFixture,
-  functionName,
-  params,
-  preFillDb = false,
-  expectError = false,
-  expectedErrorStatus = '',
-  expectedErrorMessage = ''
-}) {
+async function callback(fixtureParams: Record<string, any>): Promise<void> {
+  const {
+    getFixture,
+    functionName,
+    params,
+    preFillDb = false,
+    expectError = false,
+    expectedErrorStatus = '',
+    expectedErrorMessage = ''
+  } = fixtureParams;
   const service = await createLogsService({mongoUri: await mongoFixtures.getUri()});
 
   if (preFillDb) {
@@ -79,7 +78,7 @@ async function callback({
   if (['getListOfCatalogers', 'getListOfCorrelationIds', 'getListOfLogs'].includes(functionName)) {
     // params null means "no argument": the service method's default applies
     // (e.g. getListOfLogs defaults to MERGE_LOG)
-    const result = params === null ? await /** @type {any} */(service)[functionName]() : await /** @type {any} */(service)[functionName](params);
+    const result = params === null ? await (service as any)[functionName]() : await (service as any)[functionName](params);
     // distinct() does not guarantee result order, so compare sorted
     return assert.deepStrictEqual([...result].sort(), [...getFixture('expectedResult.json')].sort());
   }
@@ -95,7 +94,7 @@ async function callback({
     const result = await service.getExpandedListOfLogs(params);
     // expanded on: aggregate returns docs with creationTime as a BSON Date;
     // expanded off: falls back to the plain distinct list of correlationIds
-    const normalized = result.map((/** @type {any} */doc) => {
+    const normalized = result.map((doc: any) => {
       if (doc && typeof doc === 'object' && doc.creationTime instanceof Date) {
         return {...doc, creationTime: doc.creationTime.toISOString()};
       }
@@ -108,7 +107,7 @@ async function callback({
     const [correlationId, blobSequence] = params;
     const result = await service.protectLog(correlationId, blobSequence);
     assert.deepStrictEqual(result, getFixture('expectedResult.json'));
-    const remaining = (await dumpLogs()).map((/** @type {any} */doc) => {
+    const remaining = (await dumpLogs()).map((doc) => {
       const fixed = {...doc};
       // protect() sets modificationTime to the current time, so it can't be
       // compared against a static fixture
@@ -128,16 +127,12 @@ async function callback({
   throw new Error(`Unknown functionName: ${functionName}`);
 }
 
-/**
- * @param {() => any} promiseOrThunk
- * @param {{expectedErrorStatus?: string, expectedErrorMessage?: string}} opts
- */
-function expectServiceError(promiseOrThunk, {expectedErrorStatus, expectedErrorMessage}) {
+function expectServiceError(promiseOrThunk: () => unknown, {expectedErrorStatus, expectedErrorMessage}: {expectedErrorStatus?: string, expectedErrorMessage?: string}) {
   // The async wrapper turns a synchronous throw into a rejection, so both
   // async and sync-throwing service methods go through the same validation.
   return assert.rejects(
     async () => promiseOrThunk(),
-    (/** @type {any} */error) => {
+    (error: any) => {
       assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
       assert.equal(error.status, expectedErrorStatus);
       assert.equal(error.payload || error.message, expectedErrorMessage);
@@ -158,9 +153,8 @@ async function clearLogs() {
 // the JSON fixtures become real Dates, matching what addLogItem writes.
 // dbContents.json is keyed by collection name, like in the fixura-mongo
 // template; only the logs collection is used by this service.
-/** @param {{logs: any[]}} params */
-async function populateLogs({logs}) {
-  const formatted = logs.map((/** @type {any} */doc) => ({
+async function populateLogs({logs}: {logs: any[]}) {
+  const formatted = logs.map((doc) => ({
     ...doc,
     creationTime: new Date(doc.creationTime),
     ...(doc.modificationTime ? {modificationTime: new Date(doc.modificationTime)} : {})
@@ -175,12 +169,8 @@ async function dumpLogs() {
   return normalizeDocs(docs);
 }
 
-/**
- * @param {any[]} docs
- * @returns {any[]}
- */
-function normalizeDocs(docs) {
-  return /** @type {any[]} */(docs.map((/** @type {any} */doc) => {
+function normalizeDocs(docs: any[]): any[] {
+  return docs.map((doc) => {
     const fixed = {...doc};
     delete fixed._id;
     if (fixed.creationTime instanceof Date) {
@@ -190,5 +180,5 @@ function normalizeDocs(docs) {
       fixed.modificationTime = fixed.modificationTime.toISOString();
     }
     return fixed;
-  }));
+  });
 }

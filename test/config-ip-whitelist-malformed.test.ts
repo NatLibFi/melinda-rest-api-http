@@ -22,9 +22,9 @@ const {getFixture} = fixturesFactory({
 
 // Every env var config.js consults; all are deleted so the surrounding
 // environment cannot mask the malformed IP_WHITELIST case.
-const trackedVars = /** @type {string[]} */(getFixture('tracked-vars.json'));
-const mandatoryEnv = /** @type {Record<string, string>} */(getFixture('mandatory-env.json'));
-const envMalformed = /** @type {Record<string, string>} */(getFixture('env-ip-whitelist-malformed.json'));
+const trackedVars = getFixture('tracked-vars.json') as string[];
+const mandatoryEnv = getFixture('mandatory-env.json') as Record<string, string>;
+const envMalformed = getFixture('env-ip-whitelist-malformed.json') as Record<string, string>;
 
 describe('config.js ipWhiteList malformed JSON', () => {
   it('ipWhiteList rejects malformed JSON', async () => {
@@ -35,7 +35,7 @@ describe('config.js ipWhiteList malformed JSON', () => {
 
     await assert.rejects(
       import('../src/config.ts'),
-      (err) => err instanceof SyntaxError
+      (err: unknown) => err instanceof SyntaxError
     );
   });
 });

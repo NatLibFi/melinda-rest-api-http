@@ -5,6 +5,7 @@ import {MongoClient} from 'mongodb';
 import {READERS} from '@natlibfi/fixura';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import generateTests from '@natlibfi/fixugen';
+import type {FixuraMongo} from '@natlibfi/fixura-mongo';
 import mongoFixturesFactory from '@natlibfi/fixura-mongo';
 
 // Set dummy values for the environment variables the src/ modules read at
@@ -44,12 +45,9 @@ process.env['SRU_URL'] ??= 'https://sru.example/';
 // Recorded publishes are the {queue, content, correlationId, persistent,
 // headers} tuples the fake sendToQueue was called with; content is
 // stringified (the real channel receives a Buffer).
-/** @type {any[]} */
-const amqpCalls = [];
-/** @type {any[]} */
-let publishes = [];
-/** @type {any} */
-let finishOnPublish = null;
+const amqpCalls: any[] = [];
+let publishes: any[] = [];
+let finishOnPublish: any = null;
 let finishDelayed = false;
 
 function makeFakeChannel() {
@@ -66,8 +64,7 @@ function makeFakeChannel() {
         return () => 'FakeAmqpChannel';
       }
       if (prop === 'assertQueue') {
-        /** @param {any} queue */
-        return (queue) => {
+        return (queue: any) => {
           amqpCalls.push(['assertQueue', queue]);
           const isHealthCheck = queue === 'HEALTHCHECK';
           const isPrioRequests = queue === 'REQUESTS';
@@ -78,8 +75,7 @@ function makeFakeChannel() {
         };
       }
       if (prop === 'sendToQueue') {
-        /** @param {any} queue @param {any} content @param {any} options */
-        return (queue, content, options) => {
+        return (queue: any, content: any, options: any) => {
           if (queue !== 'REQUESTS') {
             throw new Error(`Unexpected AMQP traffic: sendToQueue('${queue}')`);
           }
@@ -113,7 +109,7 @@ function makeFakeChannel() {
 mock.module('amqplib', {
   exports: {
     default: {
-      connect: (/** @type {string} */url) => {
+      connect: (url: string) => {
         amqpCalls.push(['connect', url]);
         return Promise.resolve({
           createChannel: () => Promise.resolve(makeFakeChannel())
@@ -147,13 +143,11 @@ mock.module('@natlibfi/sru-client', {
 const DB_NAME = 'rest-api';
 const COLLECTION = 'prio';
 
-/** @type {any} */
-let mongoFixtures;
-/** @type {any} */
-let client;
+let mongoFixtures: FixuraMongo;
+let client: MongoClient;
 
 generateTests({
-  callback: /** @type {any} */(callback),
+  callback,
   path: [import.meta.dirname, '..', 'test-fixtures', 'prio'],
   recurse: false,
   useMetadataFile: true,
@@ -195,17 +189,17 @@ generateTests({
   }
 });
 
-/** @param {any} params */
-async function callback({
-  getFixture,
-  functionName,
-  params,
-  expectError = false,
-  expectedErrorStatus = '',
-  expectedErrorMessage = '',
-  delayFinish = false,
-  expectItemRemoved = false
-}) {
+async function callback(fixtureParams: Record<string, any>): Promise<void> {
+  const {
+    getFixture,
+    functionName,
+    params,
+    expectError = false,
+    expectedErrorStatus = '',
+    expectedErrorMessage = '',
+    delayFinish = false,
+    expectItemRemoved = false
+  } = fixtureParams;
   const {default: createPrioService} = await import('../src/interfaces/prio.ts');
   finishOnPublish = getFixture('finish.json');
   finishDelayed = delayFinish;
@@ -224,13 +218,13 @@ async function callback({
   // state instead (a leaked flag can only affect the failed case that set
   // it, since resets happen before every case).
   const outcome = expectError
-    ? expectServiceError(() => /** @type {any} */(service)[functionName](params), {
+    ? expectServiceError(() => (service as any)[functionName](params), {
       getFixture,
       expectedErrorStatus,
       expectedErrorMessage
     })
     : (async () => {
-      const result = await /** @type {any} */(service)[functionName](params);
+      const result = await (service as any)[functionName](params);
       assert.deepStrictEqual(result, getFixture('expectedResult.json'));
     })();
 
@@ -241,18 +235,14 @@ async function callback({
   });
 }
 
-/**
- * @param {() => any} call
- * @param {{getFixture: any, expectedErrorStatus?: string, expectedErrorMessage?: string}} opts
- */
-function expectServiceError(call, {
+function expectServiceError(call: () => unknown, {
   getFixture,
   expectedErrorStatus,
   expectedErrorMessage
-}) {
+}: {getFixture: any, expectedErrorStatus?: string, expectedErrorMessage?: string}) {
   return assert.rejects(
     async () => call(),
-    (/** @type {any} */error) => {
+    (error: any) => {
       assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
       assert.equal(error.status, expectedErrorStatus);
       const finish = getFixture('finish.json');
@@ -283,13 +273,11 @@ async function clearPrio() {
 // correlationId (no modTime filter), so the update is visible to the next
 // poll as-is; the document was just created, so its modificationTime is
 // fresh and the 1-minute timeout check cannot ABORT it in between.
-/** @param {string} correlationId */
-async function mutatePrioQueueItem(correlationId) {
+async function mutatePrioQueueItem(correlationId: string) {
   await prioCollection().updateOne({correlationId}, {$set: finishOnPublish});
 }
 
-/** @param {boolean} expectItemRemoved */
-async function assertQueueItemRemoval(expectItemRemoved) {
+async function assertQueueItemRemoval(expectItemRemoved: boolean) {
   if (expectItemRemoved) {
     // unawaited-cleanup defect, pinned here: create/update/fix fire the
     // cleanup without awaiting it, so the response resolves BEFORE the
@@ -304,8 +292,7 @@ async function assertQueueItemRemoval(expectItemRemoved) {
   return assertQueueItemCount(1);
 }
 
-/** @param {number} count @param {number} [timeoutMs] */
-async function waitForQueueItemCount(count, timeoutMs = 2000) {
+async function waitForQueueItemCount(count: number, timeoutMs = 2000) {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const items = await prioCollection().countDocuments({});
@@ -319,8 +306,7 @@ async function waitForQueueItemCount(count, timeoutMs = 2000) {
   }
 }
 
-/** @param {number} count */
-async function assertQueueItemCount(count) {
+async function assertQueueItemCount(count: number) {
   const items = await prioCollection().countDocuments({});
   assert.equal(items, count, `prio collection should have ${count} item(s), has ${items}`);
 }

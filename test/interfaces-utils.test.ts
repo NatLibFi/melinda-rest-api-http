@@ -63,8 +63,8 @@ describe('generateQuery', () => {
         {creationTime: {$lte: new Date(VALID_ISO_END)}}
       ]
     });
-    assert.ok(/** @type {any} */(query).$and[0].creationTime.$gte instanceof Date);
-    assert.ok(/** @type {any} */(query).$and[1].creationTime.$lte instanceof Date);
+    assert.ok((query as any).$and[0].creationTime.$gte instanceof Date);
+    assert.ok((query as any).$and[1].creationTime.$lte instanceof Date);
   });
 
   it('two-element modificationTime JSON array becomes $and with $gte/$lte Date values', () => {
