@@ -29,7 +29,7 @@ for (const key of trackedVars) {
 }
 Object.assign(process.env, mandatoryEnv, envPassthrough);
 
-const config = await import('../src/config.js');
+const config = await import('../src/config.ts');
 
 describe('config.js value formats', () => {
   it('plain string vars pass the env value through unchanged', () => {

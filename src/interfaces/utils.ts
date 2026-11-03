@@ -13,43 +13,50 @@ const logger = createLogger();
 // creationTime stringified array of utc timestamps 1 specific or 2 for range
 // modificationTime stringified array of utc timestamps 1 specific or 2 for range
 
-/**
- * @param {{id?: string, correlationId?: string, queueItemState?: string, creationTime?: string, modificationTime?: string, skip?: string | number, limit?: string | number}} params
- * @returns {any}
- */
-export function generateQuery({id, correlationId, queueItemState, creationTime, modificationTime, skip, limit}) {
+export interface GenerateQueryParams {
+  id?: string;
+  correlationId?: string;
+  queueItemState?: string;
+  creationTime?: string;
+  modificationTime?: string;
+  skip?: string | number;
+  limit?: string | number;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- the generated Mongo query document is dynamic; the tests deepEqual it via raw property access
+export function generateQuery({id, correlationId, queueItemState, creationTime, modificationTime, skip, limit}: GenerateQueryParams): any {
   logger.silly(`generateQuery`);
-  const doc = {};
+  const doc: Record<string, unknown> = {};
 
   if (skip) {
-    doc.skip = skip;
+    doc['skip'] = skip;
   }
 
   if (limit) {
-    doc.limit = limit;
+    doc['limit'] = limit;
   }
 
   // We parse both 'id' and 'correlationId' in query as correlationId in Mongo
 
   if (id) {
-    doc.correlationId = sanitize(id);
+    doc['correlationId'] = sanitize(id);
   }
 
   if (correlationId) {
-    doc.correlationId = sanitize(correlationId);
+    doc['correlationId'] = sanitize(correlationId);
   }
 
   // we could have here also final: ABORT, DONE, ERROR, active: !final
   if (queueItemState) {
-    doc.queueItemState = queueItemState;
+    doc['queueItemState'] = queueItemState;
   }
 
   if (creationTime) {
     const timestampArray = JSON.parse(creationTime);
     if (creationTime.length === 1) {
-      doc.creationTime = formatTime(timestampArray[0]);
+      doc['creationTime'] = formatTime(timestampArray[0]);
     } else {
-      doc.$and = [
+      doc['$and'] = [
         {creationTime: {$gte: formatTime(timestampArray[0])}},
         {creationTime: {$lte: formatTime(timestampArray[1])}}
       ];
@@ -59,9 +66,9 @@ export function generateQuery({id, correlationId, queueItemState, creationTime, 
   if (modificationTime) {
     const timestampArray = JSON.parse(modificationTime);
     if (modificationTime.length === 1) {
-      doc.modificationTime = formatTime(timestampArray[0]);
+      doc['modificationTime'] = formatTime(timestampArray[0]);
     } else {
-      doc.$and = [
+      doc['$and'] = [
         {modificationTime: {$gte: formatTime(timestampArray[0])}},
         {modificationTime: {$lte: formatTime(timestampArray[1])}}
       ];
@@ -70,8 +77,7 @@ export function generateQuery({id, correlationId, queueItemState, creationTime, 
 
   return doc;
 
-  /** @param {string} timestamp */
-  function formatTime(timestamp) {
+  function formatTime(timestamp: string) {
     logger.debug(`Timestamp: ${timestamp}`);
     // Ditch the timezone
     const time = moment.utc(timestamp);
@@ -80,18 +86,21 @@ export function generateQuery({id, correlationId, queueItemState, creationTime, 
   }
 }
 
-/**
- * @param {{showAll?: string | number, showOperations?: string, showOperationSettings?: string, showRecordLoadParams?: string, showImportJobState?: string}} params
- * @returns {Record<string, boolean>}
- */
-export function generateShowParams({showAll = 0, showOperations = undefined, showOperationSettings = undefined, showRecordLoadParams = undefined, showImportJobState = undefined}) {
-  if (parseBoolean(/** @type {string} */(showAll))) {
+export interface GenerateShowParamsInput {
+  showAll?: string | number;
+  showOperations?: string;
+  showOperationSettings?: string;
+  showRecordLoadParams?: string;
+  showImportJobState?: string;
+}
+
+export function generateShowParams({showAll = 0, showOperations = undefined, showOperationSettings = undefined, showRecordLoadParams = undefined, showImportJobState = undefined}: GenerateShowParamsInput): Record<string, boolean> {
+  if (parseBoolean(showAll as string)) {
     return {showAll: true};
   }
 
-  /** @type {any[]} */
   const paramsArray = [
-    {showAll: showAll ? parseBoolean(/** @type {string} */(showAll)) : false},
+    {showAll: showAll ? parseBoolean(showAll as string) : false},
     {showOperations: showOperations ? parseBoolean(showOperations) : false},
     {showOperationSettings: showOperationSettings ? parseBoolean(showOperationSettings) : false},
     {showRecordLoadParams: showRecordLoadParams ? parseBoolean(showRecordLoadParams) : false},
@@ -99,7 +108,7 @@ export function generateShowParams({showAll = 0, showOperations = undefined, sho
   ].filter(param => param);
 
   // @ts-expect-error non-tuple array spread is rejected by tsc though the call is valid at runtime
-  return Object.assign(.../** @type {any} */(paramsArray));
+  return Object.assign(...paramsArray);
 }
 
 

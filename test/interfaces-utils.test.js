@@ -1,6 +1,6 @@
 import {describe, it} from 'node:test';
 import assert from 'node:assert/strict';
-import {generateQuery, generateShowParams} from '../src/interfaces/utils.js';
+import {generateQuery, generateShowParams} from '../src/interfaces/utils.ts';
 
 const VALID_ISO = '2026-01-01T12:34:56.789Z';
 const VALID_ISO_END = '2026-02-01T00:00:00.000Z';

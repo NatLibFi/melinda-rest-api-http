@@ -37,7 +37,7 @@ describe('config.js mandatory vars', () => {
     }
 
     await assert.rejects(
-      import('../src/config.js'),
+      import('../src/config.ts'),
       new RegExp(`Mandatory environment variable missing: ALEPH_USER_LIBRARY`)
     );
   });

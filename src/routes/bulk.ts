@@ -5,22 +5,15 @@ import {v4 as uuid} from 'uuid';
 import {createLogger} from '@natlibfi/melinda-commons';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
-import createService from '../interfaces/bulk.js';
-import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils.js';
-import {checkQueryParams} from './queryUtils.js';
+import createService from '../interfaces/bulk.ts';
+import {authorizeKVPOnly, checkId, checkContentType} from './routeUtils.ts';
+import {checkQueryParams} from './queryUtils.ts';
 import {inspect} from 'util';
+import type {NextFunction, Request, Response} from 'express';
+import type {Cataloger} from './routeUtils.ts';
+import type {BulkCreateQueryResult, BulkQueryParams} from '../interfaces/bulk.ts';
 
-/**
- * Flat view of the request query string (see the QueryParams note in
- * queryUtils.js).
- * @typedef {Object} BulkQueryParams
- * @property {string} [pCatalogerIn]
- */
-
-/**
- * @param {{mongoUri: string, amqpUrl: string, recordType: string, allowedLibs: string[]}} config
- */
-export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
+export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}: {mongoUri: string, amqpUrl: string, recordType: string, allowedLibs: string[]}) {
   const logger = createLogger();
 
   const OPERATION_TYPES = [OPERATIONS.CREATE, OPERATIONS.UPDATE];
@@ -39,19 +32,14 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
     .post('/record/:id', checkContentType, checkId, bodyParser.text({limit: '5MB', type: '*/*'}), addRecordToBulk)
     .post('/', checkContentType, create);
 
-  /**
-   * @param {import('express').Request} req
-   * @param {import('express').Response} res
-   * @param {import('express').NextFunction} next
-   */
-  async function create(req, res, next) {
+  async function create(req: Request, res: Response, next: NextFunction) {
     try {
       logger.silly('routes/Bulk create');
       // DEVELOP: why we pass req.user.id here?
-      const user = /** @type {{id: string}} */(req.user);
-      const queryParams = /** @type {BulkQueryParams} */(req.query);
+      const user = req.user as Cataloger;
+      const queryParams = req.query as unknown as BulkQueryParams;
       // @ts-expect-error second arg (req.user.id) is ignored at runtime by validateQueryParams
-      const {operation, recordLoadParams, noStream, operationSettings} = /** @type {any} */(Service.validateQueryParams(queryParams, req.user.id));
+      const {operation, recordLoadParams, noStream, operationSettings} = (Service.validateQueryParams(queryParams, req.user.id)) as BulkCreateQueryResult;
 
       // We have match and merge settings just for bib records in validator
       if (recordType !== 'bib' && (operationSettings.unique || operationSettings.merge)) {
@@ -88,16 +76,11 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
     }
   }
 
-  /**
-   * @param {import('express').Request} req
-   * @param {import('express').Response} res
-   * @param {import('express').NextFunction} next
-   */
-  async function addRecordToBulk(req, res, next) {
+  async function addRecordToBulk(req: Request, res: Response, next: NextFunction) {
     logger.debug('routes/Bulk addRecordToBulk');
 
     try {
-      const correlationId = /** @type {string} */(req.params['id']);
+      const correlationId = req.params['id'] as string;
       const contentType = req.headers['content-type'];
       const data = req.body;
       logger.silly(`Data from request body: ${data}`);
@@ -116,16 +99,11 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
     }
   }
 
-  /**
-   * @param {import('express').Request} req
-   * @param {import('express').Response} res
-   * @param {import('express').NextFunction} next
-   */
-  async function addRecordsToBulk(req, res, next) {
+  async function addRecordsToBulk(req: Request, res: Response, next: NextFunction) {
     logger.debug('routes/Bulk addRecordsToBulk');
 
     try {
-      const correlationId = /** @type {string} */(req.params['id']);
+      const correlationId = req.params['id'] as string;
       const contentType = req.headers['content-type'];
       const data = req.body;
       logger.silly(`Data from request body: ${data}`);
@@ -145,15 +123,10 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
   }
 
 
-  /**
-   * @param {import('express').Request} req
-   * @param {import('express').Response} res
-   * @param {import('express').NextFunction} next
-   */
-  async function doQuery(req, res, next) {
+  async function doQuery(req: Request, res: Response, next: NextFunction) {
     try {
       logger.silly('routes/Bulk doQuery');
-      const response = await Service.doQuery(req.query);
+      const response = await Service.doQuery(req.query as unknown as Record<string, string | undefined>);
       res.json(response);
     } catch (error) {
       if (error instanceof HttpError) {
@@ -164,17 +137,12 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
     }
   }
 
-  /**
-   * @param {import('express').Request} req
-   * @param {import('express').Response} res
-   * @param {import('express').NextFunction} next
-   */
-  async function getState(req, res, next) {
+  async function getState(req: Request, res: Response, next: NextFunction) {
     logger.debug('routes/Bulk getState');
     try {
       logger.silly('routes/Bulk getState');
       logger.silly(`We have a correlationId: ${req.params['id']}`);
-      const response = await Service.getState({correlationId: /** @type {string} */(req.params['id'])});
+      const response = await Service.getState({correlationId: req.params['id'] as string});
       res.status(response.status).json(response.payload);
     } catch (error) {
       if (error instanceof HttpError) {
@@ -185,17 +153,11 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
     }
   }
 
-  /**
-   * @param {import('express').Request} req
-   * @param {import('express').Response} res
-   * @param {import('express').NextFunction} next
-   */
-  async function updateState(req, res, next) {
+  async function updateState(req: Request, res: Response, next: NextFunction) {
     logger.debug('routes/Bulk updateStatus');
     try {
-      /** @type {any} */
-      const {state} = Service.validateQueryParams(req.query);
-      const response = await Service.updateState({correlationId: /** @type {string} */(req.params['id']), state});
+      const {state} = (Service.validateQueryParams(req.query as unknown as BulkQueryParams)) as {state: string};
+      const response = await Service.updateState({correlationId: req.params['id'] as string, state});
       res.status(response.status).json(response.payload);
     } catch (error) {
       logger.debug('routes/Bulk updateStatus - error');
@@ -208,15 +170,10 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
   }
 
   /* Functions after this are here only to test purposes */
-  /**
-   * @param {import('express').Request} req
-   * @param {import('express').Response} res
-   * @param {import('express').NextFunction} next
-   */
-  async function readContent(req, res, next) {
+  async function readContent(req: Request, res: Response, next: NextFunction) {
     try {
       logger.silly('routes/Bulk readContent');
-      const {contentType, readStream} = await Service.readContent(/** @type {string} */(req.params['id']));
+      const {contentType, readStream} = await Service.readContent(req.params['id'] as string);
       res.set('content-type', contentType);
       readStream.pipe(res);
     } catch (error) {
@@ -228,15 +185,10 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
     }
   }
 
-  /**
-   * @param {import('express').Request} req
-   * @param {import('express').Response} res
-   * @param {import('express').NextFunction} next
-   */
-  async function remove(req, res, next) {
+  async function remove(req: Request, res: Response, next: NextFunction) {
     logger.silly('routes/Bulk remove');
     try {
-      const response = await Service.remove({oCatalogerIn: /** @type {{id: string}} */(req.user).id, correlationId: /** @type {string} */(req.params['id'])});
+      const response = await Service.remove({oCatalogerIn: (req.user as Cataloger).id, correlationId: req.params['id'] as string});
       res.json({request: req.query, result: response});
     } catch (error) {
       if (error instanceof HttpError) {
@@ -248,15 +200,10 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}) {
     }
   }
 
-  /**
-   * @param {import('express').Request} req
-   * @param {import('express').Response} res
-   * @param {import('express').NextFunction} next
-   */
-  async function removeContent(req, res, next) {
+  async function removeContent(req: Request, res: Response, next: NextFunction) {
     logger.silly('routes/Bulk removeContent');
     try {
-      await Service.removeContent({oCatalogerIn: /** @type {{id: string}} */(req.user).id, correlationId: /** @type {string} */(req.params['id'])});
+      await Service.removeContent({oCatalogerIn: (req.user as Cataloger).id, correlationId: req.params['id'] as string});
       res.sendStatus(204);
     } catch (error) {
       if (error instanceof HttpError) {

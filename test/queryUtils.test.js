@@ -1,6 +1,6 @@
 import {describe, it} from 'node:test';
 import assert from 'node:assert/strict';
-import {checkQueryParams} from '../src/routes/queryUtils.js';
+import {checkQueryParams} from '../src/routes/queryUtils.ts';
 
 const UUID_V4 = '123e4567-e89b-42d3-a456-426614174000';
 const UUID_V4_OTHER = '223e4567-e89b-42d3-a456-426614174000';

@@ -5,7 +5,7 @@ import net from 'node:net';
 import path from 'node:path';
 import mongoFixturesFactory from '@natlibfi/fixura-mongo';
 
-const INDEX_PATH = path.join(import.meta.dirname, '..', 'src', 'index.js');
+const INDEX_PATH = path.join(import.meta.dirname, '..', 'src', 'index.ts');
 
 // Documented exception: the uncaughtException handler body in src/index.js
 // (handleTermination({code: 1, message: stack}) in the .on('uncaughtException')
@@ -70,7 +70,7 @@ describe('index (in-process: module entry wiring)', () => {
     // Importing src/index.js runs its top-level run(): registers the signal
     // and error handlers, then startApp(config) reads the environment and
     // starts the HTTP server on process.env['HTTP_PORT'].
-    await import('../src/index.js');
+    await import('../src/index.ts');
   });
   after(async () => {
     await mongoFixtures.close();

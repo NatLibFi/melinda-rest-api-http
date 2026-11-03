@@ -28,7 +28,7 @@ for (const key of trackedVars) {
 }
 Object.assign(process.env, mandatoryEnv);
 
-const config = await import('../src/config.js');
+const config = await import('../src/config.ts');
 
 describe('config.js defaults', () => {
   it('imports successfully with only the mandatory vars set', () => {

@@ -206,7 +206,7 @@ async function callback({
   delayFinish = false,
   expectItemRemoved = false
 }) {
-  const {default: createPrioService} = await import('../src/interfaces/prio.js');
+  const {default: createPrioService} = await import('../src/interfaces/prio.ts');
   finishOnPublish = getFixture('finish.json');
   finishDelayed = delayFinish;
   const service = await createPrioService({

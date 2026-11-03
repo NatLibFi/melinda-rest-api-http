@@ -6,30 +6,11 @@ import {Error as ApiError} from '@natlibfi/melinda-commons';
 import {createLogger, createExpressLogger} from '@natlibfi/melinda-commons';
 import {AlephStrategy} from '@natlibfi/passport-melinda-aleph';
 import {logError} from '@natlibfi/melinda-rest-api-commons';
-import {createApiDocRouter, createBulkRouter, createLogsRouter, createPrioRouter} from './routes/index.js';
+import {createApiDocRouter, createBulkRouter, createLogsRouter, createPrioRouter} from './routes/index.ts';
 import ipRangeCheck from 'ip-range-check';
+import type {NextFunction, Request, Response} from 'express';
+import type {Server} from 'node:http';
 
-/**
- * @param {{
- *   httpPort: number,
- *   enableProxy: boolean,
- *   xServiceURL: string,
- *   userLibrary: string,
- *   ownAuthzURL: string,
- *   ownAuthzApiKey: string,
- *   sruUrl: string,
- *   amqpUrl: string,
- *   mongoUri: string,
- *   pollWaitTime: number,
- *   recordType: string,
- *   requireAuthForRead: boolean,
- *   requireKVPForWrite: boolean,
- *   fixTypes: string[],
- *   allowedLibs: string[],
- *   ipWhiteList: string[]
- * }} config
- * @returns {Promise<import('http').Server>}
- */
 export default async function ({
   httpPort, enableProxy,
   xServiceURL, userLibrary,
@@ -38,7 +19,24 @@ export default async function ({
   pollWaitTime, recordType,
   requireAuthForRead, requireKVPForWrite,
   fixTypes, allowedLibs, ipWhiteList
-}) {
+}: {
+  httpPort: number,
+  enableProxy: boolean,
+  xServiceURL: string,
+  userLibrary: string,
+  ownAuthzURL: string,
+  ownAuthzApiKey: string,
+  sruUrl: string,
+  amqpUrl: string,
+  mongoUri: string,
+  pollWaitTime: number,
+  recordType: string,
+  requireAuthForRead: boolean,
+  requireKVPForWrite: boolean,
+  fixTypes: string[],
+  allowedLibs: string[],
+  ipWhiteList: string[]
+}): Promise<Server> {
   const logger = createLogger();
   const server = await initExpress();
 
@@ -79,13 +77,7 @@ export default async function ({
 
     return app.listen(httpPort, () => logger.info(`Started Melinda REST API for ${recordType} records in port ${httpPort}`));
 
-    /**
-     * @param {import('express').Request} req
-     * @param {import('express').Response} res
-     * @param {import('express').NextFunction} next
-     * @returns {import('express').Response | void}
-     */
-    function ipWhiteListMiddleware(req, res, next) {
+    function ipWhiteListMiddleware(req: Request, res: Response, next: NextFunction) {
       logger.verbose('Ip whitelist middleware');
       if (ipWhiteList.length === 0) {
         return next();
@@ -101,14 +93,7 @@ export default async function ({
       return res.sendStatus(httpStatus.FORBIDDEN);
     }
 
-    /**
-     * @param {any} err
-     * @param {import('express').Request} req
-     * @param {import('express').Response} res
-     * @param {import('express').NextFunction} next
-     * @returns {import('express').Response | void}
-     */
-    function handleError(err, req, res, next) {
+    function handleError(err: unknown, req: Request, res: Response, next: NextFunction): Response | void {
       logger.debug(`App/handleError: Error: ${JSON.stringify(err)}`);
       if (err) {
         logError(err);
@@ -119,14 +104,15 @@ export default async function ({
           return res.status(err.status).send(err.payload);
         }
 
-        if (err.status && err.payload) {
+        const {status, payload} = err as {status?: number, payload?: unknown};
+        if (status && payload) {
           logger.debug('We have an error with status and payload');
-          return res.status(err.status).send(err.payload);
+          return res.status(status).send(payload);
         }
 
-        if (err.status) {
+        if (status) {
           logger.debug('We have an error with status');
-          return res.sendStatus(err.status);
+          return res.sendStatus(status);
         }
 
         if (req.aborted) {

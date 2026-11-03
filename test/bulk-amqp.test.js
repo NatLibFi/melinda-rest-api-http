@@ -195,7 +195,7 @@ async function callback({
   expectedErrorMessage = '',
   expectedBlobSize
 }) {
-  const {default: createBulkService} = await import('../src/interfaces/bulk.js');
+  const {default: createBulkService} = await import('../src/interfaces/bulk.ts');
   const service = await createBulkService({
     mongoUri: await mongoFixtures.getUri(),
     amqpUrl: 'amqp://amqp-mock',
