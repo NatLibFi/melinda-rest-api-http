@@ -6,12 +6,21 @@ import {checkQueryParams} from './queryUtils.js';
 import {authorizeKVPOnly, checkId} from './routeUtils.js';
 import createService from '../interfaces/logs.js';
 
+/**
+ * Flat view of the request query string (see the QueryParams note in
+ * queryUtils.js).
+ * @typedef {Object} LogQueryParams
+ * @property {string} [expanded]
+ * @property {string} [logItemType]
+ */
+
+/** @param {{mongoUri: string}} config */
 export default async function ({mongoUri}) {
   const logger = createLogger();
 
   const Service = await createService({mongoUri});
 
-  return new Router()
+  return Router()
     .use(passport.authenticate('melinda', {session: false}))
     .use(authorizeKVPOnly)
     .use(checkQueryParams)
@@ -23,6 +32,11 @@ export default async function ({mongoUri}) {
     .put('/:id', checkId, protectLog)
     .delete('/:id', checkId, removeLog);
 
+  /**
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @param {import('express').NextFunction} next
+   */
   async function doLogsQuery(req, res, next) {
     logger.verbose('routes/logs doLogsQuery');
     try {
@@ -40,11 +54,16 @@ export default async function ({mongoUri}) {
 
   // routes/getLogs -> interfaces -> getLogs -> mongoLog queryByIds
   // DEVELOP: currently return *one MERGE_LOG* for correlationId if such exists
+  /**
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @param {import('express').NextFunction} next
+   */
   async function getLogs(req, res, next) {
     logger.verbose('routes/logs getLogs');
     try {
-      logger.debug(`We have a correlationId: ${req.params.id}`);
-      const response = await Service.getLogs({correlationId: req.params.id});
+      logger.debug(`We have a correlationId: ${req.params['id']}`);
+      const response = await Service.getLogs({correlationId: /** @type {string} */(req.params['id'])});
       logger.debug(`Response: ${JSON.stringify(response)}`);
       //res.status(response.status).json(response.payload);
       res.json(response);
@@ -57,7 +76,12 @@ export default async function ({mongoUri}) {
     }
   }
 
-  async function getListOfCatalogers(req, res, next) {
+  /**
+   * @param {import('express').Request} _req
+   * @param {import('express').Response} res
+   * @param {import('express').NextFunction} next
+   */
+  async function getListOfCatalogers(_req, res, next) {
     logger.verbose('routes/logs getListOfCatalogers');
     try {
       const response = await Service.getListOfCatalogers();
@@ -74,7 +98,12 @@ export default async function ({mongoUri}) {
   }
 
 
-  async function getListOfCorrelationIds(req, res, next) {
+  /**
+   * @param {import('express').Request} _req
+   * @param {import('express').Response} res
+   * @param {import('express').NextFunction} next
+   */
+  async function getListOfCorrelationIds(_req, res, next) {
     logger.verbose('routes/logs getListOforrelationIds');
     try {
       const response = await Service.getListOfCorrelationIds();
@@ -90,13 +119,19 @@ export default async function ({mongoUri}) {
     }
   }
 
+  /**
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @param {import('express').NextFunction} next
+   */
   async function getListOfLogs(req, res, next) {
     logger.verbose('routes/logs getListOfLogs');
     logger.debug(`query: ${JSON.stringify(req.query)}`);
-    const getExpanded = req.query?.expanded ? parseBoolean(req.query.expanded) : false;
-    const logItemType = req.query?.logItemType ? req.query.logItemType : undefined;
+    const queryParams = /** @type {LogQueryParams} */(req.query);
+    const getExpanded = queryParams?.expanded ? parseBoolean(queryParams.expanded) : false;
+    const logItemType = queryParams?.logItemType ? queryParams.logItemType : undefined;
     try {
-      const response = getExpanded ? await Service.getExpandedListOfLogs(req.query) : await Service.getListOfLogs(logItemType);
+      const response = getExpanded ? await Service.getExpandedListOfLogs(/** @type {any} */(req.query)) : await Service.getListOfLogs(logItemType);
       logger.debug(`Response: ${JSON.stringify(response)}`);
       //res.status(response.status).json(response.payload);
       res.json(response);
@@ -109,13 +144,18 @@ export default async function ({mongoUri}) {
     }
   }
 
+  /**
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @param {import('express').NextFunction} next
+   */
   async function protectLog(req, res, next) {
     logger.verbose('routes/logs protectLog');
     try {
-      const correlationId = req.params.id;
+      const correlationId = /** @type {string} */(req.params['id']);
       const {blobSequence} = req.query || false;
       logger.debug(`We have a correlationId: ${correlationId}${blobSequence ? `, blobSequence: ${blobSequence}` : ''}`);
-      const response = await Service.protectLog(correlationId, blobSequence);
+      const response = await Service.protectLog(correlationId, /** @type {any} */(blobSequence));
       logger.debug(`We have a response: ${JSON.stringify(response)}`);
       // DEVELOP: handle response, now we just pass mongo's response on
       res.json(response);
@@ -127,13 +167,18 @@ export default async function ({mongoUri}) {
     }
   }
 
+  /**
+   * @param {import('express').Request} req
+   * @param {import('express').Response} res
+   * @param {import('express').NextFunction} next
+   */
   async function removeLog(req, res, next) {
     logger.verbose('routes/logs removeLog');
     try {
-      const correlationId = req.params.id;
+      const correlationId = /** @type {string} */(req.params['id']);
       const {force} = req.query || 0;
       logger.debug(`We have a correlationId: ${correlationId}`);
-      const response = await Service.removeLog(correlationId, parseBoolean(force));
+      const response = await Service.removeLog(correlationId, parseBoolean(/** @type {string} */(force)));
       // res.status(response.status).json(response.payload);
       res.json(response);
     } catch (error) {

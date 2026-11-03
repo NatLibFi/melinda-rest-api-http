@@ -13,6 +13,10 @@ const logger = createLogger();
 // creationTime stringified array of utc timestamps 1 specific or 2 for range
 // modificationTime stringified array of utc timestamps 1 specific or 2 for range
 
+/**
+ * @param {{id?: string, correlationId?: string, queueItemState?: string, creationTime?: string, modificationTime?: string, skip?: string | number, limit?: string | number}} params
+ * @returns {any}
+ */
 export function generateQuery({id, correlationId, queueItemState, creationTime, modificationTime, skip, limit}) {
   logger.silly(`generateQuery`);
   const doc = {};
@@ -66,6 +70,7 @@ export function generateQuery({id, correlationId, queueItemState, creationTime, 
 
   return doc;
 
+  /** @param {string} timestamp */
   function formatTime(timestamp) {
     logger.debug(`Timestamp: ${timestamp}`);
     // Ditch the timezone
@@ -75,20 +80,26 @@ export function generateQuery({id, correlationId, queueItemState, creationTime, 
   }
 }
 
+/**
+ * @param {{showAll?: string | number, showOperations?: string, showOperationSettings?: string, showRecordLoadParams?: string, showImportJobState?: string}} params
+ * @returns {Record<string, boolean>}
+ */
 export function generateShowParams({showAll = 0, showOperations = undefined, showOperationSettings = undefined, showRecordLoadParams = undefined, showImportJobState = undefined}) {
-  if (parseBoolean(showAll)) {
+  if (parseBoolean(/** @type {string} */(showAll))) {
     return {showAll: true};
   }
 
+  /** @type {any[]} */
   const paramsArray = [
-    {showAll: showAll ? parseBoolean(showAll) : false},
+    {showAll: showAll ? parseBoolean(/** @type {string} */(showAll)) : false},
     {showOperations: showOperations ? parseBoolean(showOperations) : false},
     {showOperationSettings: showOperationSettings ? parseBoolean(showOperationSettings) : false},
     {showRecordLoadParams: showRecordLoadParams ? parseBoolean(showRecordLoadParams) : false},
     {showImportJobState: showImportJobState ? parseBoolean(showImportJobState) : false}
   ].filter(param => param);
 
-  return Object.assign(...paramsArray);
+  // @ts-expect-error non-tuple array spread is rejected by tsc though the call is valid at runtime
+  return Object.assign(.../** @type {any} */(paramsArray));
 }
 
 

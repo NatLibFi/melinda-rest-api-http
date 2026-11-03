@@ -12,6 +12,7 @@ import {generateQuery, generateShowParams} from './utils.js';
 // the record already exists and merge is off), the client requested a
 // specific operation that could not be fulfilled — 409 CONFLICT.
 // Passes through numeric values (e.g. ERROR leg already has a proper code).
+/** @param {string | number} status */
 function unexpectedRecordStatusToHttp(status) {
   if (typeof status === 'number') return status;
   switch (status) {
@@ -29,6 +30,9 @@ function unexpectedRecordStatusToHttp(status) {
 
 const setTimeoutPromise = promisify(setTimeout);
 
+/**
+ * @param {{sruUrl: string, amqpUrl: string, mongoUri: string, pollWaitTime: number}} config
+ */
 export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   const logger = createLogger();
   logger.debug(`Connecting prio to: ${amqpUrl} and ${mongoUri}`);
@@ -39,6 +43,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   return {read, create, update, fix, doQuery};
 
+  /** @param {{id: string, format: string}} params */
   async function read({id, format}) {
     logger.info(`Reading record ${id} / ${format}`);
     validateRequestId(id);
@@ -54,6 +59,9 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     throw new HttpError(httpStatus.NOT_FOUND, 'Record not found');
   }
 
+  /**
+   * @param {{data: any, format: string, cataloger: any, oCatalogerIn: any, operationSettings: {merge?: boolean, fixType?: string}, correlationId: string}} params
+   */
   async function create({data, format, cataloger, oCatalogerIn, operationSettings, correlationId}) {
     logger.info(`Creating CREATE task for a new record ${correlationId}`);
     logger.verbose('Sending a new record to queue');
@@ -91,6 +99,9 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
 
+  /**
+   * @param {{id: string, data: any, format: string, cataloger: any, oCatalogerIn: any, operationSettings: any, correlationId: string}} params
+   */
   async function update({id, data, format, cataloger, oCatalogerIn, operationSettings, correlationId}) {
     validateRequestId(id);
     logger.info(`Creating UPDATE task for record ${id} / ${correlationId}`);
@@ -129,6 +140,9 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
 
+  /**
+   * @param {{id: string, cataloger: any, oCatalogerIn: any, operationSettings: {fixType?: string}, correlationId: string}} params
+   */
   async function fix({id, cataloger, oCatalogerIn, operationSettings, correlationId}) {
     validateRequestId(id);
     logger.info(`Creating FIX (${operationSettings.fixType}) task for record ${id} / ${correlationId}`);
@@ -168,6 +182,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
 
   // cleanMongo cleans the actual MongoCollection ('prio'), logCollection ('logPrio') retains all items
+  /** @param {string} correlationId */
   async function cleanMongo(correlationId) {
     const result = await mongoOperator.queryById({correlationId, checkModTime: true});
     logger.silly(` ${inspect(result, {colors: true, maxArrayLength: 3, depth: 1})}}`);
@@ -188,6 +203,9 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     }
   }
 
+  /**
+   * @param {{correlationId: string, headers: any, data: any}} params
+   */
   async function handleRequest({correlationId, headers, data}) {
     logger.silly(`interfaces/prio/create/handleRequest`);
     // {queue, correlationId, headers, data}
@@ -205,8 +223,13 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     return responseData;
   }
 
+  /**
+   * @param {string} id
+   * @returns {Promise<any>}
+   */
   function getRecord(id) {
-    return new Promise((resolve, reject) => {
+    return new Promise((/** @type {(value?: any) => void} */resolve, reject) => {
+      /** @type {Promise<any> | undefined} */
       let promise;
 
       sruClient.searchRetrieve(`rec.id=${id}`)
@@ -231,6 +254,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     });
   }
 
+  /** @param {string} id */
   function validateRequestId(id) {
     logger.debug(`Validating requestId ${id}`);
 
@@ -241,6 +265,11 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
   // Loop
+  /**
+   * @param {string} correlationId
+   * @param {string} [queueItemState='']
+   * @param {boolean} [wait=false]
+   */
   async function check(correlationId, queueItemState = '', wait = false) {
     if (wait) {
       await setTimeoutPromise(pollWaitTime);
@@ -268,6 +297,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     return check(correlationId, result.queueItemState, true);
   }
 
+  /** @param {any} result @returns {never} */
   function getResponseDataForAbort(result) {
     logger.debug(`Queue item ${result.correlationId}, state ${result.queueItemState} - Timeout!`);
     const errorMessage = result.errorMessage || 'Request timeout, try again later';
@@ -276,6 +306,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   // should we return also correlationId in prio?
   // async
+  /** @param {any} result */
   function getResponseDataForDoneNError(result) {
 
     logger.debug(`Mongo Result: ${JSON.stringify(result)}`);
@@ -292,6 +323,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     return getResponseDataForDone(result);
   }
 
+  /** @param {any} result */
   function getResponseDataForError(result) {
 
     const recordResponses = result.records ? result.records : [];
@@ -303,11 +335,13 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     logger.debug(`QueueItemState is ERROR, errorStatus: ${result.errorStatus} errorMessage: ${result.errorMessage}`);
     const errorStatus = result.errorStatus || httpStatus.INTERNAL_SERVER_ERROR;
+    // @ts-expect-error object literal is always truthy so the || fallback is dead code (latent bug, kept as-is)
     const responsePayload = {message: result.errorMessage} || {message: 'unknown error'};
     const responsePayloadAndStatus = {...responsePayload, status: errorStatus};
     return {status: errorStatus, payload: firstRecordResponse || responsePayloadAndStatus};
   }
 
+  /** @param {any} result */
   function getResponseDataForDone(result) {
 
     const recordResponses = result.records ? result.records : [];
@@ -320,6 +354,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     return {status: recordStatus, payload: firstRecordResponse};
   }
 
+  /** @param {any} incomingParams */
   function doQuery(incomingParams) {
     const params = generateQuery(incomingParams);
     const showParams = generateShowParams(incomingParams);
@@ -330,6 +365,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
       return mongoOperator.query(params, showParams);
     }
 
+    // @ts-expect-error payload is omitted at runtime but typed as required by melinda-commons Error
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 }

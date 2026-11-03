@@ -8,18 +8,21 @@ import mongoFixturesFactory from '@natlibfi/fixura-mongo';
 // src/config.js (imported transitively by src/routes/*) reads the mandatory
 // environment variables at import time; set dummy values before the app module
 // is dynamically imported in the callback below (only in this test process).
-process.env.ALEPH_X_SVC_URL ??= 'https://x-svc.example/';
+process.env['ALEPH_X_SVC_URL'] ??= 'https://x-svc.example/';
 // Literals built from parts: shaped to dodge the njsscan node_api_key rule; values are dummy test data
-process.env.ALEPH_USER_LIBRARY ??= ['1', '0', '0'].join('');
-process.env.OWN_AUTHZ_URL ??= 'https://authz.example/';
-process.env.OWN_AUTHZ_API_KEY ??= ['test', 'key'].join('-');
-process.env.SRU_URL ??= 'https://sru.example/';
+process.env['ALEPH_USER_LIBRARY'] ??= ['1', '0', '0'].join('');
+process.env['OWN_AUTHZ_URL'] ??= 'https://authz.example/';
+process.env['OWN_AUTHZ_API_KEY'] ??= ['test', 'key'].join('-');
+process.env['SRU_URL'] ??= 'https://sru.example/';
 
 // --- Mock state, settable per fixture through metadata.json ----------------
 // The app is started per fixture (startApp below), and the mocks are read at
 // request time, so the callback assigns the fixture's values before startApp.
+/** @type {any} */
 const amqpMock = {calls: [], resultState: 'DONE', records: [], errorStatus: '', errorMessage: '', reject: false};
+/** @type {any} */
 const sruMock = {queries: [], records: []};
+/** @type {any} */
 const authMock = {
   state: 'kvp',
   users: {
@@ -52,23 +55,28 @@ function resetMocks() {
 // reaches a terminal state, so the fake channel plays the "worker" role for
 // that queue: it flips the queueItem to the fixture-configured terminal state
 // (DONE with records, or ERROR with errorStatus/errorMessage).
+/** @type {any} */
 let mongoClient;
 
 function makeFakeChannel() {
   return {
+    /** @param {string} name */
     assertQueue: async (name) => {
       amqpMock.calls.push(['assertQueue', name]);
       return {queue: name, messageCount: 0};
     },
+    /** @param {string} name */
     checkQueue: async (name) => {
       amqpMock.calls.push(['checkQueue', name]);
       return {queue: name, messageCount: 0};
     },
+    /** @param {string} name */
     get: async (name) => {
       amqpMock.calls.push(['get', name]);
       return false;
     },
-    sendToQueue: async (name, content, options) => {
+    /** @param {string} name @param {any} _content @param {any} options */
+    sendToQueue: async (name, _content, options) => {
       amqpMock.calls.push(['sendToQueue', name]);
       if (amqpMock.reject) {
         // fixture-controlled reject leg: surfaces the write-flow 500s (non-HttpError via next(error) -> handleError)
@@ -110,7 +118,7 @@ function makeFakeChannel() {
 mock.module('amqplib', {
   exports: {
     default: {
-      connect: (url) => {
+      connect: (/** @type {string} */url) => {
         amqpMock.calls.push(['connect', url]);
         return Promise.resolve({
           createChannel: () => Promise.resolve(makeFakeChannel()),
@@ -132,7 +140,7 @@ mock.module('@natlibfi/sru-client', {exports: {default: createMockSruClient}});
 
 function createMockSruClient() {
   return {
-    searchRetrieve: (query) => {
+    searchRetrieve: (/** @type {string} */query) => {
       sruMock.queries.push(query);
       const emitter = new EventEmitter();
       setImmediate(() => {
@@ -157,7 +165,7 @@ function createMockSruClient() {
 // fixture-controlled req.user instead of calling the auth service.
 class MockAlephStrategy extends BasicStrategy {
   constructor() {
-    super((username, password, done) => {
+    super((/** @type {string} */_username, /** @type {string} */_password, /** @type {any} */done) => {
       if (authMock.state === 'fail') {
         // auth-fail leg: verify returns no user -> passport answers 401
         return done(null, false);
@@ -178,10 +186,11 @@ mock.module('@natlibfi/passport-melinda-aleph', {exports: {AlephStrategy: MockAl
 // 'logs'). Fixtures are populated and cleared directly with the mongodb
 // driver, mirroring what the services store (ISO fixture strings as Dates).
 const DB_NAME = 'rest-api';
+/** @type {any} */
 let mongoFixtures;
 
 generateTests({
-  callback,
+  callback: /** @type {any} */(callback),
   formatResponse,
   path: [import.meta.dirname, '..', 'test-fixtures', 'app'],
   recurse: false,
@@ -216,6 +225,7 @@ generateTests({
   }
 });
 
+/** @param {any} params */
 async function callback({
   getFixture,
   passport: passportState = 'kvp',
@@ -236,7 +246,7 @@ async function callback({
   // MockAlephStrategy internally, and all mock closures read this state at
   // request time.
   authMock.state = passportState;
-  sruMock.records = sruRecords.map((name) => (name ? getFixture(name) : null));
+  sruMock.records = sruRecords.map((/** @type {string} */name) => (name ? getFixture(name) : null));
   amqpMock.resultState = amqpResultState;
   amqpMock.records = amqpRecords;
   amqpMock.errorStatus = amqpErrorStatus;
@@ -275,6 +285,7 @@ async function callback({
   return closable(server);
 }
 
+/** @type {any} */
 let activeServer;
 
 // fixugen-http-server only calls server.close() after the last request. Node's
@@ -283,9 +294,13 @@ let activeServer;
 // EADDRINUSE; close the live connections first. Double-close is tolerated
 // (the before-each hook may have already closed the server of a failed
 // fixture).
+/**
+ * @param {any} server
+ * @returns {{close: () => Promise<any>}}
+ */
 function closable(server) {
   return {
-    close: () => new Promise((resolve) => {
+    close: () => new Promise((/** @type {(value?: any) => void} */resolve) => {
       server.closeAllConnections();
       server.close(() => resolve());
     })
@@ -296,6 +311,7 @@ function closable(server) {
 // still occupied, startApp would resolve with a server that never listens and
 // the requests would silently hit the previous fixture's stale server on
 // 1337. Fail fast instead.
+/** @param {any} server */
 async function ensureListening(server) {
   if (server.listening) {
     return server;
@@ -313,7 +329,7 @@ async function closeActiveServer() {
   }
   const server = activeServer;
   activeServer = null;
-  await new Promise((resolve) => {
+  await new Promise((/** @type {(value?: any) => void} */resolve) => {
     server.closeAllConnections();
     server.close(() => resolve());
   });
@@ -321,6 +337,7 @@ async function closeActiveServer() {
 
 // Re-serialize JSON-parseable payloads so the response fixtures do not have to
 // match the server's exact JSON whitespace; plain-text bodies pass through.
+/** @param {any} response */
 async function formatResponse(response) {
   const payload = await response.text();
   const {headers} = response;
@@ -341,9 +358,13 @@ async function clearCollections() {
 
 // dbContents.json is keyed by collection name, like in the fixura-mongo
 // template; ISO strings from the fixtures become real Dates.
+/**
+ * @param {{logs?: any[], bulk?: any[], prio?: any[]}} [params]
+ */
 async function populateDb({logs = [], bulk = [], prio = []} = {}) {
   const db = mongoClient.db(DB_NAME);
-  const withDates = (docs) => docs.map((doc) => ({
+  /** @param {any[]} docs */
+  const withDates = (docs) => docs.map((/** @type {any} */doc) => ({
     ...doc,
     creationTime: new Date(doc.creationTime),
     modificationTime: new Date(doc.modificationTime)
@@ -359,6 +380,7 @@ async function populateDb({logs = [], bulk = [], prio = []} = {}) {
   }
 }
 
+/** @param {any[]} files */
 async function uploadGridFsFiles(files) {
   const bucket = new GridFSBucket(mongoClient.db(DB_NAME), {bucketName: 'bulk'});
   for (const file of files) {

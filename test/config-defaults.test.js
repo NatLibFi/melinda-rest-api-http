@@ -20,8 +20,8 @@ const {getFixture} = fixturesFactory({
 
 // Every env var config.js consults; all are deleted at top level so this
 // file does not inherit the surrounding environment.
-const trackedVars = getFixture('tracked-vars.json');
-const mandatoryEnv = getFixture('mandatory-env.json');
+const trackedVars = /** @type {string[]} */(getFixture('tracked-vars.json'));
+const mandatoryEnv = /** @type {Record<string, string>} */(getFixture('mandatory-env.json'));
 
 for (const key of trackedVars) {
   delete process.env[key];
@@ -36,11 +36,11 @@ describe('config.js defaults', () => {
   });
 
   it('exposes the mandatory vars as given', () => {
-    assert.equal(config.xServiceURL, mandatoryEnv.ALEPH_X_SVC_URL);
-    assert.equal(config.userLibrary, mandatoryEnv.ALEPH_USER_LIBRARY);
-    assert.equal(config.ownAuthzURL, mandatoryEnv.OWN_AUTHZ_URL);
-    assert.equal(config.ownAuthzApiKey, mandatoryEnv.OWN_AUTHZ_API_KEY);
-    assert.equal(config.sruUrl, mandatoryEnv.SRU_URL);
+    assert.equal(config.xServiceURL, mandatoryEnv['ALEPH_X_SVC_URL']);
+    assert.equal(config.userLibrary, mandatoryEnv['ALEPH_USER_LIBRARY']);
+    assert.equal(config.ownAuthzURL, mandatoryEnv['OWN_AUTHZ_URL']);
+    assert.equal(config.ownAuthzApiKey, mandatoryEnv['OWN_AUTHZ_API_KEY']);
+    assert.equal(config.sruUrl, mandatoryEnv['SRU_URL']);
   });
 
   it('httpPort defaults to the string "8080"', () => {

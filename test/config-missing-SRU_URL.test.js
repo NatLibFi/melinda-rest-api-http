@@ -22,8 +22,8 @@ const {getFixture} = fixturesFactory({
 
 // Every env var config.js consults; all are deleted so the surrounding
 // environment cannot mask the unset SRU_URL case.
-const trackedVars = getFixture('tracked-vars.json');
-const mandatoryEnv = getFixture('mandatory-env.json');
+const trackedVars = /** @type {string[]} */(getFixture('tracked-vars.json'));
+const mandatoryEnv = /** @type {Record<string, string>} */(getFixture('mandatory-env.json'));
 
 describe('config.js mandatory vars', () => {
   it('rejects import when SRU_URL is missing', async () => {

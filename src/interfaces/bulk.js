@@ -6,6 +6,9 @@ import {CONTENT_TYPES} from '../config.js';
 import {generateQuery, generateShowParams} from './utils.js';
 // import {inspect} from 'util';
 
+/**
+ * @param {{mongoUri: string, amqpUrl: string, allowedLibs: string[]}} config
+ */
 export default async function ({mongoUri, amqpUrl, allowedLibs}) {
   const logger = createLogger();
   const mongoOperator = await mongoFactory(mongoUri, 'bulk');
@@ -13,6 +16,9 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
 
   return {create, addRecord, addRecords, getState, updateState, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
 
+  /**
+   * @param {{correlationId: string, cataloger: any, oCatalogerIn: any, operation: string, contentType: any, recordLoadParams: any, operationSettings: any, stream: any}} params
+   */
   async function create({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, operationSettings, stream}) {
     const result = await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, operationSettings, prio: false});
     if (!stream) {
@@ -34,6 +40,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
   }
 
   // DEVELOP: syncronize addRecord and addRecords
+  /** @param {{correlationId: string, contentType: any, data: any}} params */
   async function addRecord({correlationId, contentType, data}) {
 
     // addBlobSize increases blobSize by 1 and returns the queueItem if there's a queueItem in state WAITING_FOR_RECORDS for correlationId
@@ -48,7 +55,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     if (data) {
 
       const type = contentType;
-      const {conversionFormat} = CONTENT_TYPES.find(({contentType, allowBulk}) => contentType === type && allowBulk === true);
+      const {conversionFormat} = /** @type {any} */(CONTENT_TYPES.find(({contentType, allowBulk}) => contentType === type && allowBulk === true));
 
       if (!conversionFormat) {
         throw new HttpError(httpStatus.UNSUPPORTED_MEDIA_TYPE, `Invalid content-type`);
@@ -70,6 +77,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
   }
 
   // DEVELOP: syncronize addRecord and addRecords
+  /** @param {{correlationId: string, contentType: any, data: any}} params */
   async function addRecords({correlationId, contentType, data}) {
 
     if (!data) {
@@ -111,6 +119,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
 
     return {status: httpStatus.CREATED, payload: `Records (${dataSize}) have been added to bulk ${correlationId} that has currently ${currentSequence} records`};
 
+    /** @param {string} contentType */
     function getConversionFormatForAddRecords(contentType) {
       logger.silly(`contentType: ${contentType}`);
       const type = contentType;
@@ -119,7 +128,8 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
       if (!conversionFormatResult) {
         throw new HttpError(httpStatus.UNSUPPORTED_MEDIA_TYPE, `Invalid content-type`);
       }
-      const {conversionFormat} = conversionFormatResult;
+      /** @type {any} */
+      const conversionFormat = /** @type {any} */(conversionFormatResult).conversionFormat;
       return conversionFormat;
     }
 
@@ -138,6 +148,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
       return queueItem;
     }
 
+    /** @param {string} data */
     function parseDataAndCheckArray(data) {
       const dataArray = parseData(data);
       if (Array.isArray(dataArray)) {
@@ -151,6 +162,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
       throw new HttpError(httpStatus.BAD_REQUEST, `Input is not a valid array of marc-record-js`);
     }
 
+    /** @param {string} data */
     function parseData(data) {
       try {
         logger.debug(`data: ${data}`);
@@ -159,13 +171,14 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
         return dataArray;
       } catch (error) {
         logger.debug(`Parsing data errored ${error}`);
-        throw new HttpError(httpStatus.BAD_REQUEST, error.message);
+        throw new HttpError(httpStatus.BAD_REQUEST, /** @type {any} */(error).message);
       }
 
     }
   }
 
 
+  /** @param {{correlationId: string}} params */
   async function getState(params) {
     logger.debug(`Getting current state of ${params.correlationId}`);
 
@@ -185,6 +198,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     throw new HttpError(httpStatus.NOT_FOUND, `Item not found for id: ${params.correlationId}`);
   }
 
+  /** @param {{correlationId: string, state: string}} params */
   async function updateState({correlationId, state}) {
     logger.debug(`Updating current state of ${correlationId} to ${state}`);
     const setStateResult = await mongoOperator.setState({correlationId, state});
@@ -197,15 +211,18 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     throw new HttpError(httpStatus.NOT_FOUND, `Item not found for id: ${correlationId}`);
   }
 
+  /** @param {string} [correlationId] */
   function readContent(correlationId) {
     logger.debug(`Reading content for ${correlationId}`);
     if (correlationId) {
       return mongoOperator.readContent(correlationId);
     }
 
+    // @ts-expect-error payload is omitted at runtime but typed as required by melinda-commons Error
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
+  /** @param {{oCatalogerIn: any, correlationId: string}} params */
   function remove({oCatalogerIn, correlationId}) {
 
     if (correlationId) {
@@ -213,18 +230,22 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
       return removeResult;
     }
 
+    // @ts-expect-error payload is omitted at runtime but typed as required by melinda-commons Error
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
+  /** @param {{oCatalogerIn: any, correlationId: string}} params */
   function removeContent({oCatalogerIn, correlationId}) {
     if (correlationId) {
       const removeContentResult = mongoOperator.removeContent({oCatalogerIn, correlationId});
       return removeContentResult;
     }
 
+    // @ts-expect-error payload is omitted at runtime but typed as required by melinda-commons Error
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
+  /** @param {any} incomingParams */
   async function doQuery(incomingParams) {
     const params = generateQuery(incomingParams);
     const showParams = generateShowParams(incomingParams);
@@ -241,7 +262,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
       const result = await mongoOperator.query(params, showParams);
       if (report || removeRecords || removeIds) {
         logger.debug(`Reducing recordItems to recordReport`);
-        return result.map(queueItem => createRecordReport({queueItem, report, removeRecords, removeIds}));
+        return result.map((/** @type {any} */queueItem) => createRecordReport({queueItem, report, removeRecords, removeIds}));
       }
       return result;
     }
@@ -249,6 +270,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     throw new HttpError(httpStatus.BAD_REQUEST, 'At least one filter parameter is required (id, correlationId, queueItemState, creationTime or modificationTime)');
   }
 
+  /** @param {{queueItem: any, report?: boolean, removeRecords?: boolean, removeIds?: boolean}} params */
   function createRecordReport({queueItem, report = true, removeRecords = true, removeIds = true}) {
 
     if (!report && !removeRecords && !removeIds) {
@@ -306,6 +328,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     }
   }
 
+  /** @param {any[]} records */
   function reportRecordStatuses(records) {
     const recordStatuses = records.reduce((allStatuses, record) => {
       logger.silly(`Handling record: ${JSON.stringify(record)}`);
@@ -330,6 +353,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     return recordStatuses;
   }
 
+  /** @param {any} queryParams */
   function validateQueryParams(queryParams) {
     logger.silly(`bulk/validateQueryParams: queryParams: ${JSON.stringify(queryParams)}`);
 
@@ -380,6 +404,10 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     throw new HttpError(httpStatus.BAD_REQUEST, 'Missing one or more mandatory query parameters. (pActiveLibrary, pOldNew or status)');
   }
 
+  /**
+   * @param {any} queryParams
+   * @param {boolean} noStream
+   */
   function validateAndGetOperationSettings(queryParams, noStream) {
 
     // NOTE: failOnError currently works on for splitting streamBulk stream to records, not for other validations
@@ -424,6 +452,10 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     return operationSettings;
   }
 
+  /**
+   * @param {string} id
+   * @param {any} paramsId
+   */
   function checkCataloger(id, paramsId) {
     if (paramsId !== undefined && paramsId !== 'undefined' && paramsId !== '0' && paramsId !== 'false') {
       logger.debug(`Using cataloger given in parameters.`);

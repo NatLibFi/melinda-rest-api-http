@@ -6,13 +6,13 @@ import assert from 'node:assert/strict';
 // before the dynamic import, the same way the sibling config tests do.
 // Only one import is needed: none of the tested behaviors depend on the
 // env values themselves.
-process.env.ALEPH_X_SVC_URL = 'http://xservice.test';
+process.env['ALEPH_X_SVC_URL'] = 'http://xservice.test';
 // Shaped to dodge the njsscan node_api_key rule; value is dummy test data
-process.env.ALEPH_USER_LIBRARY = ['FIN', '01'].join('');
-process.env.OWN_AUTHZ_URL = 'http://authz.test';
+process.env['ALEPH_USER_LIBRARY'] = ['FIN', '01'].join('');
+process.env['OWN_AUTHZ_URL'] = 'http://authz.test';
 // Built from parts so secret scanners do not flag a hardcoded key.
-process.env.OWN_AUTHZ_API_KEY = ['test', 'key'].join('-');
-process.env.SRU_URL = 'http://sru.test';
+process.env['OWN_AUTHZ_API_KEY'] = ['test', 'key'].join('-');
+process.env['SRU_URL'] = 'http://sru.test';
 
 const {
   authorizeKVPOnly,
@@ -26,20 +26,22 @@ const UUID_V4 = '123e4567-e89b-42d3-a456-426614174000';
 const UUID_V1 = '123e4567-e89b-12d3-a456-426614174000';
 
 // Plain mock middleware plumbing; res supports both send() and json().
+/** @param {any} middleware @param {any} [req] */
 function run(middleware, req = {}) {
   req.headers = req.headers ?? {};
   req.params = req.params ?? {};
+  /** @type {any} */
   const res = {
     statusCode: null,
     body: null,
-    status(code) {
+    status(/** @type {number} */code) {
       this.statusCode = code;
       return this;
     },
-    send(body) {
+    send(/** @type {any} */body) {
       this.body = body;
     },
-    json(body) {
+    json(/** @type {any} */body) {
       this.body = body;
     }
   };
@@ -51,12 +53,14 @@ function run(middleware, req = {}) {
   return {nextCalled, res};
 }
 
+/** @param {any} result @param {any} body */
 function assertForbidden(result, body) {
   assert.equal(result.nextCalled, false);
   assert.equal(result.res.statusCode, 403);
   assert.equal(result.res.body, body);
 }
 
+/** @param {any} result @param {any} body */
 function assertUnsupported(result, body) {
   assert.equal(result.nextCalled, false);
   assert.equal(result.res.statusCode, 415);
@@ -124,7 +128,7 @@ describe('sanitizeCataloger', () => {
   it('throws HttpError 403 when a non-KVP user passes a different cataloger', () => {
     assert.throws(
       () => sanitizeCataloger(nonKvpUser, 'OTHER_ID'),
-      (err) => {
+      (/** @type {any} */err) => {
         assert.equal(err.status, 403);
         // melinda-commons Error is (status, payload): the message text is
         // carried in `payload`, not `message`.

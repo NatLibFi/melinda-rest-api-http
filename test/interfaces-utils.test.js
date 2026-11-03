@@ -63,8 +63,8 @@ describe('generateQuery', () => {
         {creationTime: {$lte: new Date(VALID_ISO_END)}}
       ]
     });
-    assert.ok(query.$and[0].creationTime.$gte instanceof Date);
-    assert.ok(query.$and[1].creationTime.$lte instanceof Date);
+    assert.ok(/** @type {any} */(query).$and[0].creationTime.$gte instanceof Date);
+    assert.ok(/** @type {any} */(query).$and[1].creationTime.$lte instanceof Date);
   });
 
   it('two-element modificationTime JSON array becomes $and with $gte/$lte Date values', () => {
@@ -185,6 +185,6 @@ describe('generateShowParams (active export)', () => {
       showRecordLoadParams: false,
       showImportJobState: false
     });
-    assert.equal(generateShowParams({showRecordLoadParams: '1'}).showRecordLoadParams, true);
+    assert.equal(generateShowParams({showRecordLoadParams: '1'})['showRecordLoadParams'], true);
   });
 });

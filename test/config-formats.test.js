@@ -21,9 +21,9 @@ const {getFixture} = fixturesFactory({
 
 // Every env var config.js consults; all are deleted at top level so this
 // file does not inherit the surrounding environment.
-const trackedVars = getFixture('tracked-vars.json');
-const mandatoryEnv = getFixture('mandatory-env.json');
-const envFormatsTrue = getFixture('env-formats-true.json');
+const trackedVars = /** @type {string[]} */(getFixture('tracked-vars.json'));
+const mandatoryEnv = /** @type {Record<string, string>} */(getFixture('mandatory-env.json'));
+const envFormatsTrue = /** @type {Record<string, string>} */(getFixture('env-formats-true.json'));
 
 for (const key of trackedVars) {
   delete process.env[key];
