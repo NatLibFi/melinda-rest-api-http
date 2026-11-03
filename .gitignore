@@ -6,3 +6,5 @@ dist
 .vscode
 .env*
 tmp/
+workspace/
+.issues/

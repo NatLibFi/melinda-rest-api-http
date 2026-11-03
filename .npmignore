@@ -1,0 +1,3 @@
+# .npmignore overrides .gitignore for npm pack - keep private dirs out of the package
+workspace/
+.issues/
