@@ -31,7 +31,7 @@
 		"watch:test": "cross-env DEBUG=@natlibfi/* LOG_LEVEL=debug NODE_ENV=test node --watch --test --experimental-test-module-mocks --experimental-test-coverage --test-reporter=spec './test/*.test.ts' './test/**/*.test.ts'",
 		"dev": "npm run watch:test",
 		"prod": "NODE_ENV=production npm run build && npm run start",
-		"build": "esbuild \"src/**/*.js\" --sourcemap --platform=node --outdir=dist && cp src/api.json dist && cp src/api.yaml dist"
+		"build": "rm -rf dist && tsc && cp src/api.json dist && cp src/api.yaml dist"
 	},
 	"dependencies": {
 		"@natlibfi/marc-record-serializers": "^11.0.3",
@@ -40,7 +40,6 @@
 		"@natlibfi/passport-melinda-aleph": "^4.0.1",
 		"@natlibfi/sru-client": "^7.0.1",
 		"body-parser": "^2.2.2",
-		"esbuild": "^0.28.0",
 		"express": "^4.22.2",
 		"http-status": "^2.1.0",
 		"ip-range-check": "^0.2.0",

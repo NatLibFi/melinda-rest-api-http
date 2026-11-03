@@ -41,12 +41,8 @@ export default defineConfig(
     ...tseslint.configs.recommended,
     ...tseslint.configs.stylistic,
     {
-      // Hybrid .js -> .ts period: both file types are linted until the
-      // conversion pass renames the sources.
       files: [
-        "src/**/*.js",
         "src/**/*.ts",
-        "test/**/*.js",
         "test/**/*.ts"
       ],
       ignores: ['node_modules/**', "**/.*", "**/dist/"],
@@ -61,7 +57,6 @@ export default defineConfig(
       // stubs are intentional in tests (tsc -p tsconfig.test.json still
       // typechecks the directory).
       files: [
-        "test/**/*.js",
         "test/**/*.ts"
       ],
       rules: {
