@@ -3,6 +3,7 @@ import assert from 'node:assert';
 import {spawn} from 'node:child_process';
 import net from 'node:net';
 import path from 'node:path';
+import type {FixuraMongo} from '@natlibfi/fixura-mongo';
 import mongoFixturesFactory from '@natlibfi/fixura-mongo';
 
 const INDEX_PATH = path.join(import.meta.dirname, '..', 'src', 'index.ts');
@@ -39,8 +40,8 @@ mock.module('amqplib', {
     default: {
       connect: () => Promise.resolve({
         createChannel: () => Promise.resolve({
-          assertQueue: async (/** @type {string} */name) => ({queue: name, messageCount: 0}),
-          checkQueue: async (/** @type {string} */name) => ({queue: name, messageCount: 0}),
+          assertQueue: async (name: string) => ({queue: name, messageCount: 0}),
+          checkQueue: async (name: string) => ({queue: name, messageCount: 0}),
           get: async () => false,
           sendToQueue: async () => true,
           ack: () => {},
@@ -55,8 +56,7 @@ mock.module('amqplib', {
 });
 
 describe('index (in-process: module entry wiring)', () => {
-  /** @type {any} */
-  let mongoFixtures;
+  let mongoFixtures: FixuraMongo;
 
   before(async () => {
     // fixura-mongo provides only the in-memory mongod lifecycle (getUri,
@@ -89,8 +89,7 @@ describe('index (in-process: module entry wiring)', () => {
   });
 });
 
-/** @param {string} url @param {number} timeoutMs */
-async function waitForServer(url, timeoutMs) {
+async function waitForServer(url: string, timeoutMs: number) {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     try {
@@ -122,18 +121,17 @@ const BASE_ENV = {
 // Runs src/index.js in a subprocess and resolves with its exit code and
 // combined output. Optionally kills the child after a delay so signal
 // handlers can be exercised while the app startup is still pending.
-/**
- * @param {Record<string, string>} env
- * @param {{signalAfterMs?: number | null, signal?: NodeJS.Signals | null}} [opts]
- */
-const runIndex = (env, {signalAfterMs = null, signal = null} = {}) =>
-  new Promise((resolve, reject) => {
+const runIndex = (env: Record<string, string>, {
+  signalAfterMs = null,
+  signal = null
+}: {signalAfterMs?: number | null, signal?: NodeJS.Signals | null} = {}) =>
+  new Promise<{exitCode: number | null, output: string}>((resolve, reject) => {
     const child = spawn(process.execPath, [INDEX_PATH], {env: {...process.env, ...env}});
     let output = '';
     child.stdout.on('data', (chunk) => {output += chunk;});
     child.stderr.on('data', (chunk) => {output += chunk;});
     if (signalAfterMs) {
-      const timer = setTimeout(() => child.kill(/** @type {NodeJS.Signals} */(signal)), signalAfterMs);
+      const timer = setTimeout(() => child.kill(signal as NodeJS.Signals), signalAfterMs);
       timer.unref();
     }
     // Hard-kill safety net: no test may ever orphan a child. Unref'd so it
@@ -153,23 +151,21 @@ describe('index (subprocess: signal and rejection paths)', () => {
   // A dumb TCP socket that accepts but never answers: the mongo client and
   // amqplib both hang on their protocol handshakes, keeping the child alive
   // long enough for the signal handlers to be exercised.
-  /** @type {any} */
-  let socketServer;
-  /** @type {any} */
-  let hangingPort;
+  let socketServer: net.Server;
+  let hangingPort: number;
   // Sockets are tracked and destroyed in the after hook: the children's
   // sockets linger in CLOSE_WAIT on the server side after a child exits, and
   // server.close() would wait for them forever (net.Server has no
   // closeAllConnections, unlike http.Server).
-  const openSockets = new Set();
+  const openSockets = new Set<net.Socket>();
 
   before(async () => {
     socketServer = net.createServer((socket) => {
       openSockets.add(socket);
       socket.on('close', () => openSockets.delete(socket));
     });
-    await new Promise((resolve) => socketServer.listen(0, '127.0.0.1', resolve));
-    hangingPort = socketServer.address().port;
+    await new Promise<void>((resolve) => socketServer.listen(0, '127.0.0.1', resolve));
+    hangingPort = (socketServer.address() as {port: number}).port;
   });
   after(() => new Promise((resolve) => {
     for (const socket of openSockets) {

@@ -5,6 +5,7 @@ import {MongoClient, GridFSBucket} from 'mongodb';
 import {READERS} from '@natlibfi/fixura';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import generateTests from '@natlibfi/fixugen';
+import type {FixuraMongo} from '@natlibfi/fixura-mongo';
 import mongoFixturesFactory from '@natlibfi/fixura-mongo';
 
 // bulk.js pulls in src/config.js, which reads the mandatory environment
@@ -33,8 +34,7 @@ process.env['SRU_URL'] ??= 'https://sru.example/';
 // so amqpFactory's health check loop repeatedly asserts 'HEALTHCHECK'.
 // Every other channel method throws, so any service-level AMQP traffic in
 // the tests below fails loudly (checked again in the `after` hook).
-/** @type {any[]} */
-const amqpCalls = [];
+const amqpCalls: any[] = [];
 
 function makeFakeChannel() {
   return new Proxy({}, {
@@ -50,8 +50,7 @@ function makeFakeChannel() {
         return () => 'FakeAmqpChannel';
       }
       if (prop === 'assertQueue') {
-        /** @param {any} queue */
-        return (queue) => {
+        return (queue: any) => {
           amqpCalls.push(['assertQueue', queue]);
           if (queue !== 'HEALTHCHECK') {
             throw new Error(`Unexpected AMQP traffic: assertQueue('${queue}')`);
@@ -69,7 +68,7 @@ function makeFakeChannel() {
 mock.module('amqplib', {
   exports: {
     default: {
-      connect: (/** @type {string} */url) => {
+      connect: (url: string) => {
         amqpCalls.push(['connect', url]);
         return Promise.resolve({
           createChannel: () => Promise.resolve(makeFakeChannel())
@@ -92,13 +91,11 @@ const DB_NAME = 'rest-api';
 const COLLECTION = 'bulk';
 const BUCKET = 'bulk';
 
-/** @type {any} */
-let mongoFixtures;
-/** @type {any} */
-let client;
+let mongoFixtures: FixuraMongo;
+let client: MongoClient;
 
 generateTests({
-  callback: /** @type {any} */(callback),
+  callback,
   path: [import.meta.dirname, '..', 'test-fixtures', 'bulk'],
   recurse: false,
   useMetadataFile: true,
@@ -132,23 +129,23 @@ generateTests({
   }
 });
 
-/** @param {any} params */
-async function callback({
-  getFixture,
-  functionName,
-  params,
-  allowedLibs = [],
-  preFillDb = false,
-  gridFs = false,
-  expectNoGridFsFiles = false,
-  expectError = false,
-  expectedErrorStatus = '',
-  expectedErrorMessage = '',
-  expectedErrorMessageFromPayload = false,
-  expectedErrorMessagePrefix = '',
-  stream = false,
-  expectItemRemains = false
-}) {
+async function callback(fixtureParams: Record<string, any>): Promise<void> {
+  const {
+    getFixture,
+    functionName,
+    params,
+    allowedLibs = [],
+    preFillDb = false,
+    gridFs = false,
+    expectNoGridFsFiles = false,
+    expectError = false,
+    expectedErrorStatus = '',
+    expectedErrorMessage = '',
+    expectedErrorMessageFromPayload = false,
+    expectedErrorMessagePrefix = '',
+    stream = false,
+    expectItemRemains = false
+  } = fixtureParams;
   const {default: createBulkService} = await import('../src/interfaces/bulk.ts');
   const service = await createBulkService({
     mongoUri: await mongoFixtures.getUri(),
@@ -213,7 +210,7 @@ async function callback({
   if (functionName === 'readContent') {
     if (params === null) {
       // readContent without a correlationId throws synchronously
-      return assert.throws(() => service.readContent(), (error) => {
+      return assert.throws(() => service.readContent(), (error: any) => {
         assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
         assert.equal(error.status, 400);
         return true;
@@ -236,7 +233,7 @@ async function callback({
   if (functionName === 'remove') {
     if (!params || !params.correlationId) {
       // remove without a correlationId throws synchronously
-      return assert.throws(() => service.remove(params), (error) => {
+      return assert.throws(() => service.remove(params), (error: any) => {
         assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
         assert.equal(error.status, 400);
         return true;
@@ -294,10 +291,10 @@ async function callback({
       // only assert the stable prefix
       return assert.rejects(
         async () => callCreate(),
-        (/** @type {any} */error) => {
+        (error: any) => {
           assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
           assert.equal(error.status, expectedErrorStatus);
-          const message = /** @type {any} */(error.payload) || error.message;
+          const message = (error as any).payload || error.message;
           assert.ok(message.startsWith(expectedErrorMessagePrefix),
             `expected message to start with '${expectedErrorMessagePrefix}', got: ${message}`);
           return true;
@@ -306,8 +303,7 @@ async function callback({
     }
     const result = await callCreate();
     const expected = getFixture('expectedResult.json');
-    /** @type {any} */
-    const actual = {correlationId: result.correlationId, queueItemState: result.queueItemState};
+    const actual: any = {correlationId: result.correlationId, queueItemState: result.queueItemState};
     // the noStream path returns a two-field result; the stream path returns
     // the updated queueItem document (blobSize and more)
     if ('blobSize' in expected) {
@@ -333,7 +329,7 @@ async function callback({
     // true); the throw-on-traffic fake channel proves no AMQP is touched
     if (!params || !params.correlationId) {
       // removeContent without a correlationId throws synchronously
-      return assert.throws(() => service.removeContent(params || {}), (error) => {
+      return assert.throws(() => service.removeContent(params || {}), (error: any) => {
         assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
         assert.equal(error.status, 400);
         return true;
@@ -355,25 +351,22 @@ async function callback({
   throw new Error(`Unknown functionName: ${functionName}`);
 }
 
-/**
- * @param {() => any} promiseOrThunk
- * @param {{expectedErrorStatus?: string, expectedErrorMessage?: string, expectedErrorMessageFromPayload?: boolean}} opts
- */
-function expectServiceError(promiseOrThunk, {
+function expectServiceError(promiseOrThunk: () => unknown, {
   expectedErrorStatus,
   expectedErrorMessage,
   expectedErrorMessageFromPayload = false
-}) {
+}: {expectedErrorStatus?: string, expectedErrorMessage?: string, expectedErrorMessageFromPayload?: boolean}) {
   // The async wrapper turns a synchronous throw into a rejection, so both
   // async and sync-throwing service methods go through the same validation.
   return assert.rejects(
     async () => promiseOrThunk(),
-    (/** @type {any} */error) => {
+    (error: any) => {
       assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
       assert.equal(error.status, expectedErrorStatus);
+      const payload: any = (error as any).payload;
       const message = expectedErrorMessageFromPayload
-        ? /** @type {any} */(error.payload).message
-        : (/** @type {any} */(error.payload) || error.message);
+        ? payload.message
+        : (payload || error.message);
       assert.equal(message, expectedErrorMessage);
       return true;
     }
@@ -397,9 +390,8 @@ async function clearBulk() {
 // the JSON fixtures become real Dates. dbContents.json is keyed by
 // collection name, like in the fixura-mongo template; only the bulk
 // collection is used by this service.
-/** @param {{bulk: any[]}} params */
-async function populateBulk({bulk}) {
-  const formatted = bulk.map((/** @type {any} */doc) => ({
+async function populateBulk({bulk}: {bulk: any[]}) {
+  const formatted = bulk.map((doc) => ({
     ...doc,
     creationTime: new Date(doc.creationTime),
     modificationTime: new Date(doc.modificationTime)
@@ -407,8 +399,7 @@ async function populateBulk({bulk}) {
   await bulkCollection().insertMany(formatted);
 }
 
-/** @param {any[]} files */
-async function uploadGridFsFiles(files) {
+async function uploadGridFsFiles(files: any[]) {
   for (const file of files) {
     const uploadStream = gridFsBucket().openUploadStream(file.filename);
     await new Promise((resolve, reject) => {
@@ -423,13 +414,12 @@ async function uploadGridFsFiles(files) {
 // ISO strings so they can be compared with the plain strings in the fixtures.
 async function dumpBulk() {
   const docs = await bulkCollection().find({}, {projection: {_id: 0}}).toArray();
-  return /** @type {any[]} */(docs.map((/** @type {any} */doc) => normalizeDoc(doc)));
+  return docs.map((doc) => normalizeDoc(doc));
 }
 
 // The default createProjection keeps only the base fields, so a plain query
 // result carries Dates only on the top-level time fields
-/** @param {any} doc */
-function normalizeDoc(doc) {
+function normalizeDoc(doc: any) {
   const fixed = {...doc};
   delete fixed._id;
   if (fixed.creationTime instanceof Date) {
@@ -444,12 +434,11 @@ function normalizeDoc(doc) {
 // doQuery results are arrays of query items; in report-only mode each item
 // is the shape {queueItem, recordReport} (see the NOTE below), so the
 // nested queueItem needs the same normalization
-/** @param {any} result */
-function normalizeResult(result) {
+function normalizeResult(result: any) {
   if (!Array.isArray(result)) {
     return result;
   }
-  return /** @type {any[]} */(result.map((/** @type {any} */item) => {
+  return result.map((item) => {
     if (item && typeof item === 'object' && item.queueItem && item.recordReport) {
       return {
         ...normalizeDoc(item),
@@ -457,11 +446,10 @@ function normalizeResult(result) {
       };
     }
     return normalizeDoc(item);
-  }));
+  });
 }
 
-/** @param {any} stream */
-async function collectStream(stream) {
+async function collectStream(stream: any) {
   const chunks = [];
   for await (const chunk of stream) {
     chunks.push(chunk);
@@ -471,13 +459,11 @@ async function collectStream(stream) {
 
 // The service create receives the request body stream; in the tests the
 // fixture's base64 content stands in for it
-/** @param {any} file */
-function createStreamFixture(file) {
+function createStreamFixture(file: any) {
   return Readable.from([Buffer.from(file.contentBase64, 'base64')]);
 }
 
-/** @param {string} filename */
-async function readGridFsFile(filename) {
+async function readGridFsFile(filename: string) {
   const [file] = await gridFsBucket()
     .find({filename})
     .toArray();
