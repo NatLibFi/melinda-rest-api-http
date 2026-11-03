@@ -23,14 +23,15 @@
 	"scripts": {
 		"prepare": "npm run build",
 		"start": "node ./dist/index.js",
-		"lint": "eslint ./src",
-		"lint:dev": "eslint --fix src",
-		"test": "npm run lint && npm run test:base",
-		"test:base": "node --test --test-force-exit --experimental-test-module-mocks --experimental-test-coverage --test-coverage-lines=88 --test-coverage-branches=88 --test-coverage-functions=90 --test-coverage-include=src/** --test-reporter=spec './test/*.test.js' './test/**/*.test.js'",
-		"watch:test": "cross-env DEBUG=@natlibfi/* LOG_LEVEL=debug NODE_ENV=test node --watch --test --experimental-test-module-mocks --experimental-test-coverage --test-reporter=spec './test/*.test.js' './test/**/*.test.js'",
+		"lint": "eslint ./src ./test",
+		"lint:dev": "eslint --fix ./src ./test",
+		"typecheck": "tsc -p tsconfig.test.json",
+		"test": "npm run lint && npm run typecheck && npm run test:base",
+		"test:base": "node --test --test-force-exit --experimental-test-module-mocks --experimental-test-coverage --test-coverage-lines=88 --test-coverage-branches=88 --test-coverage-functions=90 --test-coverage-include=src/** --test-reporter=spec './test/*.test.ts' './test/**/*.test.ts'",
+		"watch:test": "cross-env DEBUG=@natlibfi/* LOG_LEVEL=debug NODE_ENV=test node --watch --test --experimental-test-module-mocks --experimental-test-coverage --test-reporter=spec './test/*.test.ts' './test/**/*.test.ts'",
 		"dev": "npm run watch:test",
 		"prod": "NODE_ENV=production npm run build && npm run start",
-		"build": "esbuild \"src/**/*.js\" --sourcemap --platform=node --outdir=dist && cp src/api.json dist && cp src/api.yaml dist"
+		"build": "rm -rf dist && tsc && cp src/api.json dist && cp src/api.yaml dist"
 	},
 	"dependencies": {
 		"@natlibfi/marc-record-serializers": "^11.0.3",
@@ -39,7 +40,6 @@
 		"@natlibfi/passport-melinda-aleph": "^4.0.1",
 		"@natlibfi/sru-client": "^7.0.1",
 		"body-parser": "^2.2.2",
-		"esbuild": "^0.28.0",
 		"express": "^4.22.2",
 		"http-status": "^2.1.0",
 		"ip-range-check": "^0.2.0",
@@ -53,8 +53,17 @@
 		"@natlibfi/fixugen-http-server": "^3.0.0",
 		"@natlibfi/fixura": "^5.0.0",
 		"@natlibfi/fixura-mongo": "^4.0.2",
+		"@types/body-parser": "^1.19.6",
+		"@types/express": "^4.17.25",
+		"@types/mongo-sanitize": "^1.0.3",
+		"@types/node": "^25.9.9",
+		"@types/passport": "^1.0.17",
+		"@types/passport-http": "^0.3.11",
 		"cross-env": "^10.1.0",
-		"eslint": "^10.4.0"
+		"eslint": "^10.4.0",
+		"jiti": "^2.7.0",
+		"typescript": "^6.0.3",
+		"typescript-eslint": "^8.72.1"
 	},
 	"overrides": {
 		"nanoid": "^3.3.8",
