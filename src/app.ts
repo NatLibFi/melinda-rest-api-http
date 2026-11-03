@@ -53,8 +53,13 @@ export default async function ({
   async function initExpress() {
     const app = express();
 
+    // Express 5 changed the default query parser from 'extended' (qs) to 'simple';
+    // pin 'extended' to keep the Express 4 query behavior (bracketed keys nested,
+    // repeated keys as arrays, bracketed JSON-array strings passed through as-is)
+    app.set('query parser', 'extended');
+
     app.disable('x-powered-by'); // Security
-    // @ts-expect-error Express 4's app.enable() only takes one argument, so this extra arg is dead code at runtime (latent bug: trust proxy is always enabled); keeping the call as-is until the behavior question is decided
+    // @ts-expect-error app.enable() only takes one argument, so this extra arg is dead code at runtime (latent bug: trust proxy is always enabled); keeping the call as-is until the behavior question is decided
     app.enable('trust proxy', Boolean(enableProxy));
 
     app.use(createExpressLogger());
@@ -115,7 +120,11 @@ export default async function ({
           return res.sendStatus(status);
         }
 
-        if (req.aborted) {
+        // Express 5 removed req.aborted (which tracked the socket); the modern equivalent is
+        // req.socket.destroyed. Note: req.destroyed is NOT equivalent - it is the request
+        // stream state, which is true once the request body has been consumed, even when
+        // the client is still connected.
+        if (req.socket.destroyed) {
           logger.debug('Responding timeout');
           return res.status(httpStatus.REQUEST_TIMEOUT).send(httpStatus['504_MESSAGE']);
         }
