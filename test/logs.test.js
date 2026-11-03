@@ -16,11 +16,13 @@ import createLogsService from '../src/interfaces/logs.js';
 const DB_NAME = 'rest-api';
 const COLLECTION = 'logs';
 
+/** @type {any} */
 let mongoFixtures;
+/** @type {any} */
 let client;
 
 generateTests({
-  callback,
+  callback: /** @type {any} */(callback),
   path: [import.meta.dirname, '..', 'test-fixtures', 'logs'],
   recurse: false,
   useMetadataFile: true,
@@ -44,6 +46,7 @@ generateTests({
   }
 });
 
+/** @param {any} params */
 async function callback({
   getFixture,
   functionName,
@@ -76,7 +79,7 @@ async function callback({
   if (['getListOfCatalogers', 'getListOfCorrelationIds', 'getListOfLogs'].includes(functionName)) {
     // params null means "no argument": the service method's default applies
     // (e.g. getListOfLogs defaults to MERGE_LOG)
-    const result = params === null ? await service[functionName]() : await service[functionName](params);
+    const result = params === null ? await /** @type {any} */(service)[functionName]() : await /** @type {any} */(service)[functionName](params);
     // distinct() does not guarantee result order, so compare sorted
     return assert.deepStrictEqual([...result].sort(), [...getFixture('expectedResult.json')].sort());
   }
@@ -92,7 +95,7 @@ async function callback({
     const result = await service.getExpandedListOfLogs(params);
     // expanded on: aggregate returns docs with creationTime as a BSON Date;
     // expanded off: falls back to the plain distinct list of correlationIds
-    const normalized = result.map((doc) => {
+    const normalized = result.map((/** @type {any} */doc) => {
       if (doc && typeof doc === 'object' && doc.creationTime instanceof Date) {
         return {...doc, creationTime: doc.creationTime.toISOString()};
       }
@@ -105,7 +108,7 @@ async function callback({
     const [correlationId, blobSequence] = params;
     const result = await service.protectLog(correlationId, blobSequence);
     assert.deepStrictEqual(result, getFixture('expectedResult.json'));
-    const remaining = (await dumpLogs()).map(doc => {
+    const remaining = (await dumpLogs()).map((/** @type {any} */doc) => {
       const fixed = {...doc};
       // protect() sets modificationTime to the current time, so it can't be
       // compared against a static fixture
@@ -125,12 +128,16 @@ async function callback({
   throw new Error(`Unknown functionName: ${functionName}`);
 }
 
+/**
+ * @param {() => any} promiseOrThunk
+ * @param {{expectedErrorStatus?: string, expectedErrorMessage?: string}} opts
+ */
 function expectServiceError(promiseOrThunk, {expectedErrorStatus, expectedErrorMessage}) {
   // The async wrapper turns a synchronous throw into a rejection, so both
   // async and sync-throwing service methods go through the same validation.
   return assert.rejects(
     async () => promiseOrThunk(),
-    (error) => {
+    (/** @type {any} */error) => {
       assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
       assert.equal(error.status, expectedErrorStatus);
       assert.equal(error.payload || error.message, expectedErrorMessage);
@@ -151,8 +158,9 @@ async function clearLogs() {
 // the JSON fixtures become real Dates, matching what addLogItem writes.
 // dbContents.json is keyed by collection name, like in the fixura-mongo
 // template; only the logs collection is used by this service.
+/** @param {{logs: any[]}} params */
 async function populateLogs({logs}) {
-  const formatted = logs.map(doc => ({
+  const formatted = logs.map((/** @type {any} */doc) => ({
     ...doc,
     creationTime: new Date(doc.creationTime),
     ...(doc.modificationTime ? {modificationTime: new Date(doc.modificationTime)} : {})
@@ -167,8 +175,12 @@ async function dumpLogs() {
   return normalizeDocs(docs);
 }
 
+/**
+ * @param {any[]} docs
+ * @returns {any[]}
+ */
 function normalizeDocs(docs) {
-  return docs.map(doc => {
+  return /** @type {any[]} */(docs.map((/** @type {any} */doc) => {
     const fixed = {...doc};
     delete fixed._id;
     if (fixed.creationTime instanceof Date) {
@@ -178,5 +190,5 @@ function normalizeDocs(docs) {
       fixed.modificationTime = fixed.modificationTime.toISOString();
     }
     return fixed;
-  });
+  }));
 }

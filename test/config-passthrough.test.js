@@ -20,9 +20,9 @@ const {getFixture} = fixturesFactory({
 
 // Every env var config.js consults; all are deleted at top level so this
 // file does not inherit the surrounding environment.
-const trackedVars = getFixture('tracked-vars.json');
-const mandatoryEnv = getFixture('mandatory-env.json');
-const envPassthrough = getFixture('env-passthrough.json');
+const trackedVars = /** @type {string[]} */(getFixture('tracked-vars.json'));
+const mandatoryEnv = /** @type {Record<string, string>} */(getFixture('mandatory-env.json'));
+const envPassthrough = /** @type {Record<string, string>} */(getFixture('env-passthrough.json'));
 
 for (const key of trackedVars) {
   delete process.env[key];
@@ -33,11 +33,11 @@ const config = await import('../src/config.js');
 
 describe('config.js value formats', () => {
   it('plain string vars pass the env value through unchanged', () => {
-    assert.equal(config.httpPort, envPassthrough.HTTP_PORT);
-    assert.equal(config.amqpUrl, envPassthrough.AMQP_URL);
-    assert.equal(config.mongoUri, envPassthrough.MONGO_URI);
-    assert.equal(config.recordType, envPassthrough.RECORD_TYPE);
-    assert.equal(config.DEFAULT_ACCEPT, envPassthrough.DEFAULT_ACCEPT);
+    assert.equal(config.httpPort, envPassthrough['HTTP_PORT']);
+    assert.equal(config.amqpUrl, envPassthrough['AMQP_URL']);
+    assert.equal(config.mongoUri, envPassthrough['MONGO_URI']);
+    assert.equal(config.recordType, envPassthrough['RECORD_TYPE']);
+    assert.equal(config.DEFAULT_ACCEPT, envPassthrough['DEFAULT_ACCEPT']);
   });
 
   // NOTE (suspected bug, asserted as actual behavior, NOT fixed here):
@@ -46,10 +46,10 @@ describe('config.js value formats', () => {
   // parsed into an array. Consumers expecting an array would break on any
   // deployment that sets these vars.
   it('FIX_TYPES env value passes through as a raw string (no format hook)', () => {
-    assert.equal(config.fixTypes, envPassthrough.FIX_TYPES);
+    assert.equal(config.fixTypes, envPassthrough['FIX_TYPES']);
   });
 
   it('ALLOWED_LIBS env value passes through as a raw string (no format hook)', () => {
-    assert.equal(config.allowedLibs, envPassthrough.ALLOWED_LIBS);
+    assert.equal(config.allowedLibs, envPassthrough['ALLOWED_LIBS']);
   });
 });
