@@ -1,5 +1,5 @@
 {
-  "description": "Bulk query: empty result 200; invalid query param -> 400",
+  "description": "Bulk query: unfiltered request -> 400; invalid query param -> 400; valid filter, empty result -> 200",
   "passport": "kvp",
   "requests": [
     {
