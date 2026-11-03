@@ -4,6 +4,7 @@ import {MongoClient} from 'mongodb';
 import {READERS} from '@natlibfi/fixura';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import generateTests from '@natlibfi/fixugen';
+import type {FixuraMongo} from '@natlibfi/fixura-mongo';
 import mongoFixturesFactory from '@natlibfi/fixura-mongo';
 
 // bulk.js pulls in src/config.js, which reads the mandatory environment
@@ -40,13 +41,10 @@ process.env['SRU_URL'] ??= 'https://sru.example/';
 //   - gatePublishes: every sendToQueue returns a promise that stays pending
 //     until the test releases it, to pin the unawaited-sends behavior of
 //     addRecords (the 201 resolves before the publishes settle)
-/** @type {any[]} */
-const amqpCalls = [];
-/** @type {any[]} */
-let publishes = [];
+const amqpCalls: any[] = [];
+let publishes: any[] = [];
 let settledPublishes = 0;
-/** @type {any[]} */
-let pendingReleases = [];
+let pendingReleases: (() => void)[] = [];
 let rejectNextSend = false;
 let gateSends = false;
 
@@ -64,8 +62,7 @@ function makeFakeChannel() {
         return () => 'FakeAmqpChannel';
       }
       if (prop === 'assertQueue') {
-        /** @param {any} queue */
-        return (queue) => {
+        return (queue: any) => {
           amqpCalls.push(['assertQueue', queue]);
           const isHealthCheck = queue === 'HEALTHCHECK';
           const isPublishQueue = typeof queue === 'string' && queue.startsWith('PENDING_VALIDATION.');
@@ -76,8 +73,7 @@ function makeFakeChannel() {
         };
       }
       if (prop === 'sendToQueue') {
-        /** @param {any} queue @param {any} content @param {any} options */
-        return (queue, content, options) => {
+        return (queue: any, content: any, options: any) => {
           publishes.push({
             queue,
             content: content.toString(),
@@ -90,7 +86,7 @@ function makeFakeChannel() {
             return Promise.reject(new Error('AMQP publish rejected by test'));
           }
           if (gateSends) {
-            return new Promise((/** @type {(value?: any) => void} */resolve) => {
+            return new Promise<void>((resolve) => {
               pendingReleases.push(() => {
                 settledPublishes += 1;
                 resolve();
@@ -111,7 +107,7 @@ function makeFakeChannel() {
 mock.module('amqplib', {
   exports: {
     default: {
-      connect: (/** @type {string} */url) => {
+      connect: (url: string) => {
         amqpCalls.push(['connect', url]);
         return Promise.resolve({
           createChannel: () => Promise.resolve(makeFakeChannel())
@@ -131,13 +127,11 @@ mock.module('amqplib', {
 const DB_NAME = 'rest-api';
 const COLLECTION = 'bulk';
 
-/** @type {any} */
-let mongoFixtures;
-/** @type {any} */
-let client;
+let mongoFixtures: FixuraMongo;
+let client: MongoClient;
 
 generateTests({
-  callback: /** @type {any} */(callback),
+  callback,
   path: [import.meta.dirname, '..', 'test-fixtures', 'bulk-amqp'],
   recurse: false,
   useMetadataFile: true,
@@ -147,9 +141,9 @@ generateTests({
   },
   hooks: {
     before: async () => {
-      mongoFixtures = /** @type {any} */(await mongoFixturesFactory({
+      mongoFixtures = await mongoFixturesFactory({
         rootPath: [import.meta.dirname, '..', 'test-fixtures', 'bulk-amqp']
-      }));
+      });
       client = await MongoClient.connect(await mongoFixtures.getUri());
     },
     beforeEach: async () => {
@@ -181,20 +175,20 @@ generateTests({
   }
 });
 
-/** @param {any} params */
-async function callback({
-  getFixture,
-  functionName,
-  params,
-  preFillDb = false,
-  expectError = false,
-  expectTypeError = false,
-  rejectPublish = false,
-  gatePublishes = false,
-  expectedErrorStatus = '',
-  expectedErrorMessage = '',
-  expectedBlobSize
-}) {
+async function callback(fixtureParams: Record<string, any>): Promise<void> {
+  const {
+    getFixture,
+    functionName,
+    params,
+    preFillDb = false,
+    expectError = false,
+    expectTypeError = false,
+    rejectPublish = false,
+    gatePublishes = false,
+    expectedErrorStatus = '',
+    expectedErrorMessage = '',
+    expectedBlobSize
+  } = fixtureParams;
   const {default: createBulkService} = await import('../src/interfaces/bulk.ts');
   const service = await createBulkService({
     mongoUri: await mongoFixtures.getUri(),
@@ -242,18 +236,17 @@ async function callback({
   throw new Error(`Unknown functionName: ${functionName}`);
 }
 
-/**
- * @param {any} service
- * @param {any} params
- * @param {{getFixture: any, expectError?: boolean, expectTypeError?: boolean, expectedErrorStatus?: string, expectedErrorMessage?: string, expectedBlobSize?: any}} caseOpts
- */
-async function addRecordCase(service, params, {
-  getFixture,
-  expectError,
-  expectTypeError,
-  expectedErrorMessage,
-  expectedBlobSize
-}) {
+async function addRecordCase(
+  service: any,
+  params: any,
+  {
+    getFixture,
+    expectError,
+    expectTypeError,
+    expectedErrorMessage,
+    expectedBlobSize
+  }: {getFixture: any, expectError?: boolean, expectTypeError?: boolean, expectedErrorStatus?: string, expectedErrorMessage?: string, expectedBlobSize?: any}
+) {
   if (expectTypeError) {
     // NOTE (suspected bug, asserted as actual behavior, NOT fixed): the
     // 415 (non-allowBulk contentType) branch of addRecord is unreachable:
@@ -273,7 +266,7 @@ async function addRecordCase(service, params, {
     // missing-data 400 is an HttpError whose text lives in .payload
     return assert.rejects(
       async () => service.addRecord(params),
-      (/** @type {any} */error) => {
+      (error: any) => {
         const message = error.payload ?? error.message;
         assert.equal(message, expectedErrorMessage);
         return true;
@@ -289,19 +282,18 @@ async function addRecordCase(service, params, {
   return assert.deepStrictEqual(publishes, getFixture('expectedPublishes.json'));
 }
 
-/**
- * @param {any} service
- * @param {any} params
- * @param {{getFixture: any, expectError?: boolean, expectedErrorStatus?: string, expectedErrorMessage?: string, expectedBlobSize?: any, gatePublishes?: boolean}} caseOpts
- */
-async function addRecordsCase(service, params, {
-  getFixture,
-  expectError,
-  expectedErrorStatus,
-  expectedErrorMessage,
-  expectedBlobSize,
-  gatePublishes
-}) {
+async function addRecordsCase(
+  service: any,
+  params: any,
+  {
+    getFixture,
+    expectError,
+    expectedErrorStatus,
+    expectedErrorMessage,
+    expectedBlobSize,
+    gatePublishes
+  }: {getFixture: any, expectError?: boolean, expectedErrorStatus?: string, expectedErrorMessage?: string, expectedBlobSize?: any, gatePublishes?: boolean}
+) {
   if (expectError) {
     return expectServiceError(async () => service.addRecords(params), {
       expectedErrorStatus,
@@ -329,7 +321,7 @@ async function addRecordsCase(service, params, {
   // Release the gated sends and flush the microtask queue before asserting
   // the recorded publishes (the sends only reach the fake channel on the
   // microtask following the queue assertion).
-  pendingReleases.forEach((/** @type {() => void} */release) => release());
+  pendingReleases.forEach((release) => release());
   pendingReleases = [];
   for (let i = 0; i < 50 && settledPublishes < publishes.length; i += 1) {
     await new Promise(setImmediate);
@@ -342,19 +334,15 @@ async function addRecordsCase(service, params, {
   return assert.deepStrictEqual(publishes, getFixture('expectedPublishes.json'));
 }
 
-/**
- * @param {() => any} promiseOrThunk
- * @param {{expectedErrorStatus?: string, expectedErrorMessage?: string}} opts
- */
-function expectServiceError(promiseOrThunk, {
+function expectServiceError(promiseOrThunk: () => unknown, {
   expectedErrorStatus,
   expectedErrorMessage
-}) {
+}: {expectedErrorStatus?: string, expectedErrorMessage?: string}) {
   // The async wrapper turns a synchronous throw into a rejection, so both
   // async and sync-throwing service methods go through the same validation.
   return assert.rejects(
     async () => promiseOrThunk(),
-    (/** @type {any} */error) => {
+    (error: any) => {
       assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
       assert.equal(error.status, expectedErrorStatus);
       const message = error.payload || error.message;
@@ -375,9 +363,8 @@ async function clearBulk() {
 // Store the fixture documents with the production shape: ISO strings from
 // the JSON fixtures become real Dates. dbContents.json is keyed by
 // collection name; only the bulk collection is used by this service.
-/** @param {{bulk: any[]}} params */
-async function populateBulk({bulk}) {
-  const formatted = bulk.map((/** @type {any} */doc) => ({
+async function populateBulk({bulk}: {bulk: any[]}) {
+  const formatted = bulk.map((doc) => ({
     ...doc,
     creationTime: new Date(doc.creationTime),
     modificationTime: new Date(doc.modificationTime)
@@ -388,11 +375,10 @@ async function populateBulk({bulk}) {
 // Fetch the documents without _id, converting BSON Dates back to ISO strings.
 async function dumpBulk() {
   const docs = await bulkCollection().find({}, {projection: {_id: 0}}).toArray();
-  return docs.map((/** @type {any} */doc) => normalizeDoc(doc));
+  return docs.map((doc) => normalizeDoc(doc));
 }
 
-/** @param {any} doc */
-function normalizeDoc(doc) {
+function normalizeDoc(doc: any) {
   const fixed = {...doc};
   delete fixed._id;
   if (fixed.creationTime instanceof Date) {

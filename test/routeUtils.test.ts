@@ -26,22 +26,20 @@ const UUID_V4 = '123e4567-e89b-42d3-a456-426614174000';
 const UUID_V1 = '123e4567-e89b-12d3-a456-426614174000';
 
 // Plain mock middleware plumbing; res supports both send() and json().
-/** @param {any} middleware @param {any} [req] */
-function run(middleware, req = {}) {
+function run(middleware: (req: any, res: any, next: any) => void, req: any = {}): {nextCalled: boolean, res: any} {
   req.headers = req.headers ?? {};
   req.params = req.params ?? {};
-  /** @type {any} */
-  const res = {
+  const res: any = {
     statusCode: null,
     body: null,
-    status(/** @type {number} */code) {
+    status(code: number) {
       this.statusCode = code;
       return this;
     },
-    send(/** @type {any} */body) {
+    send(body: any) {
       this.body = body;
     },
-    json(/** @type {any} */body) {
+    json(body: any) {
       this.body = body;
     }
   };
@@ -53,15 +51,13 @@ function run(middleware, req = {}) {
   return {nextCalled, res};
 }
 
-/** @param {any} result @param {any} body */
-function assertForbidden(result, body) {
+function assertForbidden(result: {nextCalled: boolean, res: any}, body: any) {
   assert.equal(result.nextCalled, false);
   assert.equal(result.res.statusCode, 403);
   assert.equal(result.res.body, body);
 }
 
-/** @param {any} result @param {any} body */
-function assertUnsupported(result, body) {
+function assertUnsupported(result: {nextCalled: boolean, res: any}, body: any) {
   assert.equal(result.nextCalled, false);
   assert.equal(result.res.statusCode, 415);
   assert.equal(result.res.body, body);
@@ -128,7 +124,7 @@ describe('sanitizeCataloger', () => {
   it('throws HttpError 403 when a non-KVP user passes a different cataloger', () => {
     assert.throws(
       () => sanitizeCataloger(nonKvpUser, 'OTHER_ID'),
-      (/** @type {any} */err) => {
+      (err: any) => {
         assert.equal(err.status, 403);
         // melinda-commons Error is (status, payload): the message text is
         // carried in `payload`, not `message`.
