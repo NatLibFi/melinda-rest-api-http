@@ -6,8 +6,27 @@ import {LOG_ITEM_TYPE} from '@natlibfi/melinda-rest-api-commons/dist/constants.j
 
 // import {inspect} from 'util';
 
-/** @param {{mongoUri: string}} config */
-export default async function ({mongoUri}) {
+export interface LogsQueryParams {
+  correlationId?: string;
+  id?: string;
+  logItemType?: string;
+  blobSequence?: string;
+  standardIdentifiers?: string;
+  databaseId?: string;
+  sourceIds?: string;
+  skip?: string;
+  limit?: string;
+}
+
+export interface ExpandedLogQueryParams {
+  expanded?: string | false;
+  logItemType?: string;
+  logItemTypes?: string | false;
+  catalogers?: string | false;
+  creationTime?: string | false;
+}
+
+export default async function ({mongoUri}: {mongoUri: string}) {
   const logger = createLogger();
   const mongoLogOperator = await mongoLogFactory(mongoUri);
 
@@ -17,8 +36,7 @@ export default async function ({mongoUri}) {
   // DEVELOP: currently return *one MERGE_LOG* for correlationId if such exists
   // getLogs reads *just* correlationId, and returns one MERGE_LOG for it
   // this is kinda useless
-  /** @param {{correlationId: string}} params */
-  async function getLogs(params) {
+  async function getLogs(params: {correlationId: string}) {
     logger.debug(`getLogs: params: ${JSON.stringify(params)}`);
     logger.debug(`Getting action logs for ${params.correlationId}`);
 
@@ -32,8 +50,7 @@ export default async function ({mongoUri}) {
     return {status: httpStatus.OK, payload: result};
   }
 
-  /** @param {any} incomingParams */
-  function doLogsQuery(incomingParams) {
+  function doLogsQuery(incomingParams: LogsQueryParams) {
     logger.debug(`Incoming params (JSON): ${JSON.stringify(incomingParams)}`);
     const params = generateLogQuery(incomingParams);
     logger.debug(`Params (JSON): ${JSON.stringify(params)}`);
@@ -56,17 +73,14 @@ export default async function ({mongoUri}) {
   }
 
   // default to MERGE_LOG if no logItemType is given
-  /**
-   * @param {{expanded?: string | false, logItemType?: string, logItemTypes?: string | false, catalogers?: string | false, creationTime?: string | false}} params
-   */
-  function getExpandedListOfLogs({expanded = 'false', logItemType = LOG_ITEM_TYPE.MERGE_LOG, logItemTypes = false, catalogers = false, creationTime = false}) {
-    const getExpanded = parseBoolean(/** @type {string} */(expanded));
+  function getExpandedListOfLogs({expanded = 'false', logItemType = LOG_ITEM_TYPE.MERGE_LOG, logItemTypes = false, catalogers = false, creationTime = false}: ExpandedLogQueryParams) {
+    const getExpanded = parseBoolean(expanded as string);
     logger.debug(`getExpandedListOfLogs`);
     if (getExpanded) {
       logger.debug(`Getting expanded list of logs`);
       const getLogItemTypes = logItemTypes ? logItemTypes.split(',') : [logItemType];
       const getCatalogers = catalogers ? catalogers.split(`,`) : undefined;
-      const creationTimeArray = creationTime ? JSON.parse(/** @type {string} */(creationTime)) : [];
+      const creationTimeArray = creationTime ? JSON.parse(creationTime as string) : [];
       const dateAfter = creationTimeArray[0] || '2000-01-01';
       const dateBefore = creationTimeArray[1] || new Date().toISOString();
       logger.debug(`logItemTypes: [${getLogItemTypes}], dateAfter: ${dateAfter}, dateBefore: ${dateBefore}}, catalogers: [${getCatalogers}]`);
@@ -81,18 +95,15 @@ export default async function ({mongoUri}) {
     throw new HttpError(httpStatus.BAD_REQUEST, 'Invalid logItemType');
   }
 
-  /** @param {string} correlationId @param {any} blobSequence */
-  function protectLog(correlationId, blobSequence) {
+  function protectLog(correlationId: string, blobSequence: unknown) {
     return mongoLogOperator.protect(correlationId, blobSequence);
   }
 
-  /** @param {string} correlationId @param {boolean} [force=false] */
-  function removeLog(correlationId, force = false) {
+  function removeLog(correlationId: string, force = false) {
     return mongoLogOperator.remove(correlationId, force);
   }
 
-  /** @param {any} queryParams */
-  function generateLogQuery(queryParams) {
+  function generateLogQuery(queryParams: LogsQueryParams) {
     logger.debug(`generateLogQuery: queryParams: ${JSON.stringify(queryParams)}`);
     const {
       correlationId: queryCorrelationId,

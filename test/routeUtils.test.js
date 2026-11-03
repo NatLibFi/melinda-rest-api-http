@@ -20,7 +20,7 @@ const {
   checkAcceptHeader,
   checkId,
   checkContentType
-} = await import('../src/routes/routeUtils.js');
+} = await import('../src/routes/routeUtils.ts');
 
 const UUID_V4 = '123e4567-e89b-42d3-a456-426614174000';
 const UUID_V1 = '123e4567-e89b-12d3-a456-426614174000';

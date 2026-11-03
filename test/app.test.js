@@ -262,7 +262,7 @@ async function callback({
     await uploadGridFsFiles(JSON.parse(getFixture(gridFsFiles)));
   }
 
-  const {default: startApp} = await import('../src/app.js');
+  const {default: startApp} = await import('../src/app.ts');
   const server = await startApp({
     httpPort: 1337,
     enableProxy: false,

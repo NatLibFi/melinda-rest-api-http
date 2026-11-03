@@ -2,24 +2,89 @@ import httpStatus from 'http-status';
 import {createLogger} from '@natlibfi/melinda-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 import {mongoFactory, amqpFactory, QUEUE_ITEM_STATE, OPERATIONS, CHUNK_SIZE} from '@natlibfi/melinda-rest-api-commons';
-import {CONTENT_TYPES} from '../config.js';
-import {generateQuery, generateShowParams} from './utils.js';
+import {CONTENT_TYPES} from '../config.ts';
+import {generateQuery, generateShowParams} from './utils.ts';
 // import {inspect} from 'util';
 
 /**
- * @param {{mongoUri: string, amqpUrl: string, allowedLibs: string[]}} config
+ * The operationSettings shape the bulk service hands to the validator:
+ * the union of what create() builds and what the routes send.
  */
-export default async function ({mongoUri, amqpUrl, allowedLibs}) {
+export interface OperationSettings {
+  noStream?: boolean;
+  noop?: boolean;
+  unique?: boolean | null;
+  merge?: boolean | null;
+  validate?: boolean | null;
+  skipLowValidation?: boolean | null;
+  failOnError?: boolean | null;
+  skipNoChangeUpdates?: boolean;
+  matchFailuresAsNew?: boolean | null;
+  prio?: boolean;
+  fixType?: string;
+}
+
+/**
+ * Flat view of the request query string as accepted by validateQueryParams.
+ * The index signature lets the (latent-bug) property references below keep
+ * resolving exactly as they did in the JS version.
+ */
+export interface BulkQueryParams {
+  pOldNew?: string;
+  pActiveLibrary?: string;
+  noStream?: string;
+  noop?: string;
+  unique?: string;
+  merge?: string;
+  validate?: string;
+  skipLowValidation?: string;
+  failOnError?: string;
+  skipNoChangeUpdates?: string;
+  matchFailuresAsNew?: string;
+  pRejectFile?: string;
+  pLogFile?: string;
+  pCatalogerIn?: string;
+  status?: string;
+  // Latent bug, kept as-is: validateAndGetOperationSettings reads this
+  // misspelled property, not skipLowValidation.
+  skipLowValidateLow?: string;
+  [key: string]: string | undefined;
+}
+
+/**
+ * The create-branch return of validateQueryParams (the updateState branch
+ * returns {state} instead).
+ */
+export interface BulkCreateQueryResult {
+  operation: string;
+  recordLoadParams: {
+    pActiveLibrary: string;
+    pOldNew: string;
+    pRejectFile: string | null;
+    pLogFile: string | null;
+    pCatalogerIn: string | null;
+  };
+  noStream: boolean;
+  operationSettings: OperationSettings;
+}
+
+export default async function ({mongoUri, amqpUrl, allowedLibs}: {mongoUri: string, amqpUrl: string, allowedLibs: string[]}) {
   const logger = createLogger();
   const mongoOperator = await mongoFactory(mongoUri, 'bulk');
   const amqpOperator = await amqpFactory(amqpUrl, true);
 
   return {create, addRecord, addRecords, getState, updateState, doQuery, readContent, remove, removeContent, validateQueryParams, checkCataloger};
 
-  /**
-   * @param {{correlationId: string, cataloger: any, oCatalogerIn: any, operation: string, contentType: any, recordLoadParams: any, operationSettings: any, stream: any}} params
-   */
-  async function create({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, operationSettings, stream}) {
+  async function create({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, operationSettings, stream}: {
+    correlationId: string;
+    cataloger: unknown;
+    oCatalogerIn: unknown;
+    operation: string;
+    contentType: string | undefined;
+    recordLoadParams: BulkCreateQueryResult['recordLoadParams'];
+    operationSettings: OperationSettings;
+    stream: unknown;
+  }) {
     const result = await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, operationSettings, prio: false});
     if (!stream) {
       logger.verbose(`NoStream bulk ready to receive records ${correlationId}!`);
@@ -40,8 +105,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
   }
 
   // DEVELOP: syncronize addRecord and addRecords
-  /** @param {{correlationId: string, contentType: any, data: any}} params */
-  async function addRecord({correlationId, contentType, data}) {
+  async function addRecord({correlationId, contentType, data}: {correlationId: string, contentType: string | undefined, data: unknown}) {
 
     // addBlobSize increases blobSize by 1 and returns the queueItem if there's a queueItem in state WAITING_FOR_RECORDS for correlationId
     const addBlobSizeResult = await mongoOperator.addBlobSize({correlationId});
@@ -55,7 +119,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     if (data) {
 
       const type = contentType;
-      const {conversionFormat} = /** @type {any} */(CONTENT_TYPES.find(({contentType, allowBulk}) => contentType === type && allowBulk === true));
+      const {conversionFormat} = (CONTENT_TYPES.find(({contentType, allowBulk}) => contentType === type && allowBulk === true)) as (typeof CONTENT_TYPES)[number];
 
       if (!conversionFormat) {
         throw new HttpError(httpStatus.UNSUPPORTED_MEDIA_TYPE, `Invalid content-type`);
@@ -77,8 +141,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
   }
 
   // DEVELOP: syncronize addRecord and addRecords
-  /** @param {{correlationId: string, contentType: any, data: any}} params */
-  async function addRecords({correlationId, contentType, data}) {
+  async function addRecords({correlationId, contentType, data}: {correlationId: string, contentType: string | undefined, data: string}) {
 
     if (!data) {
       throw new HttpError(httpStatus.BAD_REQUEST, 'No records.');
@@ -104,14 +167,14 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     const dataSize = dataArray.length;
     let currentSequence = blobSize;
 
-    dataArray.forEach(async (data) => {
+    dataArray.forEach(async (record) => {
       currentSequence += 1;
       const headers = {correlationId, operation, format: conversionFormat, cataloger, operationSettings, recordMetadata: {blobSequence: currentSequence}};
 
       logger.debug(`Adding record ${currentSequence} for ${correlationId}`);
 
       const queue = `${QUEUE_ITEM_STATE.VALIDATOR.PENDING_VALIDATION}.${correlationId}`;
-      await amqpOperator.sendToQueue({queue, correlationId, headers, data});
+      await amqpOperator.sendToQueue({queue, correlationId, headers, data: record});
     });
 
     const setBlobSizeResult = await mongoOperator.setBlobSize({correlationId, blobSize: currentSequence});
@@ -119,8 +182,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
 
     return {status: httpStatus.CREATED, payload: `Records (${dataSize}) have been added to bulk ${correlationId} that has currently ${currentSequence} records`};
 
-    /** @param {string} contentType */
-    function getConversionFormatForAddRecords(contentType) {
+    function getConversionFormatForAddRecords(contentType: string | undefined) {
       logger.silly(`contentType: ${contentType}`);
       const type = contentType;
       const conversionFormatResult = CONTENT_TYPES.find(({contentType, allowAddRecords}) => contentType === type && allowAddRecords === true);
@@ -128,8 +190,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
       if (!conversionFormatResult) {
         throw new HttpError(httpStatus.UNSUPPORTED_MEDIA_TYPE, `Invalid content-type`);
       }
-      /** @type {any} */
-      const conversionFormat = /** @type {any} */(conversionFormatResult).conversionFormat;
+      const conversionFormat = conversionFormatResult.conversionFormat;
       return conversionFormat;
     }
 
@@ -148,8 +209,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
       return queueItem;
     }
 
-    /** @param {string} data */
-    function parseDataAndCheckArray(data) {
+    function parseDataAndCheckArray(data: string) {
       const dataArray = parseData(data);
       if (Array.isArray(dataArray)) {
         // check that array size is not greater than CHUNK_SIZE
@@ -162,8 +222,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
       throw new HttpError(httpStatus.BAD_REQUEST, `Input is not a valid array of marc-record-js`);
     }
 
-    /** @param {string} data */
-    function parseData(data) {
+    function parseData(data: string) {
       try {
         logger.debug(`data: ${data}`);
         const dataArray = JSON.parse(data);
@@ -171,15 +230,14 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
         return dataArray;
       } catch (error) {
         logger.debug(`Parsing data errored ${error}`);
-        throw new HttpError(httpStatus.BAD_REQUEST, /** @type {any} */(error).message);
+        throw new HttpError(httpStatus.BAD_REQUEST, (error as Error).message);
       }
 
     }
   }
 
 
-  /** @param {{correlationId: string}} params */
-  async function getState(params) {
+  async function getState(params: {correlationId: string}) {
     logger.debug(`Getting current state of ${params.correlationId}`);
 
     const result = await mongoOperator.query(params);
@@ -198,8 +256,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     throw new HttpError(httpStatus.NOT_FOUND, `Item not found for id: ${params.correlationId}`);
   }
 
-  /** @param {{correlationId: string, state: string}} params */
-  async function updateState({correlationId, state}) {
+  async function updateState({correlationId, state}: {correlationId: string, state: string}) {
     logger.debug(`Updating current state of ${correlationId} to ${state}`);
     const setStateResult = await mongoOperator.setState({correlationId, state});
     const value = setStateResult;
@@ -211,8 +268,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     throw new HttpError(httpStatus.NOT_FOUND, `Item not found for id: ${correlationId}`);
   }
 
-  /** @param {string} [correlationId] */
-  function readContent(correlationId) {
+  function readContent(correlationId?: string) {
     logger.debug(`Reading content for ${correlationId}`);
     if (correlationId) {
       return mongoOperator.readContent(correlationId);
@@ -222,8 +278,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  /** @param {{oCatalogerIn: any, correlationId: string}} params */
-  function remove({oCatalogerIn, correlationId}) {
+  function remove({oCatalogerIn, correlationId}: {oCatalogerIn: unknown, correlationId: string}) {
 
     if (correlationId) {
       const removeResult = mongoOperator.remove({oCatalogerIn, correlationId});
@@ -234,8 +289,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  /** @param {{oCatalogerIn: any, correlationId: string}} params */
-  function removeContent({oCatalogerIn, correlationId}) {
+  function removeContent({oCatalogerIn, correlationId}: {oCatalogerIn: unknown, correlationId: string}) {
     if (correlationId) {
       const removeContentResult = mongoOperator.removeContent({oCatalogerIn, correlationId});
       return removeContentResult;
@@ -245,8 +299,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  /** @param {any} incomingParams */
-  async function doQuery(incomingParams) {
+  async function doQuery(incomingParams: Record<string, string | undefined>) {
     const params = generateQuery(incomingParams);
     const showParams = generateShowParams(incomingParams);
     const {recordsAsReport, noRecords, noIds} = incomingParams;
@@ -262,7 +315,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
       const result = await mongoOperator.query(params, showParams);
       if (report || removeRecords || removeIds) {
         logger.debug(`Reducing recordItems to recordReport`);
-        return result.map((/** @type {any} */queueItem) => createRecordReport({queueItem, report, removeRecords, removeIds}));
+        return result.map((queueItem: unknown) => createRecordReport({queueItem, report, removeRecords, removeIds}));
       }
       return result;
     }
@@ -270,15 +323,14 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     throw new HttpError(httpStatus.BAD_REQUEST, 'At least one filter parameter is required (id, correlationId, queueItemState, creationTime or modificationTime)');
   }
 
-  /** @param {{queueItem: any, report?: boolean, removeRecords?: boolean, removeIds?: boolean}} params */
-  function createRecordReport({queueItem, report = true, removeRecords = true, removeIds = true}) {
+  function createRecordReport({queueItem, report = true, removeRecords = true, removeIds = true}: {queueItem: unknown, report?: boolean, removeRecords?: boolean, removeIds?: boolean}) {
 
     if (!report && !removeRecords && !removeIds) {
       logger.silly(`Returning queueItem as it is`);
       return queueItem;
     }
 
-    const {records, handledIds, rejectedIds, ...rest} = queueItem;
+    const {records, handledIds, rejectedIds, ...rest} = queueItem as {records: unknown[], handledIds: unknown, rejectedIds: unknown} & Record<string, unknown>;
     logger.debug(`We have ${records.length} records to report`);
 
     if (!report) {
@@ -291,61 +343,55 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
         return {...rest, handledIds, rejectedIds};
       }
 
-      if (!removeRecords) {
-        logger.silly(`Removing ids.`);
-        if (removeIds) {
-          return {...rest, records};
-        }
-        logger.silly(`Returning queueItem as it is`);
-        return queueItem;
+      logger.silly(`Removing ids.`);
+      if (removeIds) {
+        return {...rest, records};
       }
+      logger.silly(`Returning queueItem as it is`);
+      return queueItem;
     }
 
-    if (report) {
-      logger.silly(`Creating record report`);
-      const recordReport = {
-        recordAmount: records.length,
-        recordStatuses: reportRecordStatuses(records)
-      };
+    logger.silly(`Creating record report`);
+    const recordReport = {
+      recordAmount: records.length,
+      recordStatuses: reportRecordStatuses(records)
+    };
 
-      if (removeRecords) {
-        if (removeIds) {
-          logger.silly(`Returning report and removing records and ids`);
-          return {...rest, recordReport};
-        }
-        logger.silly(`Returning report and removing records`);
-        return {...rest, recordReport, handledIds, rejectedIds};
+    if (removeRecords) {
+      if (removeIds) {
+        logger.silly(`Returning report and removing records and ids`);
+        return {...rest, recordReport};
       }
-
-      if (!removeRecords) {
-        if (removeIds) {
-          logger.silly(`Returning report and records, and removing ids`);
-          return {...rest, recordReport, records};
-        }
-        logger.silly(`Returning report and queueItem as it is`);
-        return {queueItem, recordReport};
-      }
+      logger.silly(`Returning report and removing records`);
+      return {...rest, recordReport, handledIds, rejectedIds};
     }
+
+    if (removeIds) {
+      logger.silly(`Returning report and records, and removing ids`);
+      return {...rest, recordReport, records};
+    }
+    logger.silly(`Returning report and queueItem as it is`);
+    return {queueItem, recordReport};
   }
 
-  /** @param {any[]} records */
-  function reportRecordStatuses(records) {
-    const recordStatuses = records.reduce((allStatuses, record) => {
+  function reportRecordStatuses(records: unknown[]) {
+    const recordStatuses = records.reduce<Record<string, number>>((allStatuses, record) => {
+      const recordStatus = (record as {recordStatus: string}).recordStatus;
       logger.silly(`Handling record: ${JSON.stringify(record)}`);
       logger.silly(`Current allStatuses: ${JSON.stringify(allStatuses)}`);
 
-      if (record.recordStatus in allStatuses) {
-        logger.silly(`We have an existing status: ${record.recordStatus}`);
+      if (recordStatus in allStatuses) {
+        logger.silly(`We have an existing status: ${recordStatus}`);
         return {
           ...allStatuses,
-          [record.recordStatus]: allStatuses[record.recordStatus] + 1
+          [recordStatus]: allStatuses[recordStatus]! + 1
         };
       }
 
-      logger.silly(`We have a new status: ${record.recordStatus}`);
+      logger.silly(`We have a new status: ${recordStatus}`);
       return {
         ...allStatuses,
-        [record.recordStatus]: 1
+        [recordStatus]: 1
       };
     }, {});
 
@@ -353,8 +399,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     return recordStatuses;
   }
 
-  /** @param {any} queryParams */
-  function validateQueryParams(queryParams) {
+  function validateQueryParams(queryParams: BulkQueryParams) {
     logger.silly(`bulk/validateQueryParams: queryParams: ${JSON.stringify(queryParams)}`);
 
     // Note: for backwards compatibility, if we have default empty allowedLibs, we do note check lib here (aleph-record-load-api handles it later)
@@ -404,11 +449,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     throw new HttpError(httpStatus.BAD_REQUEST, 'Missing one or more mandatory query parameters. (pActiveLibrary, pOldNew or status)');
   }
 
-  /**
-   * @param {any} queryParams
-   * @param {boolean} noStream
-   */
-  function validateAndGetOperationSettings(queryParams, noStream) {
+  function validateAndGetOperationSettings(queryParams: BulkQueryParams, noStream: boolean) {
 
     // NOTE: failOnError currently works on for splitting streamBulk stream to records, not for other validations
     // should these be in config.js ?
@@ -434,7 +475,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     // noStream == batchBulk:   validate & unique are as default true
     // !noStream == streamBulk: validate & unique are as default false
 
-    const operationSettings = {
+    const operationSettings: OperationSettings = {
       noStream,
       noop: queryParams.noop === undefined ? false : parseBoolean(queryParams.noop),
       unique: paramUnique === undefined ? noStream : paramUnique,
@@ -452,11 +493,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     return operationSettings;
   }
 
-  /**
-   * @param {string} id
-   * @param {any} paramsId
-   */
-  function checkCataloger(id, paramsId) {
+  function checkCataloger(id: string, paramsId: string | undefined) {
     if (paramsId !== undefined && paramsId !== 'undefined' && paramsId !== '0' && paramsId !== 'false') {
       logger.debug(`Using cataloger given in parameters.`);
       return paramsId;
@@ -465,4 +502,3 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}) {
     return id;
   }
 }
-

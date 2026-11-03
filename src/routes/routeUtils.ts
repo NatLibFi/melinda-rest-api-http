@@ -1,18 +1,23 @@
 import httpStatus from 'http-status';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
-import {CONTENT_TYPES} from '../config.js';
+import {CONTENT_TYPES} from '../config.ts';
 import {createLogger} from '@natlibfi/melinda-commons';
 import {version as uuidVersion, validate as uuidValidate} from 'uuid';
+import type {NextFunction, Request, Response} from 'express';
 
 const logger = createLogger();
 
 /**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
+ * The authenticated cataloger as forwarded by passport: the passport
+ * user's id and the authorization groups of the account.
  */
-export function authorizeKVPOnly(req, res, next) {
-  const user = /** @type {{id: string, authorization: string | string[]}} */(req.user);
+export interface Cataloger {
+  id: string;
+  authorization: string | string[];
+}
+
+export function authorizeKVPOnly(req: Request, res: Response, next: NextFunction) {
+  const user = req.user as Cataloger;
   logger.debug(`Checking ${JSON.stringify(user.id)} for KVP-authorization: ${user.authorization}`);
   if (user.authorization.includes('KVP')) {
     logger.debug(`We have user with KVP-authorization`);
@@ -22,12 +27,7 @@ export function authorizeKVPOnly(req, res, next) {
   return res.status(httpStatus.FORBIDDEN).send('User credentials do not have permission to use this endpoint');
 }
 
-/**
- * @param {{id: string, authorization: string | string[]}} passportCataloger
- * @param {string | undefined} queryCataloger
- * @returns {{id: string, authorization: string | string[]}}
- */
-export function sanitizeCataloger(passportCataloger, queryCataloger) {
+export function sanitizeCataloger(passportCataloger: Cataloger, queryCataloger: string | undefined) {
   const {id, authorization} = passportCataloger;
 
   // Handle nullValue -strings as undefined
@@ -53,8 +53,7 @@ export function sanitizeCataloger(passportCataloger, queryCataloger) {
 // Note: checkAcceptHeader currently works only for prio
 // Note: checkAcceptHeader always errors if accept-header has several accepted types
 
-/** @param {import('express').Request} req @param {import('express').Response} res @param {import('express').NextFunction} next */
-export function checkAcceptHeader(req, res, next) {
+export function checkAcceptHeader(req: Request, res: Response, next: NextFunction) {
   logger.debug(`routesUtils:checkAcceptHeader: accept: ${req.headers.accept}`);
 
   if (req.headers.accept === '*/*') {
@@ -68,18 +67,16 @@ export function checkAcceptHeader(req, res, next) {
   return next();
 }
 
-/** @param {import('express').Request} req @param {import('express').Response} res @param {import('express').NextFunction} next */
-export function checkId(req, res, next) {
+export function checkId(req: Request, res: Response, next: NextFunction) {
   logger.debug(`routesUtils:checkId: id: ${req.params['id']}`);
-  if (!uuidValidate(req.params['id']) || uuidVersion(/** @type {string} */(req.params['id'])) !== 4) {
+  if (!uuidValidate(req.params['id'] as string) || uuidVersion(req.params['id'] as string) !== 4) {
     return res.status(httpStatus.BAD_REQUEST).send('Malformed correlation id');
   }
 
   return next();
 }
 
-/** @param {import('express').Request} req @param {import('express').Response} res @param {import('express').NextFunction} next */
-export function checkContentType(req, res, next) {
+export function checkContentType(req: Request, res: Response, next: NextFunction) {
   logger.debug(`routesUtils:checkContentType: content-type: ${req.headers['content-type']}`);
 
   const result = req.headers['content-type'] === undefined ? undefined : CONTENT_TYPES.find(({contentType}) => contentType === req.headers['content-type']);

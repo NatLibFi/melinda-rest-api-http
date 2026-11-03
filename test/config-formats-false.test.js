@@ -30,7 +30,7 @@ for (const key of trackedVars) {
 }
 Object.assign(process.env, mandatoryEnv, envFormatsFalse);
 
-const config = await import('../src/config.js');
+const config = await import('../src/config.ts');
 
 describe('config.js value formats', () => {
   it('parseBoolean formatters parse "false"/"0" to false', () => {
