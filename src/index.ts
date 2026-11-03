@@ -1,6 +1,6 @@
 import {handleInterrupt} from '@natlibfi/melinda-commons';
-import * as config from './config.js';
-import startApp from './app.js';
+import * as config from './config.ts';
+import startApp from './app.ts';
 import {logError} from '@natlibfi/melinda-rest-api-commons';
 
 run();
@@ -21,22 +21,17 @@ async function run() {
         handleTermination({code: 1, message: stack});
       });
 
-    /** @param {NodeJS.Signals} signal */
-    function handleSignal(signal) {
+    function handleSignal(signal: NodeJS.Signals) {
       handleTermination({code: 1, message: `Received ${signal}`});
     }
   }
 
-  /**
-   * @param {{code?: number, message?: string | boolean}} params
-   */
-  function handleTermination({code = 0, message = false}) {
+  function handleTermination({code = 0, message = false}: {code?: number, message?: string | boolean}) {
     logMessage(message);
 
     process.exit(code);
 
-    /** @param {string | boolean} message */
-    function logMessage(message) {
+    function logMessage(message: string | boolean) {
       if (message) {
         return logError(message);
       }

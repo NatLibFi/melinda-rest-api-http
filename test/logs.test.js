@@ -4,7 +4,7 @@ import {READERS} from '@natlibfi/fixura';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import generateTests from '@natlibfi/fixugen';
 import mongoFixturesFactory from '@natlibfi/fixura-mongo';
-import createLogsService from '../src/interfaces/logs.js';
+import createLogsService from '../src/interfaces/logs.ts';
 
 // The logs service opens its own client against the 'rest-api' database
 // (mongoLogFactory(mongoUri) keeps the factory's default db name), while

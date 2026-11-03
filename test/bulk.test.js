@@ -149,7 +149,7 @@ async function callback({
   stream = false,
   expectItemRemains = false
 }) {
-  const {default: createBulkService} = await import('../src/interfaces/bulk.js');
+  const {default: createBulkService} = await import('../src/interfaces/bulk.ts');
   const service = await createBulkService({
     mongoUri: await mongoFixtures.getUri(),
     amqpUrl: 'amqp://amqp-mock',

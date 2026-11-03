@@ -5,15 +5,16 @@ import {amqpFactory, conversions, OPERATIONS, mongoFactory, QUEUE_ITEM_STATE} fr
 import {MARCXML} from '@natlibfi/marc-record-serializers';
 import createSruClient from '@natlibfi/sru-client';
 import httpStatus from 'http-status';
-import {generateQuery, generateShowParams} from './utils.js';
+import {generateQuery, generateShowParams} from './utils.ts';
+import type {Cataloger} from '../routes/routeUtils.ts';
+import type {OperationSettings} from './bulk.ts';
 
 // Map validator recordStatus strings to HTTP status codes.
 // When the validator flips the outcome (e.g. create → UPDATED because
 // the record already exists and merge is off), the client requested a
 // specific operation that could not be fulfilled — 409 CONFLICT.
 // Passes through numeric values (e.g. ERROR leg already has a proper code).
-/** @param {string | number} status */
-function unexpectedRecordStatusToHttp(status) {
+function unexpectedRecordStatusToHttp(status: unknown) {
   if (typeof status === 'number') return status;
   switch (status) {
     case 'INVALID':
@@ -31,9 +32,32 @@ function unexpectedRecordStatusToHttp(status) {
 const setTimeoutPromise = promisify(setTimeout);
 
 /**
- * @param {{sruUrl: string, amqpUrl: string, mongoUri: string, pollWaitTime: number}} config
+ * The Mongo queueItem result objects the poll loop and response builders
+ * read. Fields are untyped on purpose: they come from the untyped Mongo
+ * operator and only the accessed shape matters here.
  */
-export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
+interface QueueItemResult {
+  correlationId?: unknown;
+  queueItemState?: string;
+  errorMessage?: unknown;
+  errorStatus?: number;
+  records?: {recordStatus?: unknown, databaseId?: string}[];
+}
+
+/**
+ * The response item the poll loop resolves with. `payload` is the
+ * validator's recordResponseItem (or the error payload) - unstructured
+ * data; `databaseId` is the only field this service reads. `undefined`
+ * payload is possible for empty record lists; the original code then
+ * throws on its `payload.databaseId` accesses, and the casts below keep
+ * that behavior.
+ */
+interface PrioResponseData {
+  status: unknown;
+  payload: ({databaseId?: string} & Record<string, unknown>) | undefined;
+}
+
+export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}: {sruUrl: string, amqpUrl: string, mongoUri: string, pollWaitTime: number}) {
   const logger = createLogger();
   logger.debug(`Connecting prio to: ${amqpUrl} and ${mongoUri}`);
   const converter = conversions();
@@ -43,8 +67,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   return {read, create, update, fix, doQuery};
 
-  /** @param {{id: string, format: string}} params */
-  async function read({id, format}) {
+  async function read({id, format}: {id: string, format: string}) {
     logger.info(`Reading record ${id} / ${format}`);
     validateRequestId(id);
     logger.verbose(`Reading record ${id} from sru`);
@@ -59,10 +82,14 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     throw new HttpError(httpStatus.NOT_FOUND, 'Record not found');
   }
 
-  /**
-   * @param {{data: any, format: string, cataloger: any, oCatalogerIn: any, operationSettings: {merge?: boolean, fixType?: string}, correlationId: string}} params
-   */
-  async function create({data, format, cataloger, oCatalogerIn, operationSettings, correlationId}) {
+  async function create({data, format, cataloger, oCatalogerIn, operationSettings, correlationId}: {
+    data: unknown;
+    format: string;
+    cataloger: Cataloger;
+    oCatalogerIn: string;
+    operationSettings: OperationSettings;
+    correlationId: string;
+  }) {
     logger.info(`Creating CREATE task for a new record ${correlationId}`);
     logger.verbose('Sending a new record to queue');
     const operation = OPERATIONS.CREATE;
@@ -83,22 +110,27 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     const {status, payload} = responseData;
 
     logger.silly(`prio/create response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
-    logger.debug(`status: ${status}, ${payload.databaseId}, ${JSON.stringify(payload)}`);
+    logger.debug(`status: ${status}, ${payload!.databaseId}, ${JSON.stringify(payload)}`);
 
     cleanMongo(correlationId);
 
     if (status === 'CREATED' || (operationSettings.merge && (status === 'UPDATED' || status === 'SKIPPED'))) {
-      return {messages: payload, id: payload.databaseId, status};
+      return {messages: payload, id: payload!.databaseId, status};
     }
 
     throw new HttpError(unexpectedRecordStatusToHttp(status), payload || '');
   }
 
 
-  /**
-   * @param {{id: string, data: any, format: string, cataloger: any, oCatalogerIn: any, operationSettings: any, correlationId: string}} params
-   */
-  async function update({id, data, format, cataloger, oCatalogerIn, operationSettings, correlationId}) {
+  async function update({id, data, format, cataloger, oCatalogerIn, operationSettings, correlationId}: {
+    id: string;
+    data: unknown;
+    format: string;
+    cataloger: Cataloger;
+    oCatalogerIn: string;
+    operationSettings: OperationSettings;
+    correlationId: string;
+  }) {
     validateRequestId(id);
     logger.info(`Creating UPDATE task for record ${id} / ${correlationId}`);
     const operation = OPERATIONS.UPDATE;
@@ -124,7 +156,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
     if (status === 'UPDATED' || status === 'SKIPPED') {
-      return {status, messages: payload, id: payload.databaseId};
+      return {status, messages: payload, id: payload!.databaseId};
     }
 
     // Note: if validator changed the operation -> this errors currently
@@ -132,10 +164,13 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
 
-  /**
-   * @param {{id: string, cataloger: any, oCatalogerIn: any, operationSettings: {fixType?: string}, correlationId: string}} params
-   */
-  async function fix({id, cataloger, oCatalogerIn, operationSettings, correlationId}) {
+  async function fix({id, cataloger, oCatalogerIn, operationSettings, correlationId}: {
+    id: string;
+    cataloger: Cataloger;
+    oCatalogerIn: string;
+    operationSettings: OperationSettings;
+    correlationId: string;
+  }) {
     validateRequestId(id);
     logger.info(`Creating FIX (${operationSettings.fixType}) task for record ${id} / ${correlationId}`);
     const operation = OPERATIONS.FIX;
@@ -161,7 +196,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
     if (status === 'FIXED' || status === 'SKIPPED') {
-      return {status, messages: payload, id: payload.databaseId};
+      return {status, messages: payload, id: payload!.databaseId};
     }
 
     // Note: if validator changed the operation -> this errors currently
@@ -170,9 +205,8 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
 
   // cleanMongo cleans the actual MongoCollection ('prio'), logCollection ('logPrio') retains all items
-  /** @param {string} correlationId */
-  async function cleanMongo(correlationId) {
-    const result = await mongoOperator.queryById({correlationId, checkModTime: true});
+  async function cleanMongo(correlationId: string) {
+    const result = (await mongoOperator.queryById({correlationId, checkModTime: true})) as QueueItemResult;
     logger.silly(` ${inspect(result, {colors: true, maxArrayLength: 3, depth: 1})}}`);
 
     // These could be configurable
@@ -191,10 +225,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     }
   }
 
-  /**
-   * @param {{correlationId: string, headers: any, data: any}} params
-   */
-  async function handleRequest({correlationId, headers, data}) {
+  async function handleRequest({correlationId, headers, data}: {correlationId: string, headers: Record<string, unknown>, data: unknown}): Promise<PrioResponseData> {
     logger.silly(`interfaces/prio/create/handleRequest`);
     // {queue, correlationId, headers, data}
     await amqpOperator.sendToQueue({queue: 'REQUESTS', correlationId, headers, data});
@@ -211,14 +242,9 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     return responseData;
   }
 
-  /**
-   * @param {string} id
-   * @returns {Promise<any>}
-   */
-  function getRecord(id) {
-    return new Promise((/** @type {(value?: any) => void} */resolve, reject) => {
-      /** @type {Promise<any> | undefined} */
-      let promise;
+  function getRecord(id: string) {
+    return new Promise((resolve: (value?: unknown) => void, reject: (reason?: unknown) => void) => {
+      let promise: Promise<unknown> | undefined;
 
       sruClient.searchRetrieve(`rec.id=${id}`)
         .on('record', xmlString => {
@@ -242,8 +268,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     });
   }
 
-  /** @param {string} id */
-  function validateRequestId(id) {
+  function validateRequestId(id: string) {
     logger.debug(`Validating requestId ${id}`);
 
     if (id.length === 9 && (/^\d+$/u).test(id)) {
@@ -253,12 +278,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
   }
 
   // Loop
-  /**
-   * @param {string} correlationId
-   * @param {string} [queueItemState='']
-   * @param {boolean} [wait=false]
-   */
-  async function check(correlationId, queueItemState = '', wait = false) {
+  async function check(correlationId: string, queueItemState = '', wait = false) {
     if (wait) {
       await setTimeoutPromise(pollWaitTime);
       return check(correlationId, queueItemState);
@@ -266,7 +286,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
     // Check status and and also if process has timeouted
     // Note: there can be timeout result and the create/update to Melinda can still be done, if timeout happens when while job is being imported
-    const result = await mongoOperator.queryById({correlationId, checkModTime: true});
+    const result = (await mongoOperator.queryById({correlationId, checkModTime: true})) as QueueItemResult;
 
     if (queueItemState !== result.queueItemState) {
       logger.debug(`Queue item ${correlationId}, state ${result.queueItemState}`);
@@ -282,11 +302,10 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     }
 
     // queueItem state not DONE/ERROR/ABORT - loop back to check status
-    return check(correlationId, result.queueItemState, true);
+    return check(correlationId, result.queueItemState as string, true);
   }
 
-  /** @param {any} result @returns {never} */
-  function getResponseDataForAbort(result) {
+  function getResponseDataForAbort(result: QueueItemResult): never {
     logger.debug(`Queue item ${result.correlationId}, state ${result.queueItemState} - Timeout!`);
     const errorMessage = result.errorMessage || 'Request timeout, try again later';
     throw new HttpError(httpStatus.REQUEST_TIMEOUT, errorMessage);
@@ -294,8 +313,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
 
   // should we return also correlationId in prio?
   // async
-  /** @param {any} result */
-  function getResponseDataForDoneNError(result) {
+  function getResponseDataForDoneNError(result: QueueItemResult) {
 
     logger.debug(`Mongo Result: ${JSON.stringify(result)}`);
     const correlationId = result.correlationId || '';
@@ -311,8 +329,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     return getResponseDataForDone(result);
   }
 
-  /** @param {any} result */
-  function getResponseDataForError(result) {
+  function getResponseDataForError(result: QueueItemResult) {
 
     const recordResponses = result.records ? result.records : [];
     // prio assumes we had only one record, so we send back just the first recordResponse
@@ -329,21 +346,19 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     return {status: errorStatus, payload: firstRecordResponse || responsePayloadAndStatus};
   }
 
-  /** @param {any} result */
-  function getResponseDataForDone(result) {
+  function getResponseDataForDone(result: QueueItemResult) {
 
     const recordResponses = result.records ? result.records : [];
     const [firstRecordResponse] = recordResponses;
     logger.debug(`We have recordResponses (${recordResponses.length}): ${JSON.stringify(recordResponses)}`);
     logger.silly(`First recordResponse: ${JSON.stringify(firstRecordResponse)}`);
-    const {recordStatus} = firstRecordResponse;
+    const {recordStatus} = firstRecordResponse as {recordStatus?: unknown};
     // prio assumes we had only one record, so we send back just the first recordResponse
     // if we will later allow prio to have more than one record, this needs to be fixed
     return {status: recordStatus, payload: firstRecordResponse};
   }
 
-  /** @param {any} incomingParams */
-  function doQuery(incomingParams) {
+  function doQuery(incomingParams: Record<string, string | undefined>) {
     const params = generateQuery(incomingParams);
     const showParams = generateShowParams(incomingParams);
 

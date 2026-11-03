@@ -34,7 +34,7 @@ describe('config.js ipWhiteList malformed JSON', () => {
     Object.assign(process.env, mandatoryEnv, envMalformed);
 
     await assert.rejects(
-      import('../src/config.js'),
+      import('../src/config.ts'),
       (err) => err instanceof SyntaxError
     );
   });
