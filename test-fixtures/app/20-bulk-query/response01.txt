@@ -1,1 +1,1 @@
-[]
+At least one filter parameter is required (id, correlationId, queueItemState, creationTime or modificationTime)

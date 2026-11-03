@@ -3,6 +3,7 @@
   "functionName": "doQuery",
   "preFillDb": true,
   "params": {
-    "noIds": "1"
+    "noIds": "1",
+    "queueItemState": "PENDING_VALIDATION"
   }
 }
