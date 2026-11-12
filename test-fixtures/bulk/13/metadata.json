@@ -1,5 +1,5 @@
 {
-  "description": "skip and limit slice the result set",
+  "description": "skip and limit slice a multi-item result set: with three PENDING_VALIDATION items, skip=1&limit=1 returns exactly the second matching item (limit=1 pins the slice width - the expectation fails if limit handling regresses)",
   "functionName": "doQuery",
   "preFillDb": true,
   "params": {
