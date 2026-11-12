@@ -1,0 +1,9 @@
+{
+  "description": "toggleLog: non-numeric blobSequence matches no doc, returns the updateMany result with matched 0 and changes nothing",
+  "functionName": "toggleLog",
+  "params": [
+    "corr-1",
+    "abc"
+  ],
+  "preFillDb": true
+}

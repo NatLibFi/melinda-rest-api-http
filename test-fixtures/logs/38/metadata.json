@@ -1,0 +1,8 @@
+{
+  "description": "toggleLog: mixed set where one doc has no numeric blobSequence - that doc is skipped and keeps its protected value, the two numeric docs flip individually and the aggregate counts cover only the processed docs",
+  "functionName": "toggleLog",
+  "params": [
+    "corr-1"
+  ],
+  "preFillDb": true
+}
