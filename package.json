@@ -36,7 +36,7 @@
 	"dependencies": {
 		"@natlibfi/marc-record-serializers": "^11.0.3",
 		"@natlibfi/melinda-commons": "^16.0.0",
-		"@natlibfi/melinda-rest-api-commons": "^5.0.7",
+		"@natlibfi/melinda-rest-api-commons": "7.0.0-alpha.0",
 		"@natlibfi/passport-melinda-aleph": "^4.0.1",
 		"@natlibfi/sru-client": "^7.0.1",
 		"@types/body-parser": "^1.19.6",
@@ -62,6 +62,7 @@
 		"cross-env": "^10.1.0",
 		"eslint": "^10.4.0",
 		"jiti": "^2.7.0",
+		"mongodb": "^7.7.0",
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.72.1"
 	},

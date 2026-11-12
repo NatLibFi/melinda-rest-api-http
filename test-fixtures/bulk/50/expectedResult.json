@@ -1,4 +1,5 @@
 {
   "correlationId": "create-1",
+  "acknowledged": true,
   "queueItemState": "WAITING_FOR_RECORDS"
 }

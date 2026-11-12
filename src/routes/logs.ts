@@ -31,7 +31,9 @@ export default async function ({mongoUri}: {mongoUri: string}) {
     .get('/list', getListOfLogs)
     .get('/:id', checkId, getLogs)
     .get('/', doLogsQuery)
-    .put('/:id', checkId, protectLog)
+    .put('/:id', checkId, toggleLog)
+    .put('/:id/protect', checkId, protectLog)
+    .put('/:id/unprotect', checkId, unprotectLog)
     .delete('/:id', checkId, removeLog);
 
   async function doLogsQuery(req: Request, res: Response, next: NextFunction) {
@@ -121,6 +123,24 @@ export default async function ({mongoUri}: {mongoUri: string}) {
     }
   }
 
+  async function toggleLog(req: Request, res: Response, next: NextFunction) {
+    logger.verbose('routes/logs toggleLog');
+    try {
+      const correlationId = req.params['id'] as string;
+      const {blobSequence} = (req.query || false) as Record<string, string | undefined>;
+      logger.debug(`We have a correlationId: ${correlationId}${blobSequence ? `, blobSequence: ${blobSequence}` : ''}`);
+      const response = await Service.toggleLog(correlationId, blobSequence);
+      logger.debug(`We have a response: ${JSON.stringify(response)}`);
+      // DEVELOP: handle response, now we just pass mongo's response on
+      res.json(response);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
+  }
+
   async function protectLog(req: Request, res: Response, next: NextFunction) {
     logger.verbose('routes/logs protectLog');
     try {
@@ -128,6 +148,24 @@ export default async function ({mongoUri}: {mongoUri: string}) {
       const {blobSequence} = (req.query || false) as Record<string, string | undefined>;
       logger.debug(`We have a correlationId: ${correlationId}${blobSequence ? `, blobSequence: ${blobSequence}` : ''}`);
       const response = await Service.protectLog(correlationId, blobSequence);
+      logger.debug(`We have a response: ${JSON.stringify(response)}`);
+      // DEVELOP: handle response, now we just pass mongo's response on
+      res.json(response);
+    } catch (error) {
+      if (error instanceof HttpError) {
+        return res.status(error.status).send(error.payload);
+      }
+      return next(error);
+    }
+  }
+
+  async function unprotectLog(req: Request, res: Response, next: NextFunction) {
+    logger.verbose('routes/logs unprotectLog');
+    try {
+      const correlationId = req.params['id'] as string;
+      const {blobSequence} = (req.query || false) as Record<string, string | undefined>;
+      logger.debug(`We have a correlationId: ${correlationId}${blobSequence ? `, blobSequence: ${blobSequence}` : ''}`);
+      const response = await Service.unprotectLog(correlationId, blobSequence);
       logger.debug(`We have a response: ${JSON.stringify(response)}`);
       // DEVELOP: handle response, now we just pass mongo's response on
       res.json(response);

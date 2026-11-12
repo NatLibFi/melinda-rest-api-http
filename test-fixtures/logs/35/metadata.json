@@ -1,0 +1,8 @@
+{
+  "description": "toggleLog: unknown correlationId returns the updateMany result with matched 0 and changes nothing",
+  "functionName": "toggleLog",
+  "params": [
+    "corr-unknown"
+  ],
+  "preFillDb": true
+}

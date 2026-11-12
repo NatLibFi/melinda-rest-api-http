@@ -49,6 +49,11 @@ function makeFakeChannel() {
       if (prop === 'toString') {
         return () => 'FakeAmqpChannel';
       }
+      // commons 7 amqpFactory attaches 'error'/'close' listeners to the
+      // channel at construction; that is not AMQP traffic
+      if (prop === 'on') {
+        return () => {};
+      }
       if (prop === 'assertQueue') {
         return (queue: any) => {
           amqpCalls.push(['assertQueue', queue]);
@@ -71,6 +76,9 @@ mock.module('amqplib', {
       connect: (url: string) => {
         amqpCalls.push(['connect', url]);
         return Promise.resolve({
+          // commons 7 amqpFactory attaches 'error'/'close' listeners to the
+          // connection at construction
+          on: () => {},
           createChannel: () => Promise.resolve(makeFakeChannel())
         });
       }
@@ -303,12 +311,11 @@ async function callback(fixtureParams: Record<string, any>): Promise<void> {
     }
     const result = await callCreate();
     const expected = getFixture('expectedResult.json');
-    const actual: any = {correlationId: result.correlationId, queueItemState: result.queueItemState};
-    // the noStream path returns a two-field result; the stream path returns
-    // the updated queueItem document (blobSize and more)
-    if ('blobSize' in expected) {
-      actual.blobSize = result.blobSize;
-    }
+    assert.ok(result, 'createBulk should return a normalized result');
+    // commons 7 createBulk returns the normalized {correlationId,
+    // acknowledged, queueItemState} result on both the noStream and stream
+    // paths (the stream path no longer returns the updated queueItem doc)
+    const actual = {correlationId: result.correlationId, acknowledged: result.acknowledged, queueItemState: result.queueItemState};
     assert.deepStrictEqual(actual, expected);
     const docs = await dumpBulk();
     assert.equal(docs.length, 1, 'exactly one queueItem should be created');
@@ -325,8 +332,9 @@ async function callback(fixtureParams: Record<string, any>): Promise<void> {
   }
 
   if (functionName === 'removeContent') {
-    // removeContent is Mongo-only (deletes the GridFS file, always returns
-    // true); the throw-on-traffic fake channel proves no AMQP is touched
+    // removeContent is Mongo-only (deletes the GridFS file, returns true
+    // when the file existed and false when it did not); the throw-on-traffic
+    // fake channel proves no AMQP is touched
     if (!params || !params.correlationId) {
       // removeContent without a correlationId throws synchronously
       return assert.throws(() => service.removeContent(params || {}), (error: any) => {
