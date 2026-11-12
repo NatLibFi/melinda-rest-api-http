@@ -119,18 +119,43 @@ const BASE_ENV = {
 };
 
 // Runs src/index.js in a subprocess and resolves with its exit code and
-// combined output. Optionally kills the child after a delay so signal
-// handlers can be exercised while the app startup is still pending.
+// combined output. Signal delivery is triggered either after a fixed delay
+// (signalAfterMs) or when signalWhen() turns true (signalWhenTimeoutMs
+// bounds the wait: a child that never reaches the signal-ready state is
+// hard-killed and the promise rejects, so a hung startup fails the test
+// instead of hanging it). This matters because src/index.js registers its
+// signal handlers only after the static imports have run; a fixed delay
+// races the import phase and a signal landing before registration kills the
+// child with the default handler (null exit code) - flaky on slow CI.
 const runIndex = (env: Record<string, string>, {
   signalAfterMs = null,
-  signal = null
-}: {signalAfterMs?: number | null, signal?: NodeJS.Signals | null} = {}) =>
+  signal = null,
+  signalWhen = null,
+  signalWhenTimeoutMs = 15000
+}: {signalAfterMs?: number | null, signal?: NodeJS.Signals | null, signalWhen?: (() => boolean) | null, signalWhenTimeoutMs?: number} = {}) =>
   new Promise<{exitCode: number | null, output: string}>((resolve, reject) => {
     const child = spawn(process.execPath, [INDEX_PATH], {env: {...process.env, ...env}});
     let output = '';
+    let settled = false;
     child.stdout.on('data', (chunk) => {output += chunk;});
     child.stderr.on('data', (chunk) => {output += chunk;});
-    if (signalAfterMs) {
+    if (signalWhen) {
+      const startedAt = Date.now();
+      const poll = setInterval(() => {
+        if (signalWhen()) {
+          clearInterval(poll);
+          child.kill(signal as NodeJS.Signals);
+        } else if (Date.now() - startedAt > signalWhenTimeoutMs) {
+          clearInterval(poll);
+          if (!settled) {
+            settled = true;
+            child.kill('SIGKILL');
+            reject(new Error(`child never became signal-ready within ${signalWhenTimeoutMs} ms; output was:\n${output}`));
+          }
+        }
+      }, 50);
+      poll.unref();
+    } else if (signalAfterMs) {
       const timer = setTimeout(() => child.kill(signal as NodeJS.Signals), signalAfterMs);
       timer.unref();
     }
@@ -140,11 +165,20 @@ const runIndex = (env: Record<string, string>, {
     killTimer.unref();
     child.on('exit', (exitCode) => {
       clearTimeout(killTimer);
+      if (settled) {
+        return;
+      }
+      settled = true;
       // Belt-and-braces: kill once more in case the child lingered.
       child.kill('SIGKILL');
       resolve({exitCode, output});
     });
-    child.on('error', reject);
+    child.on('error', (error) => {
+      if (!settled) {
+        settled = true;
+        reject(error);
+      }
+    });
   });
 
 describe('index (subprocess: signal and rejection paths)', () => {
@@ -188,11 +222,17 @@ describe('index (subprocess: signal and rejection paths)', () => {
   });
 
   it('exits with code 1 and logs the signal on SIGTERM', async () => {
+    // The child's mongo and amqp clients open their (never answered) TCP
+    // handshakes to the dummy socket server only after the static imports
+    // have finished - i.e. after run() has registered the SIGTERM handler -
+    // so the first socket accepted by the server proves the child is
+    // signal-ready. Waiting for it instead of a fixed delay keeps the test
+    // correct on a slow CI where the import phase alone may exceed 1.5 s.
     const {exitCode, output} = await runIndex({
       ...BASE_ENV,
       MONGO_URI: `mongodb://127.0.0.1:${hangingPort}/db`,
       AMQP_URL: `amqp://127.0.0.1:${hangingPort}/`
-    }, {signalAfterMs: 1500, signal: 'SIGTERM'});
+    }, {signal: 'SIGTERM', signalWhen: () => openSockets.size > 0});
     assert.strictEqual(exitCode, 1);
     assert.ok(output.includes('Received SIGTERM'), `output was:\n${output}`);
   });
