@@ -1,0 +1,8 @@
+{
+  "description": "toggleLog: all docs of the correlationId protected -> all flipped to unprotected (single unprotect)",
+  "functionName": "toggleLog",
+  "params": [
+    "corr-1"
+  ],
+  "preFillDb": true
+}

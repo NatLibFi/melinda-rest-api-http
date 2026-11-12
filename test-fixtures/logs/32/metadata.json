@@ -1,0 +1,6 @@
+{
+  "description": "unprotectLog: without blobSequence sets protected to false on all docs of the correlationId",
+  "functionName": "unprotectLog",
+  "params": ["corr-1"],
+  "preFillDb": true
+}

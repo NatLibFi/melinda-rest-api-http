@@ -1,5 +1,5 @@
 {
   "correlationId": "create-2",
-  "queueItemState": "PENDING_QUEUING",
-  "blobSize": 0
+  "acknowledged": true,
+  "queueItemState": "PENDING_QUEUING"
 }

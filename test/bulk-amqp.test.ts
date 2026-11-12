@@ -61,6 +61,11 @@ function makeFakeChannel() {
       if (prop === 'toString') {
         return () => 'FakeAmqpChannel';
       }
+      // commons 7 amqpFactory attaches 'error'/'close' listeners to the
+      // channel at construction; that is not AMQP traffic
+      if (prop === 'on') {
+        return () => {};
+      }
       if (prop === 'assertQueue') {
         return (queue: any) => {
           amqpCalls.push(['assertQueue', queue]);
@@ -110,6 +115,9 @@ mock.module('amqplib', {
       connect: (url: string) => {
         amqpCalls.push(['connect', url]);
         return Promise.resolve({
+          // commons 7 amqpFactory attaches 'error'/'close' listeners to the
+          // connection at construction
+          on: () => {},
           createChannel: () => Promise.resolve(makeFakeChannel())
         });
       }
