@@ -100,7 +100,8 @@ test('listen failure exits with code 1 and logs the error, not the success messa
   await new Promise(resolve => setImmediate(resolve));
 
   t.assert.deepEqual(exitCalls, [1]);
-  t.assert.match(logged.error[0], new RegExp(`Failed to start HTTP server on port ${occupied}`));
+  t.assert.equal(logged.error.length, 1);
+  t.assert.match(logged.error[0] ?? '', new RegExp(`Failed to start HTTP server on port ${occupied}`));
   t.assert.equal(logged.info.some(m => m.startsWith('Started Melinda REST API')), false);
 
   await new Promise<void>(resolve => holder.close(() => resolve()));
