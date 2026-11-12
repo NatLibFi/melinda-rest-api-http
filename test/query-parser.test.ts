@@ -141,9 +141,16 @@ test('(a) unknown bracketed key stays nested and harmless', async () => {
 });
 
 test('(b) repeated keys arrive as an array', async () => {
-  // id=a&id=b becomes {id: ['a', 'b']}; the array fails the UUID validation,
-  // which would not happen if the repeated key collapsed to a plain string.
-  const {status, body} = await get('/bulk/?id=a&id=b');
+  // id=<u1>&id=<u2> becomes {id: ['u1', 'u2']} under the extended parser.
+  // The id validation in queryUtils.ts is scalar (uuidValidate applied to
+  // the raw value), so it returns false for the array but true for either
+  // UUID individually: a regression that collapsed repeated keys to a
+  // first/last string would pass validation and answer 200, failing this
+  // assertion. (Both values are valid v4 UUIDs by construction: version
+  // nibble '4', variant nibble '9'.)
+  const u1 = '123e4567-e89b-42d3-a456-426614174000';
+  const u2 = '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d';
+  const {status, body} = await get(`/bulk/?id=${u1}&id=${u2}`);
   assert.equal(status, 400);
   assert.ok(JSON.parse(body).failedParams.includes('id'));
 });
