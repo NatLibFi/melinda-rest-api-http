@@ -80,7 +80,18 @@ export default async function ({
 
     app.use(handleError);
 
-    return app.listen(httpPort, () => logger.info(`Started Melinda REST API for ${recordType} records in port ${httpPort}`));
+    return app.listen(httpPort, (error: Error | undefined) => {
+      // Express' app.listen is a raw pass-through to Node's server.listen:
+      // on a bind failure (e.g. EADDRINUSE) this same callback is invoked
+      // with the error as its first argument. Without this check the
+      // success message would be logged and the process would sit alive
+      // (mongo/amqp clients keep the event loop busy) while serving nothing.
+      if (error) {
+        logger.error(`Failed to start HTTP server on port ${httpPort}: ${error.message}`);
+        return process.exit(1);
+      }
+      logger.info(`Started Melinda REST API for ${recordType} records in port ${httpPort}`);
+    });
 
     function ipWhiteListMiddleware(req: Request, res: Response, next: NextFunction) {
       logger.verbose('Ip whitelist middleware');
