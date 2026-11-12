@@ -130,6 +130,9 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}: {mongoUri: stri
       }
 
       const {operation, cataloger, operationSettings, blobSize} = queueItem;
+      // a missing stored blobSize defaults to 0: under commons 5 the missing value
+      // flowed through as undefined, but commons 7 rejects non-number blobSize with
+      // 400, so the explicit default is required (same in addRecords below)
       const currentSequence = (blobSize ?? 0) + 1;
       const headers = {correlationId, operation, format: conversionFormat, cataloger, operationSettings, recordMetadata: {blobSequence: currentSequence}};
 
@@ -169,7 +172,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}: {mongoUri: stri
 
     const dataArray = parseDataAndCheckArray(data);
     const dataSize = dataArray.length;
-    let currentSequence = blobSize ?? 0;
+    let currentSequence = blobSize ?? 0; // same missing-blobSize -> 0 default as in addRecord
 
     dataArray.forEach(async (record) => {
       currentSequence += 1;
