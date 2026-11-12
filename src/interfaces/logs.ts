@@ -130,13 +130,29 @@ export default async function ({mongoUri}: {mongoUri: string}) {
     // mixed protected values: flip each doc individually
     let matchedCount = 0;
     let modifiedCount = 0;
+    let flippedCount = 0;
+    const processedSequences = new Set<number>();
     for (const doc of wanted) {
+      // protect()/unprotect() target by blobSequence, so a doc without a valid
+      // sequence can't be flipped individually (undefined would flip the whole
+      // correlationId, diverging from the v5 toggle); it keeps its current value
+      if (typeof doc.blobSequence !== 'number' || !Number.isInteger(doc.blobSequence) || doc.blobSequence <= 0) {
+        logger.warn(`toggleLog: skipping doc without a valid blobSequence (${String(doc.blobSequence)}) for correlationId ${correlationId}; it keeps its current protected value`);
+        continue;
+      }
+      // each per-doc call targets by blobSequence, so docs sharing one sequence
+      // are flipped only once
+      if (processedSequences.has(doc.blobSequence)) {
+        continue;
+      }
+      processedSequences.add(doc.blobSequence);
       logger.debug(`toggleLog: flipping doc with blobSequence: ${doc.blobSequence}, protected: ${Boolean(doc.protected)}`);
       const response = doc.protected ? await unprotectLog(correlationId, doc.blobSequence) : await protectLog(correlationId, doc.blobSequence);
       matchedCount += response.matchedCount;
       modifiedCount += response.modifiedCount;
+      flippedCount += 1;
     }
-    logger.debug(`toggleLog: flipped ${wanted.length} docs individually`);
+    logger.debug(`toggleLog: flipped ${flippedCount} doc(s) individually (${wanted.length} matched)`);
     return {acknowledged: true, modifiedCount, upsertedId: null, upsertedCount: 0, matchedCount};
   }
 
