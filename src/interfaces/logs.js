@@ -126,9 +126,16 @@ export default async function ({mongoUri}) {
       ...databaseIdObj,
       ...sourceIdsObj,
       ...skip,
-      ...limit,
-      ...rest
+      ...limit
+      // ...rest is deliberately not spread: the query object is passed
+      // directly to a Mongo filter, so unknown client-supplied keys could
+      // otherwise inject query operators ($-keys) or nested field paths
     };
+
+    const unknownKeys = Object.keys(rest);
+    if (unknownKeys.length > 0) {
+      logger.debug(`generateLogQuery: ignoring unknown query params: ${unknownKeys.join(', ')}`);
+    }
 
     return newParams;
   }

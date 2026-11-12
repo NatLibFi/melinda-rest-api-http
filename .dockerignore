@@ -1,0 +1,11 @@
+.git
+node_modules
+dist
+.env*
+tmp
+workspace
+.issues
+coverage
+.nyc_output
+.vscode
+npm-debug.log
