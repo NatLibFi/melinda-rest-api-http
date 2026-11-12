@@ -1,0 +1,8 @@
+{
+  "description": "toggleLog: two docs sharing the same blobSequence are flipped by a single per-doc call (deduped), both docs with that sequence end up unprotected",
+  "functionName": "toggleLog",
+  "params": [
+    "corr-1"
+  ],
+  "preFillDb": true
+}

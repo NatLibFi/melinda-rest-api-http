@@ -168,13 +168,7 @@ export function checkQueryParams(req: Request, res: Response, next: NextFunction
   }
 
   function checkLogItemType(logItemType: string) {
-    const logItemTypes = LOG_ITEM_TYPE;
-
-    if (logItemTypes[logItemType]) {
-      return true;
-    }
-
-    return false;
+    return (Object.values(LOG_ITEM_TYPE) as readonly string[]).includes(logItemType);
   }
 
   function checkShowParams(queryParams: QueryParams) {

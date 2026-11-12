@@ -883,6 +883,7 @@ paths:
         - httpBasic: []
     put:
       summary: Protect/unprotect a job's / a job's blobSequence's logs
+      deprecated: true
       tags:
         - /logs/
       parameters:
@@ -913,6 +914,52 @@ paths:
       responses:
         '200':
           description: Mongo response object for deletion
+  /logs/{id}/protect:
+    parameters:
+      - name: id
+        description: correlationId for a job
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/jobLogId'
+    put:
+      summary: Protect a job's / a job's blobSequence's logs
+      tags:
+        - /logs/
+      parameters:
+        - name: blobSequence
+          in: query
+          required: false
+          schema:
+            type: integer
+      security:
+        - httpBasic: []
+      responses:
+        '200':
+          description: Mongo response object for update
+  /logs/{id}/unprotect:
+    parameters:
+      - name: id
+        description: correlationId for a job
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/jobLogId'
+    put:
+      summary: Unprotect a job's / a job's blobSequence's logs
+      tags:
+        - /logs/
+      parameters:
+        - name: blobSequence
+          in: query
+          required: false
+          schema:
+            type: integer
+      security:
+        - httpBasic: []
+      responses:
+        '200':
+          description: Mongo response object for update
 components:
   securitySchemes:
     httpBasic:

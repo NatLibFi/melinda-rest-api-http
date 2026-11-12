@@ -2,6 +2,7 @@ import {promisify, inspect} from 'util';
 import {createLogger} from '@natlibfi/melinda-commons';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {amqpFactory, conversions, OPERATIONS, mongoFactory, QUEUE_ITEM_STATE} from '@natlibfi/melinda-rest-api-commons';
+import type {MarcRecord} from '@natlibfi/marc-record';
 import {MARCXML} from '@natlibfi/marc-record-serializers';
 import createSruClient from '@natlibfi/sru-client';
 import httpStatus from 'http-status';
@@ -74,7 +75,9 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}: {sruUr
     const record = await getRecord(id);
 
     if (record) {
-      const serializedRecord = await converter.serialize(record, format);
+      // getRecord is untyped (MARCXML ambient declarations return Promise<any>);
+      // the converter requires a MarcRecord
+      const serializedRecord = await converter.serialize(record as unknown as MarcRecord, format);
       logger.silly(`Serialized record: ${JSON.stringify(serializedRecord)}`);
       return {record: serializedRecord};
     }
@@ -214,13 +217,19 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}: {sruUr
 
     if (result.queueItemState === 'DONE') {
       logger.debug(`queueItemState: DONE, removing prio queueItem for ${correlationId}`);
-      mongoOperator.remove({correlationId});
+      // commons 7 uniformly rejects Mongo driver failures; keep the
+      // fire-and-forget semantics but do not let a cleanup failure surface
+      mongoOperator.remove({correlationId}).catch((error: unknown) => {
+        logger.error(`cleanMongo: removing prio queueItem ${correlationId} failed: ${error instanceof Error ? error.message : String(error)}`);
+      });
       return;
     }
 
     if (result.queueItemState === 'ERROR' && result.errorStatus === httpStatus.CONFLICT) {
       logger.debug(`queueItemState: ERROR, errorStatus: CONFLICT, removing prio queueItem for ${correlationId}`);
-      mongoOperator.remove({correlationId});
+      mongoOperator.remove({correlationId}).catch((error: unknown) => {
+        logger.error(`cleanMongo: removing prio queueItem ${correlationId} failed: ${error instanceof Error ? error.message : String(error)}`);
+      });
       return;
     }
   }
