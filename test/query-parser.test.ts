@@ -34,7 +34,11 @@ mock.module('amqplib', {
   exports: {
     default: {
       connect: () => Promise.resolve({
+        // commons 7 amqpFactory attaches 'error'/'close' listeners to the
+        // connection and channel at construction
+        on: () => {},
         createChannel: () => Promise.resolve({
+          on: () => {},
           assertQueue: async (name: string) => ({queue: name, messageCount: 0}),
           checkQueue: async (name: string) => ({queue: name, messageCount: 0}),
           get: async () => false,

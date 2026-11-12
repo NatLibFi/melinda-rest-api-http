@@ -1,3 +1,4 @@
+import type {Readable} from 'node:stream';
 import httpStatus from 'http-status';
 import {createLogger} from '@natlibfi/melinda-commons';
 import {Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
@@ -22,6 +23,9 @@ export interface OperationSettings {
   matchFailuresAsNew?: boolean | null;
   prio?: boolean;
   fixType?: string;
+  // The commons operator types operationSettings as Record<string, unknown>,
+  // so allow extra settings without losing the typed fields above.
+  [key: string]: unknown;
 }
 
 /**
@@ -77,15 +81,17 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}: {mongoUri: stri
 
   async function create({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, operationSettings, stream}: {
     correlationId: string;
-    cataloger: unknown;
-    oCatalogerIn: unknown;
+    cataloger: string;
+    oCatalogerIn: string;
     operation: string;
-    contentType: string | undefined;
+    contentType: string;
     recordLoadParams: BulkCreateQueryResult['recordLoadParams'];
     operationSettings: OperationSettings;
-    stream: unknown;
+    stream?: Readable;
   }) {
-    const result = await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, operationSettings, prio: false});
+    // commons 7 createBulk returns the normalized {correlationId, acknowledged,
+    // queueItemState} result on both the noStream and stream paths
+    const result = await mongoOperator.createBulk({correlationId, cataloger, oCatalogerIn, operation, contentType, recordLoadParams, stream, operationSettings});
     if (!stream) {
       logger.verbose(`NoStream bulk ready to receive records ${correlationId}!`);
       return result;
@@ -96,12 +102,10 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}: {mongoUri: stri
     logger.silly(`Updating current state of ${correlationId} to ${QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING}`);
     const setStateResult = await mongoOperator.setState({correlationId, state: QUEUE_ITEM_STATE.VALIDATOR.PENDING_QUEUING});
     logger.silly(JSON.stringify(setStateResult));
-    const resultCorrelationId = setStateResult.value?.correlationId || setStateResult.correlationId || undefined;
-    logger.silly(`resultCorrelationId: ${resultCorrelationId}`);
-    if (!resultCorrelationId) {
+    if (!setStateResult?.correlationId) {
       throw new HttpError(httpStatus.INTERNAL_SERVER_ERROR, `Could not update state for correlationId ${correlationId}. Result: ${JSON.stringify(setStateResult)}`);
     }
-    return setStateResult;
+    return {correlationId, acknowledged: true, queueItemState: setStateResult.queueItemState};
   }
 
   // DEVELOP: syncronize addRecord and addRecords
@@ -126,7 +130,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}: {mongoUri: stri
       }
 
       const {operation, cataloger, operationSettings, blobSize} = queueItem;
-      const currentSequence = blobSize + 1;
+      const currentSequence = (blobSize ?? 0) + 1;
       const headers = {correlationId, operation, format: conversionFormat, cataloger, operationSettings, recordMetadata: {blobSequence: currentSequence}};
 
       logger.debug(`Adding record ${currentSequence} for ${correlationId}`);
@@ -165,7 +169,7 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}: {mongoUri: stri
 
     const dataArray = parseDataAndCheckArray(data);
     const dataSize = dataArray.length;
-    let currentSequence = blobSize;
+    let currentSequence = blobSize ?? 0;
 
     dataArray.forEach(async (record) => {
       currentSequence += 1;
@@ -247,10 +251,13 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}: {mongoUri: stri
       throw new HttpError(httpStatus.NOT_FOUND, `Item not found for id: ${params.correlationId}`);
     }
 
-    const [{correlationId, queueItemState, modificationTime}] = result;
+    const item = result[0];
 
-    if (queueItemState && correlationId && modificationTime) {
-      return {status: httpStatus.OK, payload: {correlationId, queueItemState, modificationTime}};
+    if (item) {
+      const {correlationId, queueItemState, modificationTime} = item;
+      if (queueItemState && correlationId && modificationTime) {
+        return {status: httpStatus.OK, payload: {correlationId, queueItemState, modificationTime}};
+      }
     }
 
     throw new HttpError(httpStatus.NOT_FOUND, `Item not found for id: ${params.correlationId}`);
@@ -278,10 +285,14 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}: {mongoUri: stri
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  function remove({oCatalogerIn, correlationId}: {oCatalogerIn: unknown, correlationId: string}) {
+  // oCatalogerIn is accepted for API compatibility only; commons 7 remove
+  // takes the correlationId alone
+  function remove({correlationId}: {oCatalogerIn: unknown, correlationId: string}) {
 
     if (correlationId) {
-      const removeResult = mongoOperator.remove({oCatalogerIn, correlationId});
+      // commons 7 remove returns {removed, deletedContent}; the route passes
+      // the whole result through, oCatalogerIn is only for API compatibility
+      const removeResult = mongoOperator.remove({correlationId});
       return removeResult;
     }
 
@@ -289,9 +300,11 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}: {mongoUri: stri
     throw new HttpError(httpStatus.BAD_REQUEST);
   }
 
-  function removeContent({oCatalogerIn, correlationId}: {oCatalogerIn: unknown, correlationId: string}) {
+  function removeContent({correlationId}: {oCatalogerIn: unknown, correlationId: string}) {
     if (correlationId) {
-      const removeContentResult = mongoOperator.removeContent({oCatalogerIn, correlationId});
+      // commons 7 removeContent returns false when no GridFS file exists;
+      // the route ignores the value and always sends 204
+      const removeContentResult = mongoOperator.removeContent({correlationId});
       return removeContentResult;
     }
 

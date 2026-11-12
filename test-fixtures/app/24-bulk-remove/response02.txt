@@ -1,1 +1,1 @@
-{"request":{},"result":true}
+{"request":{},"result":{"removed":false,"deletedContent":false}}
