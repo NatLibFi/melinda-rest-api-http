@@ -628,11 +628,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Returns created bulk queue item",
+            "description": "Returns the normalized creation response for the bulk queue item",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/dbQueueItem-bulk"
+                  "$ref": "#/components/schemas/queueItemCreationResult"
                 }
               }
             }
@@ -1289,8 +1289,9 @@
         ]
       },
       "put": {
-        "summary": "Protect/unprotect a job's / a job's blobSequence's logs",
+        "summary": "Toggle protection of a job's / a job's blobSequence's logs",
         "deprecated": true,
+        "description": "Deprecated. Use PUT /logs/{id}/protect or PUT /logs/{id}/unprotect instead. Warning: omitting blobSequence inverts the protection state of ALL logs of the job (each log flips its own value), not just one blobSequence.",
         "tags": [
           "/logs/"
         ],
@@ -1740,14 +1741,27 @@
             }
           },
           "result": {
-            "type": "boolean"
+            "type": "object",
+            "properties": {
+              "removed": {
+                "type": "boolean",
+                "description": "True if a queue item was removed"
+              },
+              "deletedContent": {
+                "type": "boolean",
+                "description": "True if protected content was deleted as a result"
+              }
+            }
           }
         },
         "example": {
           "request": {
             "id": "00000000-0000-0000-0000-00000000000"
           },
-          "result": "true"
+          "result": {
+            "removed": true,
+            "deletedContent": false
+          }
         }
       },
       "marcRecord": {
@@ -1849,6 +1863,26 @@
           "VALIDATOR.PENDING_VALIDATION",
           "VALIDATOR.VALIDATING"
         ]
+      },
+      "queueItemCreationResult": {
+        "type": "object",
+        "description": "Normalized creation response for POST /bulk/. This is not the persisted queue item document; use GET /bulk/ to retrieve queue item details.",
+        "properties": {
+          "correlationId": {
+            "type": "string"
+          },
+          "acknowledged": {
+            "type": "boolean"
+          },
+          "queueItemState": {
+            "$ref": "#/components/schemas/queueItemState"
+          }
+        },
+        "example": {
+          "correlationId": "00000000-0000-0000-0000-00000000000",
+          "acknowledged": true,
+          "queueItemState": "VALIDATOR.PENDING_QUEUING"
+        }
       },
       "dbQueueItem-bulk": {
         "type": "object",
