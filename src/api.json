@@ -1749,7 +1749,7 @@
               },
               "deletedContent": {
                 "type": "boolean",
-                "description": "True if protected content was deleted as a result"
+                "description": "True if the job's uploaded record content was removed"
               }
             }
           }
