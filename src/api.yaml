@@ -461,7 +461,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/queueItemCreationResult'
+                $ref: '#/components/schemas/queueItemCreateResponse'
         '400':
           description: The record data is malformed or has unsupported format
         '401':
@@ -1254,7 +1254,7 @@ components:
         - VALIDATOR.UPLOADING
         - VALIDATOR.PENDING_VALIDATION
         - VALIDATOR.VALIDATING
-    queueItemCreationResult:
+    queueItemCreateResponse:
       type: object
       description: >-
         Normalized creation response for POST /bulk/. This is not the
