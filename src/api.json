@@ -632,7 +632,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/queueItemCreationResult"
+                  "$ref": "#/components/schemas/queueItemCreateResponse"
                 }
               }
             }
@@ -1864,7 +1864,7 @@
           "VALIDATOR.VALIDATING"
         ]
       },
-      "queueItemCreationResult": {
+      "queueItemCreateResponse": {
         "type": "object",
         "description": "Normalized creation response for POST /bulk/. This is not the persisted queue item document; use GET /bulk/ to retrieve queue item details.",
         "properties": {
