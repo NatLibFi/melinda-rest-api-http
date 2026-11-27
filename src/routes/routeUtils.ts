@@ -79,7 +79,7 @@ export function checkId(req: Request, res: Response, next: NextFunction) {
 export function checkContentType(req: Request, res: Response, next: NextFunction) {
   logger.debug(`routesUtils:checkContentType: content-type: ${req.headers['content-type']}`);
 
-  const result = req.headers['content-type'] === undefined ? undefined : CONTENT_TYPES.find(({contentType}) => contentType === req.headers['content-type']);
+  const result = req.headers['content-type'] === undefined ? undefined : CONTENT_TYPES.find(({contentType}) => contentType === String(req.headers['content-type']).split(';')[0]!.trim());
   logger.debug(`routesUtils:checkContentType: Found defined contentType: ${JSON.stringify(result)}`);
 
   if ((/^\/records[/?]/u).test(req.originalUrl)) {

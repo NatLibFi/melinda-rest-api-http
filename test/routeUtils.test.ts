@@ -186,9 +186,9 @@ describe('checkId', () => {
 });
 
 describe('checkContentType', () => {
-  // NOTE: content-type is compared as an exact string, so a real header
-  // with parameters (e.g. "application/json; charset=utf-8") does NOT
-  // match (suspected bug, asserted as actual behavior).
+  // NOTE: the content type is normalized to its media type before the
+  // lookup, so a real header with parameters (e.g.
+  // "application/json; charset=utf-8") matches.
 
   it('/records: application/json passes (allowAddRecords true)', () => {
     const result = run(checkContentType, {
@@ -237,14 +237,12 @@ describe('checkContentType', () => {
     assertUnsupported(run(checkContentType, {originalUrl: '/bulk/'}), 'Invalid content-type');
   });
 
-  it('/bulk: application/json with parameters is rejected (exact string match)', () => {
-    assertUnsupported(
-      run(checkContentType, {
-        originalUrl: '/bulk/abc',
-        headers: {'content-type': 'application/json; charset=utf-8'}
-      }),
-      'Invalid content-type'
-    );
+  it('/bulk: application/json with parameters is accepted (media-type normalization)', () => {
+    const result = run(checkContentType, {
+      originalUrl: '/bulk/abc',
+      headers: {'content-type': 'application/json; charset=utf-8'}
+    });
+    assert.equal(result.nextCalled, true);
   });
 
   it('prio path: application/alephseq is rejected (allowPrio false)', () => {

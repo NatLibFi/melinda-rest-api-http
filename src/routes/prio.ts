@@ -313,7 +313,9 @@ export default async ({sruUrl, amqpUrl, mongoUri, pollWaitTime, recordType, requ
   }
 
   function getConversionFormat(type: string | undefined) {
-    const {conversionFormat} = (CONTENT_TYPES.find(({contentType}) => contentType === type)) as (typeof CONTENT_TYPES)[number];
+    // Normalize the content type to its media type so that parameters like
+    // "charset=utf-8" don't break the lookup.
+    const {conversionFormat} = (CONTENT_TYPES.find(({contentType}) => contentType === type?.split(';')[0]!.trim())) as (typeof CONTENT_TYPES)[number];
     return conversionFormat;
   }
 
