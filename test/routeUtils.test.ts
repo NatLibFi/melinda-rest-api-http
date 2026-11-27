@@ -186,9 +186,9 @@ describe('checkId', () => {
 });
 
 describe('checkContentType', () => {
-  // NOTE: content-type is compared as an exact string, so a real header
-  // with parameters (e.g. "application/json; charset=utf-8") does NOT
-  // match (suspected bug, asserted as actual behavior).
+  // NOTE: the content type is normalized to its media type before the
+  // lookup, so a real header with parameters (e.g.
+  // "application/json; charset=utf-8") matches.
 
   it('/records: application/json passes (allowAddRecords true)', () => {
     const result = run(checkContentType, {
@@ -220,32 +220,29 @@ describe('checkContentType', () => {
     assert.equal(result.nextCalled, true);
   });
 
-  // NOTE (suspected bug, asserted as actual behavior, NOT fixed here):
-  // the branch regexes /^\/bulk[?\/]u and /^\/records[?\/]u require a char
-  // AFTER the path prefix, so bare "/bulk" or "/records" urls fall through
-  // to the prio rules instead of their own branches.
-  it('bare "/bulk" (no trailing char) falls through to the prio rules and rejects alephseq', () => {
-    assertUnsupported(
-      run(checkContentType, {
-        originalUrl: '/bulk',
-        headers: {'content-type': 'application/alephseq'}
-      }),
-      'Invalid content-type'
-    );
+  // NOTE: bare "/records" still deliberately falls through to the prio
+  // rules: no /records route exists (the prio router's /:id catch-all
+  // serves it), so matching "/records" against the addRecords rules here
+  // would regress bare-/records semantics. Only the /bulk branch matches
+  // the bare path.
+  it('bare "/bulk" (no trailing char) is accepted by the bulk branch', () => {
+    const result = run(checkContentType, {
+      originalUrl: '/bulk',
+      headers: {'content-type': 'application/alephseq'}
+    });
+    assert.equal(result.nextCalled, true);
   });
 
   it('/bulk: missing content-type is rejected', () => {
     assertUnsupported(run(checkContentType, {originalUrl: '/bulk/'}), 'Invalid content-type');
   });
 
-  it('/bulk: application/json with parameters is rejected (exact string match)', () => {
-    assertUnsupported(
-      run(checkContentType, {
-        originalUrl: '/bulk/abc',
-        headers: {'content-type': 'application/json; charset=utf-8'}
-      }),
-      'Invalid content-type'
-    );
+  it('/bulk: application/json with parameters is accepted (media-type normalization)', () => {
+    const result = run(checkContentType, {
+      originalUrl: '/bulk/abc',
+      headers: {'content-type': 'application/json; charset=utf-8'}
+    });
+    assert.equal(result.nextCalled, true);
   });
 
   it('prio path: application/alephseq is rejected (allowPrio false)', () => {

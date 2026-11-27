@@ -1,5 +1,6 @@
 import {describe, it} from 'node:test';
 import assert from 'node:assert/strict';
+import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {generateQuery, generateShowParams} from '../src/interfaces/utils.ts';
 
 const VALID_ISO = '2026-01-01T12:34:56.789Z';
@@ -79,30 +80,60 @@ describe('generateQuery', () => {
     });
   });
 
-  // NOTE (suspected bug, asserted as actual behavior, NOT fixed here):
-  // `if (creationTime.length === 1)` compares the LENGTH OF THE STRING, not
-  // the parsed array. A valid one-element JSON array string is never 1 char
-  // long, so the intended exact-match branch (doc.creationTime = ...) is
-  // unreachable; a one-element array falls into the $and branch where
-  // timestampArray[1] is undefined and moment.utc(undefined) yields "now".
-  it('one-element creationTime array falls into the $and branch (string-length bug)', () => {
-    const before = Date.now();
+  it('one-element creationTime array is an exact match on creationTime', () => {
     const query = generateQuery({creationTime: JSON.stringify([VALID_ISO])});
-    const after = Date.now();
-    assert.deepEqual(Object.keys(query), ['$and']);
-    assert.ok(query.$and[0].creationTime.$gte instanceof Date);
-    assert.equal(query.$and[0].creationTime.$gte.toISOString(), VALID_ISO);
-    const upper = query.$and[1].creationTime.$lte;
-    assert.ok(upper instanceof Date);
-    assert.ok(upper.getTime() >= before && upper.getTime() <= after,
-      'upper bound should be "now" (moment.utc(undefined) on the missing element)');
+    assert.deepEqual(query, {creationTime: new Date(VALID_ISO)});
+    assert.ok((query as any).creationTime instanceof Date);
   });
 
-  it('one-element modificationTime array falls into the $and branch (string-length bug)', () => {
+  it('one-element modificationTime array is an exact match on modificationTime', () => {
     const query = generateQuery({modificationTime: JSON.stringify(['2026-01-01'])});
-    assert.deepEqual(Object.keys(query), ['$and']);
-    assert.equal(query.$and[0].modificationTime.$gte.toISOString(), '2026-01-01T00:00:00.000Z');
-    assert.ok(query.$and[1].modificationTime.$lte instanceof Date);
+    assert.deepEqual(query, {modificationTime: new Date('2026-01-01T00:00:00.000Z')});
+    assert.ok((query as any).modificationTime instanceof Date);
+  });
+
+  it('zero-element creationTime array throws BAD_REQUEST', () => {
+    assert.throws(
+      () => generateQuery({creationTime: JSON.stringify([])}),
+      (error: unknown) => {
+        assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
+        assert.equal(error.status, 400);
+        return true;
+      }
+    );
+  });
+
+  it('zero-element modificationTime array throws BAD_REQUEST', () => {
+    assert.throws(
+      () => generateQuery({modificationTime: JSON.stringify([])}),
+      (error: unknown) => {
+        assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
+        assert.equal(error.status, 400);
+        return true;
+      }
+    );
+  });
+
+  it('three-element creationTime array of valid timestamps throws BAD_REQUEST', () => {
+    assert.throws(
+      () => generateQuery({creationTime: JSON.stringify([VALID_ISO, VALID_ISO_END, VALID_ISO_END])}),
+      (error: unknown) => {
+        assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
+        assert.equal(error.status, 400);
+        return true;
+      }
+    );
+  });
+
+  it('three-element modificationTime array of valid timestamps throws BAD_REQUEST', () => {
+    assert.throws(
+      () => generateQuery({modificationTime: JSON.stringify(['2026-01-01', '2026-02-01', '2026-03-01'])}),
+      (error: unknown) => {
+        assert.ok(error instanceof HttpError, `expected an HttpError, got: ${error}`);
+        assert.equal(error.status, 400);
+        return true;
+      }
+    );
   });
 
   it('combines several filters into one document', () => {

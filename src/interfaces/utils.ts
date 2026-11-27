@@ -1,7 +1,7 @@
 import moment from 'moment';
 import sanitize from 'mongo-sanitize';
-import {createLogger} from '@natlibfi/melinda-commons';
-import {parseBoolean} from '@natlibfi/melinda-commons';
+import httpStatus from 'http-status';
+import {createLogger, Error as HttpError, parseBoolean} from '@natlibfi/melinda-commons';
 
 const logger = createLogger();
 
@@ -53,25 +53,29 @@ export function generateQuery({id, correlationId, queueItemState, creationTime, 
 
   if (creationTime) {
     const timestampArray = JSON.parse(creationTime);
-    if (creationTime.length === 1) {
+    if (timestampArray.length === 1) {
       doc['creationTime'] = formatTime(timestampArray[0]);
-    } else {
+    } else if (timestampArray.length === 2) {
       doc['$and'] = [
         {creationTime: {$gte: formatTime(timestampArray[0])}},
         {creationTime: {$lte: formatTime(timestampArray[1])}}
       ];
+    } else {
+      throw new HttpError(httpStatus.BAD_REQUEST, 'creationTime must be a JSON array of 1 or 2 UTC timestamps');
     }
   }
 
   if (modificationTime) {
     const timestampArray = JSON.parse(modificationTime);
-    if (modificationTime.length === 1) {
+    if (timestampArray.length === 1) {
       doc['modificationTime'] = formatTime(timestampArray[0]);
-    } else {
+    } else if (timestampArray.length === 2) {
       doc['$and'] = [
         {modificationTime: {$gte: formatTime(timestampArray[0])}},
         {modificationTime: {$lte: formatTime(timestampArray[1])}}
       ];
+    } else {
+      throw new HttpError(httpStatus.BAD_REQUEST, 'modificationTime must be a JSON array of 1 or 2 UTC timestamps');
     }
   }
 

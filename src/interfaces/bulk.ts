@@ -122,7 +122,9 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}: {mongoUri: stri
 
     if (data) {
 
-      const type = contentType;
+      // Normalize the content type to its media type so that parameters like
+      // "charset=utf-8" don't break the lookup.
+      const type = contentType?.split(';')[0]!.trim();
       const {conversionFormat} = (CONTENT_TYPES.find(({contentType, allowBulk}) => contentType === type && allowBulk === true)) as (typeof CONTENT_TYPES)[number];
 
       if (!conversionFormat) {
@@ -191,7 +193,9 @@ export default async function ({mongoUri, amqpUrl, allowedLibs}: {mongoUri: stri
 
     function getConversionFormatForAddRecords(contentType: string | undefined) {
       logger.silly(`contentType: ${contentType}`);
-      const type = contentType;
+      // Normalize the content type to its media type so that parameters like
+      // "charset=utf-8" don't break the lookup.
+      const type = contentType?.split(';')[0]!.trim();
       const conversionFormatResult = CONTENT_TYPES.find(({contentType, allowAddRecords}) => contentType === type && allowAddRecords === true);
       logger.silly(`conversionFormatResult: ${JSON.stringify(conversionFormatResult)}`);
       if (!conversionFormatResult) {
