@@ -67,7 +67,7 @@
         "pActiveLibrary": "100",
         "pOldNew": "NEW"
       },
-      "queueItemState": "DONE",
+      "queueItemState": "PENDING_VALIDATION",
       "blobSize": 1,
       "importJobState": {
         "CREATE": "EMPTY",
@@ -101,7 +101,7 @@
     },
     {
       "correlationId": "test-correlation-3",
-      "cataloger": "123",
+      "cataloger": "789",
       "oCatalogerIn": "100",
       "operation": "CREATE",
       "operations": [
@@ -112,8 +112,8 @@
         "pActiveLibrary": "100",
         "pOldNew": "NEW"
       },
-      "queueItemState": "ABORT",
-      "blobSize": 1,
+      "queueItemState": "PENDING_VALIDATION",
+      "blobSize": 2,
       "importJobState": {
         "CREATE": "EMPTY",
         "UPDATE": "EMPTY",
@@ -130,8 +130,17 @@
         "failOnError": false,
         "skipNoChangeUpdates": true
       },
-      "records": [],
-      "handledIds": [],
+      "records": [
+        {
+          "recordStatus": "ACCEPTED"
+        },
+        {
+          "recordStatus": "REJECTED"
+        }
+      ],
+      "handledIds": [
+        "h-4"
+      ],
       "rejectedIds": [
         "r-2"
       ],

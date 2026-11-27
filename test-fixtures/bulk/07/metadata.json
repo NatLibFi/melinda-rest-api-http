@@ -2,5 +2,7 @@
   "description": "no filters returns all items with the default projection",
   "functionName": "doQuery",
   "preFillDb": true,
-  "params": {}
+  "params": {
+    "queueItemState": "PENDING_VALIDATION"
+  }
 }

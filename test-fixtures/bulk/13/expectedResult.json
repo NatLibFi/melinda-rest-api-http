@@ -5,7 +5,7 @@
     "oCatalogerIn": "100",
     "operation": "CREATE",
     "contentType": "application/octet-stream",
-    "queueItemState": "DONE",
+    "queueItemState": "PENDING_VALIDATION",
     "blobSize": 1,
     "records": [
       {

@@ -18,24 +18,5 @@
         "REJECTED": 1
       }
     }
-  },
-  {
-    "correlationId": "test-correlation-2",
-    "cataloger": "456",
-    "oCatalogerIn": "100",
-    "operation": "CREATE",
-    "contentType": "application/octet-stream",
-    "queueItemState": "DONE",
-    "blobSize": 1,
-    "errorMessage": "",
-    "errorStatus": "",
-    "creationTime": "2026-02-20T08:00:00.000Z",
-    "modificationTime": "2026-02-20T09:00:00.000Z",
-    "recordReport": {
-      "recordAmount": 1,
-      "recordStatuses": {
-        "ACCEPTED": 1
-      }
-    }
   }
 ]

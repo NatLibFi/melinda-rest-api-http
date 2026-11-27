@@ -7,6 +7,26 @@ import createSruClient from '@natlibfi/sru-client';
 import httpStatus from 'http-status';
 import {generateQuery, generateShowParams} from './utils.js';
 
+// Map validator recordStatus strings to HTTP status codes.
+// When the validator flips the outcome (e.g. create → UPDATED because
+// the record already exists and merge is off), the client requested a
+// specific operation that could not be fulfilled — 409 CONFLICT.
+// Passes through numeric values (e.g. ERROR leg already has a proper code).
+function unexpectedRecordStatusToHttp(status) {
+  if (typeof status === 'number') return status;
+  switch (status) {
+    case 'INVALID':
+      return httpStatus.BAD_REQUEST;
+    case 'UPDATED':
+    case 'SKIPPED':
+    case 'CREATED':
+    case 'FIXED':
+      return httpStatus.CONFLICT;
+    default:
+      return httpStatus.CONFLICT;
+  }
+}
+
 const setTimeoutPromise = promisify(setTimeout);
 
 export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
@@ -57,13 +77,17 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.silly(`prio/create response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
     logger.debug(`status: ${status}, ${payload.databaseId}, ${JSON.stringify(payload)}`);
 
-    cleanMongo(correlationId);
+    cleanMongo(correlationId).catch(error => {
+      // best-effort cleanup: a rejection (e.g. Mongo driver failure in
+      // queryById) must not become an unhandled rejection and kill the process
+      logger.error(`cleanMongo for ${correlationId} failed: ${error instanceof Error ? error.message : String(error)}`);
+    });
 
     if (status === 'CREATED' || (operationSettings.merge && (status === 'UPDATED' || status === 'SKIPPED'))) {
       return {messages: payload, id: payload.databaseId, status};
     }
 
-    throw new HttpError(status, payload || '');
+    throw new HttpError(unexpectedRecordStatusToHttp(status), payload || '');
   }
 
 
@@ -89,7 +113,11 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.silly(`prio/update response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
     logger.debug(`status: ${status}, ${payload}`);
 
-    cleanMongo(correlationId);
+    cleanMongo(correlationId).catch(error => {
+      // best-effort cleanup: a rejection (e.g. Mongo driver failure in
+      // queryById) must not become an unhandled rejection and kill the process
+      logger.error(`cleanMongo for ${correlationId} failed: ${error instanceof Error ? error.message : String(error)}`);
+    });
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
     if (status === 'UPDATED' || status === 'SKIPPED') {
@@ -97,7 +125,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     }
 
     // Note: if validator changed the operation -> this errors currently
-    throw new HttpError(status, payload || '');
+    throw new HttpError(unexpectedRecordStatusToHttp(status), payload || '');
   }
 
 
@@ -123,7 +151,11 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     logger.silly(`prio/fix response from handleRequest: ${inspect(responseData, {colors: true, maxArrayLength: 3, depth: 1})}}`);
     logger.debug(`status: ${status}, ${payload}`);
 
-    cleanMongo(correlationId);
+    cleanMongo(correlationId).catch(error => {
+      // best-effort cleanup: a rejection (e.g. Mongo driver failure in
+      // queryById) must not become an unhandled rejection and kill the process
+      logger.error(`cleanMongo for ${correlationId} failed: ${error instanceof Error ? error.message : String(error)}`);
+    });
 
     // Should recognise cases where validator changed operation (more probable case is of course CREATE -> UPDATE)
     if (status === 'FIXED' || status === 'SKIPPED') {
@@ -131,7 +163,7 @@ export default async function ({sruUrl, amqpUrl, mongoUri, pollWaitTime}) {
     }
 
     // Note: if validator changed the operation -> this errors currently
-    throw new HttpError(status, payload || '');
+    throw new HttpError(unexpectedRecordStatusToHttp(status), payload || '');
   }
 
 

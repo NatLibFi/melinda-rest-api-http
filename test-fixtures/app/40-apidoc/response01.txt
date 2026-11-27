@@ -482,6 +482,13 @@ paths:
           description: The record does not pass validation
     get:
       summary: Retrieve queue items
+      description: >-
+        At least one real filter parameter is required, i.e. one of id,
+        correlationId, queueItemState, creationTime or modificationTime - a
+        request without a filter is rejected with 400. The remaining
+        parameters (showAll, showOperationSettings, showRecordLoadParams,
+        showImportJobState, recordsAsReport, noRecords, noIds) only shape the
+        response and do not count as filters
       tags:
         - /bulk/
       parameters:
@@ -547,6 +554,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/dbQueueItem-bulk'
+        '400':
+          description: >-
+            At least one filter parameter (id, correlationId, queueItemState,
+            creationTime or modificationTime) is required
         '401':
           description: Credentials are invalid or missing
         '403':
