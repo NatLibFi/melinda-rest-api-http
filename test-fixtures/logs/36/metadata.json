@@ -1,0 +1,6 @@
+{
+  "description": "protectLog: sets protected to true on the given correlationId/blobSequence (protect-only, no toggle); already-protected docs stay protected",
+  "functionName": "protectLog",
+  "params": ["corr-1", 2],
+  "preFillDb": true
+}

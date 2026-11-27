@@ -1,0 +1,8 @@
+{
+  "description": "toggleLog: mixed protected values in the same correlationId flips each doc individually",
+  "functionName": "toggleLog",
+  "params": [
+    "corr-1"
+  ],
+  "preFillDb": true
+}

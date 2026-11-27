@@ -16,7 +16,7 @@ import type {BulkCreateQueryResult, BulkQueryParams} from '../interfaces/bulk.ts
 export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}: {mongoUri: string, amqpUrl: string, recordType: string, allowedLibs: string[]}) {
   const logger = createLogger();
 
-  const OPERATION_TYPES = [OPERATIONS.CREATE, OPERATIONS.UPDATE];
+  const OPERATION_TYPES: string[] = [OPERATIONS.CREATE, OPERATIONS.UPDATE];
   const Service = await createService({mongoUri, amqpUrl, allowedLibs});
 
   return Router()
@@ -50,11 +50,12 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}: {mo
         correlationId: uuid(),
         cataloger: Service.checkCataloger(user.id, queryParams.pCatalogerIn),
         oCatalogerIn: user.id,
-        contentType: req.headers['content-type'],
+        // the checkContentType middleware guarantees a defined content-type here
+        contentType: req.headers['content-type'] as string,
         operation,
         recordLoadParams,
         operationSettings,
-        stream: noStream ? false : req
+        stream: noStream ? undefined : req
       };
 
       logger.silly('Params done');
@@ -189,6 +190,7 @@ export default async function ({mongoUri, amqpUrl, recordType, allowedLibs}: {mo
     logger.silly('routes/Bulk remove');
     try {
       const response = await Service.remove({oCatalogerIn: (req.user as Cataloger).id, correlationId: req.params['id'] as string});
+      // commons 7 remove returns {removed, deletedContent} - passed through as-is
       res.json({request: req.query, result: response});
     } catch (error) {
       if (error instanceof HttpError) {

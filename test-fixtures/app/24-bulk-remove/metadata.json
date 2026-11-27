@@ -1,5 +1,5 @@
 {
-  "description": "Bulk remove: stored queueItem -> 200; NOTE pinned current behavior: removing an unknown id also returns 200 and result true (mongo remove reports no error when nothing matches)",
+  "description": "Bulk remove: stored queueItem -> 200 with result {removed, deletedContent}; NOTE pinned current behavior: removing an unknown id also returns 200 with removed false (mongo remove reports no error when nothing matches)",
   "passport": "kvp",
   "dbContents": "dbContents.json",
   "requests": [

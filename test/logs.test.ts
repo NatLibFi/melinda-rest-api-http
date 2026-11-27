@@ -117,6 +117,34 @@ async function callback(fixtureParams: Record<string, any>): Promise<void> {
     return assert.deepStrictEqual(remaining, getFixture('expectedRemaining.json'));
   }
 
+  if (functionName === 'toggleLog') {
+    const [correlationId, blobSequence] = params;
+    const result = await service.toggleLog(correlationId, blobSequence);
+    assert.deepStrictEqual(result, getFixture('expectedResult.json'));
+    const remaining = (await dumpLogs()).map((doc) => {
+      const fixed = {...doc};
+      // toggling sets modificationTime to the current time, so it can't be
+      // compared against a static fixture
+      delete fixed.modificationTime;
+      return fixed;
+    });
+    return assert.deepStrictEqual(remaining, getFixture('expectedRemaining.json'));
+  }
+
+  if (functionName === 'unprotectLog') {
+    const [correlationId, blobSequence] = params;
+    const result = await service.unprotectLog(correlationId, blobSequence);
+    assert.deepStrictEqual(result, getFixture('expectedResult.json'));
+    const remaining = (await dumpLogs()).map((doc) => {
+      const fixed = {...doc};
+      // unprotect() sets modificationTime to the current time, so it can't
+      // be compared against a static fixture
+      delete fixed.modificationTime;
+      return fixed;
+    });
+    return assert.deepStrictEqual(remaining, getFixture('expectedRemaining.json'));
+  }
+
   if (functionName === 'removeLog') {
     const [correlationId, force] = params;
     const result = await service.removeLog(correlationId, force);

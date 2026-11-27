@@ -57,6 +57,9 @@ let mongoClient: MongoClient;
 
 function makeFakeChannel() {
   return {
+    // commons 7 amqpFactory attaches 'error'/'close' listeners to the channel
+    // at construction
+    on: () => {},
     assertQueue: async (name: string) => {
       amqpMock.calls.push(['assertQueue', name]);
       return {queue: name, messageCount: 0};
@@ -114,6 +117,9 @@ mock.module('amqplib', {
       connect: (url: string) => {
         amqpMock.calls.push(['connect', url]);
         return Promise.resolve({
+          // commons 7 amqpFactory attaches 'error'/'close' listeners to the
+          // connection at construction
+          on: () => {},
           createChannel: () => Promise.resolve(makeFakeChannel()),
           close: () => Promise.resolve(true)
         });

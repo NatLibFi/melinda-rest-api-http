@@ -1,5 +1,5 @@
 {
-  "description": "removeContent without a stored GridFS file still returns true (always-true path)",
+  "description": "removeContent without a stored GridFS file returns false (commons 7 reports a missing file as not removed)",
   "functionName": "removeContent",
   "preFillDb": true,
   "expectItemRemains": true,

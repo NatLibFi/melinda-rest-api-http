@@ -1,5 +1,5 @@
 {
-  "description": "Logs protect: stored log -> 200 with the updateMany result; NOTE pinned current behavior: protecting an unknown id also returns 200 (updateMany with matched 0, no 404)",
+  "description": "Logs legacy toggle (PUT /logs/:id, v5 wire-compatible): stored unprotected log -> 200 with the updateMany result, protected flips to true; NOTE pinned current behavior: toggling an unknown id also returns 200 (updateMany with matched 0, no 404)",
   "passport": "kvp",
   "dbContents": "dbContents.json",
   "requests": [

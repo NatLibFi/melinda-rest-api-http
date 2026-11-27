@@ -30,7 +30,7 @@ export default async function ({mongoUri}: {mongoUri: string}) {
   const logger = createLogger();
   const mongoLogOperator = await mongoLogFactory(mongoUri);
 
-  return {getLogs, doLogsQuery, getListOfCatalogers, getListOfCorrelationIds, getListOfLogs, getExpandedListOfLogs, protectLog, removeLog};
+  return {getLogs, doLogsQuery, getListOfCatalogers, getListOfCorrelationIds, getListOfLogs, getExpandedListOfLogs, protectLog, unprotectLog, toggleLog, removeLog};
 
   // routes/getLogs -> interfaces -> getLogs -> mongoLog queryByIds
   // DEVELOP: currently return *one MERGE_LOG* for correlationId if such exists
@@ -64,7 +64,7 @@ export default async function ({mongoUri}: {mongoUri: string}) {
   }
 
   // This is used nowhere?
-  function getListOfLogs(logItemType = LOG_ITEM_TYPE.MERGE_LOG) {
+  function getListOfLogs(logItemType: string = LOG_ITEM_TYPE.MERGE_LOG) {
     return mongoLogOperator.getListOfLogs(logItemType);
   }
 
@@ -88,15 +88,72 @@ export default async function ({mongoUri}: {mongoUri: string}) {
     }
 
     logger.debug(`Getting list of logs ${logItemType}`);
-    if (LOG_ITEM_TYPE[logItemType]) {
+    if ((Object.values(LOG_ITEM_TYPE) as readonly string[]).includes(logItemType)) {
       return getListOfLogs(logItemType);
     }
 
     throw new HttpError(httpStatus.BAD_REQUEST, 'Invalid logItemType');
   }
 
-  function protectLog(correlationId: string, blobSequence: unknown) {
+  // commons 7 protect is protect-only (no toggle): already-protected docs
+  // stay protected
+  function protectLog(correlationId: string, blobSequence?: string | number) {
     return mongoLogOperator.protect(correlationId, blobSequence);
+  }
+
+  function unprotectLog(correlationId: string, blobSequence?: string | number) {
+    return mongoLogOperator.unprotect(correlationId, blobSequence);
+  }
+
+  // commons 7 protect/unprotect are one-directional (no toggle), so the
+  // legacy v5 toggle behavior (each matching doc flips its protected value)
+  // is re-created here on top of them
+  async function toggleLog(correlationId: string, blobSequence?: string | number) {
+    logger.verbose(`toggleLog: correlationId: ${correlationId}, blobSequence: ${blobSequence}`);
+    // query() defaults to limit 5; toggle must see every matching doc
+    const docs = await mongoLogOperator.query({correlationId, limit: Number.MAX_SAFE_INTEGER});
+    // the operator stores blobSequence as a number, so compare parsed values
+    const wanted = blobSequence === undefined ? docs : docs.filter((doc) => doc.blobSequence === parseInt(String(blobSequence), 10));
+    logger.debug(`toggleLog: matched ${wanted.length} log item(s) for correlationId: ${correlationId}`);
+    if (wanted.length === 0) {
+      // mirror the updateMany result of a filter matching nothing (field
+      // order matches the real UpdateResult's JSON serialization)
+      return {acknowledged: true, modifiedCount: 0, upsertedId: null, upsertedCount: 0, matchedCount: 0};
+    }
+    const allProtected = wanted.every((doc) => doc.protected === true);
+    const allUnprotected = wanted.every((doc) => !doc.protected);
+    if (allProtected || allUnprotected) {
+      const response = allProtected ? await unprotectLog(correlationId, blobSequence) : await protectLog(correlationId, blobSequence);
+      logger.debug(`toggleLog: toggled all docs with a single ${allProtected ? 'unprotect' : 'protect'} call`);
+      return response;
+    }
+    // mixed protected values: flip each doc individually
+    let matchedCount = 0;
+    let modifiedCount = 0;
+    let flippedCount = 0;
+    const processedSequences = new Set<number>();
+    for (const doc of wanted) {
+      // protect()/unprotect() target by blobSequence, so a doc without a valid
+      // sequence can't be flipped individually (undefined would flip the whole
+      // correlationId, diverging from the v5 toggle); it keeps its current value
+      if (typeof doc.blobSequence !== 'number' || !Number.isInteger(doc.blobSequence) || doc.blobSequence <= 0) {
+        logger.warn(`toggleLog: skipping doc without a valid blobSequence (${String(doc.blobSequence)}) for correlationId ${correlationId}; it keeps its current protected value`);
+        continue;
+      }
+      // each per-doc call targets by blobSequence, so docs sharing one sequence
+      // are flipped only once
+      if (processedSequences.has(doc.blobSequence)) {
+        continue;
+      }
+      processedSequences.add(doc.blobSequence);
+      logger.debug(`toggleLog: flipping doc with blobSequence: ${doc.blobSequence}, protected: ${Boolean(doc.protected)}`);
+      const response = doc.protected ? await unprotectLog(correlationId, doc.blobSequence) : await protectLog(correlationId, doc.blobSequence);
+      matchedCount += response.matchedCount;
+      modifiedCount += response.modifiedCount;
+      flippedCount += 1;
+    }
+    logger.debug(`toggleLog: flipped ${flippedCount} doc(s) individually (${wanted.length} matched)`);
+    return {acknowledged: true, modifiedCount, upsertedId: null, upsertedCount: 0, matchedCount};
   }
 
   function removeLog(correlationId: string, force = false) {

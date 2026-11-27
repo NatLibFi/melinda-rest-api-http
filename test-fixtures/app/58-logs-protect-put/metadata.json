@@ -1,0 +1,9 @@
+{
+  "description": "Logs protect (PUT /logs/:id/protect, protect-only): stored protected log -> 200 with the updateMany result, stays protected; NOTE pinned current behavior: protecting an unknown id also returns 200 (updateMany with matched 0, no 404)",
+  "passport": "kvp",
+  "dbContents": "dbContents.json",
+  "requests": [
+    {"method": "put", "path": "/logs/58585858-5858-4858-8858-585858585858/protect", "status": 200, "requestParams": {"blobSequence": "1"}, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
+    {"method": "put", "path": "/logs/44444444-4444-4444-8444-444444444444/protect", "status": 200, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}}
+  ]
+}
