@@ -90,7 +90,7 @@ export function checkContentType(req: Request, res: Response, next: NextFunction
     return next();
   }
 
-  if ((/^\/bulk[/?]/u).test(req.originalUrl)) {
+  if ((/^\/bulk($|[/?])/u).test(req.originalUrl)) {
     logger.debug(`Checking contentType for bulk (path: ${req.originalUrl})`);
     if (!result || result.allowBulk === false) {
       return res.status(httpStatus.UNSUPPORTED_MEDIA_TYPE).send('Invalid content-type');

@@ -220,18 +220,17 @@ describe('checkContentType', () => {
     assert.equal(result.nextCalled, true);
   });
 
-  // NOTE (suspected bug, asserted as actual behavior, NOT fixed here):
-  // the branch regexes /^\/bulk[?\/]u and /^\/records[?\/]u require a char
-  // AFTER the path prefix, so bare "/bulk" or "/records" urls fall through
-  // to the prio rules instead of their own branches.
-  it('bare "/bulk" (no trailing char) falls through to the prio rules and rejects alephseq', () => {
-    assertUnsupported(
-      run(checkContentType, {
-        originalUrl: '/bulk',
-        headers: {'content-type': 'application/alephseq'}
-      }),
-      'Invalid content-type'
-    );
+  // NOTE: bare "/records" still deliberately falls through to the prio
+  // rules: no /records route exists (the prio router's /:id catch-all
+  // serves it), so matching "/records" against the addRecords rules here
+  // would regress bare-/records semantics. Only the /bulk branch matches
+  // the bare path.
+  it('bare "/bulk" (no trailing char) is accepted by the bulk branch', () => {
+    const result = run(checkContentType, {
+      originalUrl: '/bulk',
+      headers: {'content-type': 'application/alephseq'}
+    });
+    assert.equal(result.nextCalled, true);
   });
 
   it('/bulk: missing content-type is rejected', () => {
