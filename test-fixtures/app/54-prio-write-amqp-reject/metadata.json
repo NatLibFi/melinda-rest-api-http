@@ -1,0 +1,36 @@
+{
+  "description": "Prio write flows with AMQP sendToQueue rejecting: create/update/fix all answer a plain 500 (non-HttpError from the rejected publish -> route next(error) -> handleError final-500 leg, and the handleRequest reject leg in interfaces/prio.js)",
+  "passport": "kvp",
+  "amqpReject": true,
+  "requests": [
+    {
+      "method": "post",
+      "path": "/",
+      "status": 500,
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/123456789",
+      "status": 500,
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/fix/123456789",
+      "status": 500,
+      "requestParams": {
+        "fixType": "DELET"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    }
+  ]
+}

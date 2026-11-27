@@ -1,0 +1,23 @@
+[
+  {
+    "queue": "REQUESTS",
+    "content": "{\"data\":{\"fields\":[{\"t\":\"245\",\"v\":\"a title\"}]}}",
+    "correlationId": "prio-14",
+    "persistent": true,
+    "headers": {
+      "correlationId": "prio-14",
+      "operation": "CREATE",
+      "format": "JSON",
+      "cataloger": {
+        "id": "123"
+      },
+      "operationSettings": {
+        "prio": true,
+        "noStream": true,
+        "unique": true,
+        "validate": true,
+        "merge": false
+      }
+    }
+  }
+]

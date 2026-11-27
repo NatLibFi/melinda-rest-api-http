@@ -1,0 +1,12 @@
+{
+  "description": "addRecords with a non-addRecords contentType (allowAddRecords false) gives a 415",
+  "functionName": "addRecords",
+  "expectError": true,
+  "expectedErrorStatus": 415,
+  "expectedErrorMessage": "Invalid content-type",
+  "params": {
+    "correlationId": "addrecs-5",
+    "contentType": "application/marc",
+    "data": "[]"
+  }
+}

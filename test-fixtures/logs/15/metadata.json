@@ -1,0 +1,6 @@
+{
+  "description": "doLogsQuery: limit caps the result set",
+  "functionName": "doLogsQuery",
+  "params": {"limit": "1"},
+  "preFillDb": true
+}

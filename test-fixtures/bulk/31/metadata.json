@@ -1,0 +1,17 @@
+{
+  "description": "OLD + noStream: UPDATE with noStream-derived operation settings",
+  "functionName": "validateQueryParams",
+  "allowedLibs": [
+    "100",
+    "200"
+  ],
+  "params": {
+    "pActiveLibrary": "200",
+    "pOldNew": "OLD",
+    "noStream": "true",
+    "pRejectFile": "reject.txt",
+    "pLogFile": "log.txt",
+    "pCatalogerIn": "77",
+    "matchFailuresAsNew": "true"
+  }
+}

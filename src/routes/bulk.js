@@ -2,7 +2,7 @@ import {Router} from 'express';
 import bodyParser from 'body-parser';
 import httpStatus from 'http-status';
 import {v4 as uuid} from 'uuid';
-import {createLogger} from '@natlibfi/melinda-backend-commons';
+import {createLogger} from '@natlibfi/melinda-commons';
 import {Error as HttpError} from '@natlibfi/melinda-commons';
 import {OPERATIONS} from '@natlibfi/melinda-rest-api-commons';
 import createService from '../interfaces/bulk.js';

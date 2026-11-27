@@ -1,0 +1,13 @@
+{
+  "description": "addRecords with a non-array JSON body gives a 400 (record elements are not validated individually, only the array shape)",
+  "functionName": "addRecords",
+  "preFillDb": true,
+  "expectError": true,
+  "expectedErrorStatus": 400,
+  "expectedErrorMessage": "Input is not a valid array of marc-record-js",
+  "params": {
+    "correlationId": "addrecs-2",
+    "contentType": "application/json",
+    "data": "{\"fields\":[]}"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "description": "addRecord publishes one persistent message to PENDING_VALIDATION.<id> and returns 201 (blobSequence starts at 2: off-by-one, pinned here)",
+  "functionName": "addRecord",
+  "preFillDb": true,
+  "params": {
+    "correlationId": "addrec-1",
+    "contentType": "application/json",
+    "data": {
+      "fields": []
+    }
+  },
+  "expectedBlobSize": 1
+}

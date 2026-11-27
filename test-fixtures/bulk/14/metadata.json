@@ -1,0 +1,8 @@
+{
+  "description": "showAll=1 projects the whole item (only _id excluded)",
+  "functionName": "doQuery",
+  "preFillDb": true,
+  "params": {
+    "showAll": "true"
+  }
+}

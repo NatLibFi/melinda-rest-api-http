@@ -1,0 +1,7 @@
+{
+  "description": "Prio default variant: GET /:id is public (no authentication needed)",
+  "sruRecords": ["record01.xml"],
+  "requests": [
+    {"method": "get", "path": "/123456789", "status": 200, "requestHeaders": {"Accept": "*/*"}}
+  ]
+}

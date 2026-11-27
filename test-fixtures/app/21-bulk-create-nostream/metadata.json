@@ -1,0 +1,20 @@
+{
+  "description": "Bulk create (noStream): 200 with a new queueItem (correlationId is dynamic, no payload fixture)",
+  "passport": "kvp",
+  "requests": [
+    {
+      "method": "post",
+      "path": "/bulk/",
+      "status": 200,
+      "requestParams": {
+        "pOldNew": "NEW",
+        "pActiveLibrary": "FIN10",
+        "noStream": "1"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "description": "getListOfCatalogers: returns the distinct cataloger values",
+  "functionName": "getListOfCatalogers",
+  "params": null,
+  "preFillDb": true
+}

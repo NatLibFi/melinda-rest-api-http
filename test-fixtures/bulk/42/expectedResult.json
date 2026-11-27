@@ -1,0 +1,22 @@
+{
+  "operation": "CREATE",
+  "recordLoadParams": {
+    "pActiveLibrary": "100",
+    "pOldNew": "NEW",
+    "pRejectFile": null,
+    "pLogFile": null,
+    "pCatalogerIn": null
+  },
+  "noStream": false,
+  "operationSettings": {
+    "noStream": false,
+    "noop": false,
+    "unique": false,
+    "merge": false,
+    "validate": false,
+    "skipLowValidation": false,
+    "failOnError": false,
+    "skipNoChangeUpdates": true,
+    "prio": false
+  }
+}

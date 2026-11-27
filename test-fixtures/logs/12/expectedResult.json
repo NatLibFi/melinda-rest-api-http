@@ -1,0 +1,16 @@
+[
+  {
+    "correlationId": "corr-2",
+    "logItemType": "MATCH_LOG",
+    "cataloger": "CAT_A",
+    "blobSequence": 1,
+    "sourceIds": ["(FI-TEST)100"],
+    "title": "Doc 3",
+    "standardIdentifiers": ["978-952-00-0003-3"],
+    "databaseId": "000333333",
+    "preference": {"name": "Pref C", "value": "C", "recordName": "databaseRecord"},
+    "incomingRecord": {"leader": "leader3"},
+    "creationTime": "2024-01-03T10:00:00.000Z",
+    "protected": false
+  }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "queue": "PENDING_VALIDATION.addrec-1",
+    "content": "{\"data\":{\"fields\":[]}}",
+    "correlationId": "addrec-1",
+    "persistent": true,
+    "headers": {
+      "correlationId": "addrec-1",
+      "operation": "CREATE",
+      "format": "JSON",
+      "cataloger": "123",
+      "operationSettings": {
+        "prio": false,
+        "noStream": true,
+        "unique": true,
+        "validate": true
+      },
+      "recordMetadata": {
+        "blobSequence": 2
+      }
+    }
+  }
+]

@@ -1,0 +1,36 @@
+{
+  "bulk": [
+    {
+      "correlationId": "addrecs-1",
+      "cataloger": "123",
+      "oCatalogerIn": "100",
+      "operation": "CREATE",
+      "operations": [
+        "CREATE"
+      ],
+      "contentType": "application/json",
+      "recordLoadParams": {
+        "pActiveLibrary": "100",
+        "pOldNew": "NEW"
+      },
+      "queueItemState": "WAITING_FOR_RECORDS",
+      "blobSize": 0,
+      "importJobState": {
+        "CREATE": "EMPTY",
+        "UPDATE": "EMPTY",
+        "FIX": "EMPTY"
+      },
+      "operationSettings": {
+        "prio": false,
+        "noStream": true,
+        "unique": true,
+        "validate": true
+      },
+      "records": [],
+      "errorMessage": "",
+      "errorStatus": "",
+      "creationTime": "2026-01-15T10:00:00.000Z",
+      "modificationTime": "2026-01-15T11:00:00.000Z"
+    }
+  ]
+}

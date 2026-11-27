@@ -1,0 +1,7 @@
+{
+  "description": "removing an unknown item still resolves to true",
+  "functionName": "remove",
+  "params": {
+    "correlationId": "missing"
+  }
+}

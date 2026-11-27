@@ -1,0 +1,7 @@
+{
+  "description": "Prio requireAuthForRead variant: GET /:id requires authentication -> 401 without credentials",
+  "requireAuthForRead": true,
+  "requests": [
+    {"method": "get", "path": "/123456789", "status": 401, "requestHeaders": {"Accept": "*/*"}}
+  ]
+}

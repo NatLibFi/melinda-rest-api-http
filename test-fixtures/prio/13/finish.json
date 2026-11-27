@@ -1,0 +1,13 @@
+{
+  "queueItemState": "ERROR",
+  "errorStatus": 409,
+  "errorMessage": "Duplicates in database",
+  "records": [
+    {
+      "databaseId": "000000000",
+      "recordStatus": "DUPLICATE",
+      "detailedRecordStatus": "DUPLICATE",
+      "message": "Duplicates in database"
+    }
+  ]
+}

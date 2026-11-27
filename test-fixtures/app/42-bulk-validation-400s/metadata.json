@@ -1,0 +1,58 @@
+{
+  "description": "Bulk validation 400s: pOldNew outside NEW/OLD -> 400 (NOTE pinned current behavior: checkQueryParams intercepts the invalid pOldNew before the service-level 'Invalid pOldNew query parameter' HttpError, so the service message is unreachable); invalid status for state update -> 400; addRecords with empty body -> 400 'No records.'; addRecords with non-array JSON -> 400; addRecord with empty body -> 400 'No record.'",
+  "passport": "kvp",
+  "dbContents": "dbContents.json",
+  "requests": [
+    {
+      "method": "post",
+      "path": "/bulk/",
+      "status": 400,
+      "requestParams": {
+        "pOldNew": "X",
+        "pActiveLibrary": "FIN10"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    },
+    {
+      "method": "put",
+      "path": "/bulk/state/00000000-0000-4000-8000-000000000000",
+      "status": 400,
+      "requestParams": {
+        "status": "BADVALUE"
+      },
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I="
+      }
+    },
+    {
+      "method": "post",
+      "path": "/bulk/records/1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
+      "status": 400,
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/bulk/records/1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
+      "status": 400,
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    },
+    {
+      "method": "post",
+      "path": "/bulk/record/1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
+      "status": 400,
+      "requestHeaders": {
+        "Authorization": "Basic Zm9vYmFyOmdvb2I=",
+        "Content-Type": "application/json"
+      }
+    }
+  ]
+}

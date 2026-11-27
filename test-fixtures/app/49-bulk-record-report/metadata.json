@@ -1,0 +1,15 @@
+{
+  "description": "Bulk query createRecordReport variants on a DONE queueItem: raw item (no report params), recordsAsReport (NOTE pinned current behavior: the report-only branch returns the item nested under a queueItem key instead of spreading its fields like the other branches - src-bugs candidate), noRecords, noIds, and the two/three-param combinations (NOTE pinned current behavior: in the report branch the returns are swapped relative to the debug logs - recordsAsReport+noRecords KEEPS handledIds/rejectedIds while all three params DROPS them, interfaces/bulk.js 293-300 - src-bugs candidate)",
+  "passport": "kvp",
+  "dbContents": "dbContents.json",
+  "requests": [
+    {"method": "get", "path": "/bulk/", "status": 200, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
+    {"method": "get", "path": "/bulk/", "status": 200, "requestParams": {"recordsAsReport": "1"}, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
+    {"method": "get", "path": "/bulk/", "status": 200, "requestParams": {"noRecords": "1"}, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
+    {"method": "get", "path": "/bulk/", "status": 200, "requestParams": {"noIds": "1"}, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
+    {"method": "get", "path": "/bulk/", "status": 200, "requestParams": {"recordsAsReport": "1", "noRecords": "1"}, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
+    {"method": "get", "path": "/bulk/", "status": 200, "requestParams": {"recordsAsReport": "1", "noIds": "1"}, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
+    {"method": "get", "path": "/bulk/", "status": 200, "requestParams": {"noRecords": "1", "noIds": "1"}, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}},
+    {"method": "get", "path": "/bulk/", "status": 200, "requestParams": {"recordsAsReport": "1", "noRecords": "1", "noIds": "1"}, "requestHeaders": {"Authorization": "Basic Zm9vYmFyOmdvb2I="}}
+  ]
+}

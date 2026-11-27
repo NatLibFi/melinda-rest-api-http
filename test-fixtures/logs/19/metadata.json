@@ -1,0 +1,6 @@
+{
+  "description": "getListOfLogs: returns correlationIds for the requested logItemType",
+  "functionName": "getListOfLogs",
+  "params": "MATCH_LOG",
+  "preFillDb": true
+}
